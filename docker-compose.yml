@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    environment:
+      PORT: "4000"
+      DATABASE_URL: "file:/app/data/dev.db"
+      USERNAME: "admin"
+      PASSWORD: "changeme"
+      NODE_ENV: "development"
+    volumes:
+      - backend-data:/app/data
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    environment:
+      VITE_PROXY_TARGET: "http://backend:4000"
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  backend-data:
+
