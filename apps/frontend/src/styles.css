@@ -311,8 +311,109 @@ button:disabled {
   margin-top: 18px;
 }
 
+.clients-layout,
+.invoices-layout,
+.receipts-layout {
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
 .panel {
   padding: 20px;
+}
+
+.card-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.invoices-grid,
+.receipts-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.entity-card {
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 20px;
+  background: rgba(2, 6, 23, 0.32);
+}
+
+.entity-card.invoice {
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(2, 6, 23, 0.32));
+}
+
+.entity-card.receipt {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.entity-card.client {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.entity-card.compact {
+  padding: 14px;
+}
+
+.entity-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.entity-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.entity-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.entity-badge {
+  flex: none;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: #bfdbfe;
+  font-size: 0.8rem;
+}
+
+.entity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.entity-note {
+  margin-top: 12px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.entity-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.tool-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.8);
 }
 
 .panel-side {
@@ -332,6 +433,132 @@ button:disabled {
 .section-header h2 {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.tool-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tool-form label {
+  display: grid;
+  gap: 6px;
+  color: #dbeafe;
+  font-size: 0.95rem;
+}
+
+.tool-result {
+  display: grid;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+.tool-result span,
+.tool-kpis span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.tool-result strong {
+  font-size: 1.6rem;
+}
+
+.tool-kpis {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.tool-kpis > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.tool-total {
+  background: rgba(22, 163, 74, 0.12);
+  border-color: rgba(22, 163, 74, 0.2);
+}
+
+.tool-actions {
+  margin-top: 18px;
+}
+
+.toggle-row {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+
+.receipt-live {
+  margin-top: 22px;
+}
+
+.receipt-preview {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px dashed rgba(148, 163, 184, 0.26);
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+}
+
+.receipt-preview.compact {
+  max-width: 280px;
+}
+
+.receipt-preview.wide {
+  max-width: 360px;
+}
+
+.receipt-preview-top {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(15, 23, 42, 0.2);
+}
+
+.receipt-lines {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.receipt-line,
+.receipt-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.92rem;
+}
+
+.receipt-totals {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(15, 23, 42, 0.2);
+}
+
+.receipt-grand-total {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.receipt-footer {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.86rem;
+  color: #475569;
 }
 
 .table-shell {
@@ -465,6 +692,19 @@ tbody tr:hover {
   .stats-grid,
   .content-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tools-grid,
+  .tool-form,
+  .clients-layout,
+  .invoices-layout,
+  .receipts-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-preview.compact,
+  .receipt-preview.wide {
+    max-width: 100%;
   }
 }
 

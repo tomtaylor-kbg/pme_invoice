@@ -1,16 +1,33 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: "facturation"
+      POSTGRES_USER: "facturation"
+      POSTGRES_PASSWORD: "facturation"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U facturation -d facturation"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
     environment:
       PORT: "4000"
-      DATABASE_URL: "file:/app/data/dev.db"
+      DATABASE_URL: "postgresql://facturation:facturation@db:5432/facturation?schema=public"
       USERNAME: "admin"
       PASSWORD: "changeme"
       NODE_ENV: "development"
-    volumes:
-      - backend-data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "4000:4000"
 
@@ -26,5 +43,4 @@ services:
       - "5173:5173"
 
 volumes:
-  backend-data:
-
+  postgres-data:

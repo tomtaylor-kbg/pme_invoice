@@ -66,6 +66,22 @@ export function deleteUser(token, id) {
   return request(`/api/users/${id}`, { token, method: "DELETE" });
 }
 
+export function getReceipts(token) {
+  return request("/api/receipts", { token });
+}
+
+export function createReceipt(token, data) {
+  return request("/api/receipts", { token, method: "POST", body: data });
+}
+
+export function updateReceipt(token, id, data) {
+  return request(`/api/receipts/${id}`, { token, method: "PATCH", body: data });
+}
+
+export function deleteReceipt(token, id) {
+  return request(`/api/receipts/${id}`, { token, method: "DELETE" });
+}
+
 export function getInvoices(token) {
   return request("/api/invoices", { token });
 }

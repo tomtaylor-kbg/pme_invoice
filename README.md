@@ -23,6 +23,8 @@ npm run db:migrate
 npm run db:seed
 ```
 
+La base de données est fournie par Docker via PostgreSQL. Lance la stack avant les commandes Prisma si tu travailles en local.
+
 3. Lancer le frontend et le backend :
 
 ```bash
@@ -31,7 +33,7 @@ npm run dev
 
 ## Docker
 
-Lancer la stack complète :
+Lancer la stack complète avec PostgreSQL, backend et frontend :
 
 ```bash
 npm run docker:up
@@ -43,16 +45,15 @@ Arrêter et supprimer les volumes :
 npm run docker:down
 ```
 
-## Identifiants de démo
+## Configuration
 
-Le backend lit les variables suivantes dans `apps/backend/.env` :
-
-- `USERNAME=admin`
-- `PASSWORD=changeme`
+Le backend lit les variables d’environnement définies dans `apps/backend/.env`.
 
 ## Routes
 
 - `/dashboard`
+- `/tools`
+- `/receipts`
 - `/invoices`
 - `/clients`
 - `/users`

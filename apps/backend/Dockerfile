@@ -2,8 +2,6 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-ENV DATABASE_URL=file:/app/data/dev.db
-
 COPY apps/backend/package.json ./package.json
 
 RUN npm install
@@ -15,4 +13,4 @@ RUN npx prisma generate
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npm start"]
+CMD ["sh", "-c", "npx prisma db push && npm start"]
