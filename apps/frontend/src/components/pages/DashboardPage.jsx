@@ -5,7 +5,7 @@ import { money } from "../../utils/formatters";
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { data, refresh, beginCreateInvoice } = useWorkspace();
+  const { data, refresh, beginCreateInvoiceWithPreset, beginCreateClient, beginCreateReceipt } = useWorkspace();
 
   const summaryCards = [
     { label: "Factures", value: data.metrics?.invoices ?? 0, detail: "Total enregistré", tone: "accent" },
@@ -36,11 +36,31 @@ export function DashboardPage() {
             className="primary-button"
             type="button"
             onClick={() => {
-              beginCreateInvoice();
+              beginCreateInvoiceWithPreset({ templateType: "professional" });
               navigate("/invoices");
             }}
           >
             Nouvelle facture
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => {
+              beginCreateClient();
+              navigate("/clients");
+            }}
+          >
+            Nouveau contact
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => {
+              beginCreateReceipt();
+              navigate("/receipts");
+            }}
+          >
+            Nouveau reçu
           </button>
         </div>
       </header>
@@ -67,14 +87,44 @@ export function DashboardPage() {
             <article>
               <strong>Créer une facture</strong>
               <p>Ouvrir le formulaire avec le prochain numéro.</p>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  beginCreateInvoiceWithPreset({ templateType: "professional" });
+                  navigate("/invoices");
+                }}
+              >
+                Ouvrir
+              </button>
             </article>
             <article>
               <strong>Créer un contact</strong>
               <p>Ajouter une personne liée à une entreprise ou non.</p>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  beginCreateClient();
+                  navigate("/clients");
+                }}
+              >
+                Ouvrir
+              </button>
             </article>
             <article>
               <strong>Créer un reçu</strong>
               <p>Préparer un modèle compact pour imprimante thermique.</p>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  beginCreateReceipt();
+                  navigate("/receipts");
+                }}
+              >
+                Ouvrir
+              </button>
             </article>
           </div>
         </div>

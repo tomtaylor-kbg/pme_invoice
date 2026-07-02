@@ -94,6 +94,7 @@ export function ToolsPage() {
               type="button"
               onClick={() => {
                 beginCreateInvoiceWithPreset({
+                  templateType: "professional",
                   prefix: numberTool.prefix,
                   issueDate: numberTool.issueDate,
                   number: nextNumber

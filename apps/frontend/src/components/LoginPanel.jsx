@@ -16,7 +16,7 @@ export function LoginPanel({ onSubmit, loading, error }) {
         </div>
 
         <h1>Connexion</h1>
-        <p>Connectez-vous avec les identifiants du backend.</p>
+        <p>Connectez-vous avec le nom ou l’email du compte utilisateur.</p>
 
         <form
           className="login-form"

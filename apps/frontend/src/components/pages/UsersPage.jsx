@@ -1,15 +1,8 @@
-import { useEffect } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
-import { SectionHeader, Table } from "../ui";
+import { OverlayDialog, SectionHeader, Table } from "../ui";
 
 export function UsersPage() {
-  const { data, forms, setForms, editor, beginCreateUser, beginEditUser, saveUser, removeUser, loading } = useWorkspace();
-
-  useEffect(() => {
-    if (editor.kind !== "user") {
-      beginCreateUser();
-    }
-  }, [beginCreateUser, editor.kind]);
+  const { data, forms, setForms, editor, beginCreateUser, beginEditUser, saveUser, removeUser, loading, closeEditor } = useWorkspace();
 
   const rows = data.users.map((item) => [
     item.name,
@@ -47,62 +40,68 @@ export function UsersPage() {
           <SectionHeader title="Liste utilisateurs" action="Comptes connectés à l’instance interne." />
           <Table columns={["Nom", "Email", "Rôle", "Actions"]} rows={rows} />
         </div>
-
-        <div className="panel panel-side">
-          <SectionHeader title={isEditing ? "Modifier utilisateur" : "Créer utilisateur"} action="Définir l’identité et les droits." />
-          <form className="stack-form" onSubmit={(event) => { event.preventDefault(); saveUser(); }}>
-            <label>
-              Nom
-              <input
-                value={forms.user.name}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  user: { ...current.user, name: event.target.value }
-                }))}
-              />
-            </label>
-            <label>
-              Email
-              <input
-                type="email"
-                value={forms.user.email}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  user: { ...current.user, email: event.target.value }
-                }))}
-              />
-            </label>
-            <label>
-              Rôle
-              <select
-                value={forms.user.role}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  user: { ...current.user, role: event.target.value }
-                }))}
-              >
-                <option value="user">Utilisateur</option>
-                <option value="admin">Administrateur</option>
-                <option value="finance">Finance</option>
-                <option value="sales">Ventes</option>
-              </select>
-            </label>
-            <label>
-              Mot de passe
-              <input
-                value={forms.user.passwordHash}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  user: { ...current.user, passwordHash: event.target.value }
-                }))}
-              />
-            </label>
-            <button className="primary-button" type="submit" disabled={loading}>
-              {isEditing ? "Enregistrer" : "Créer utilisateur"}
-            </button>
-          </form>
-        </div>
       </section>
+
+      <OverlayDialog
+        open={editor.kind === "user"}
+        title={isEditing ? "Modifier utilisateur" : "Créer utilisateur"}
+        description="Définir l’identité et les droits."
+        onClose={closeEditor}
+        footer={
+          <button className="primary-button" type="submit" form="user-form" disabled={loading}>
+            {isEditing ? "Enregistrer" : "Créer utilisateur"}
+          </button>
+        }
+      >
+        <form id="user-form" className="stack-form" onSubmit={(event) => { event.preventDefault(); saveUser(); }}>
+          <label>
+            Nom
+            <input
+              value={forms.user.name}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                user: { ...current.user, name: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Email
+            <input
+              type="email"
+              value={forms.user.email}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                user: { ...current.user, email: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Rôle
+            <select
+              value={forms.user.role}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                user: { ...current.user, role: event.target.value }
+              }))}
+            >
+              <option value="user">Utilisateur</option>
+              <option value="admin">Administrateur</option>
+              <option value="finance">Finance</option>
+              <option value="sales">Ventes</option>
+            </select>
+          </label>
+          <label>
+            Mot de passe
+            <input
+              value={forms.user.passwordHash}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                user: { ...current.user, passwordHash: event.target.value }
+              }))}
+            />
+          </label>
+        </form>
+      </OverlayDialog>
     </>
   );
 }

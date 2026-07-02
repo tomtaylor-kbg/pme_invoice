@@ -9,6 +9,7 @@ function serializeInvoice(invoice) {
     lines: (invoice.lines || []).map((line) => ({
       ...line,
       unitPrice: Number(line.unitPrice),
+      lineTotal: Number(line.unitPrice) * Number(line.quantity || 0),
       createdAt: line.createdAt.toISOString(),
       updatedAt: line.updatedAt.toISOString()
     }))

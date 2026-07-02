@@ -1,28 +1,25 @@
 const express = require("express");
 
-function createAuthRouter({ createToken, requireAuth }) {
+function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSession }) {
   const router = express.Router();
 
   router.post("/login", async (req, res) => {
     const { username, password } = req.body || {};
-    if (username === process.env.USERNAME && password === process.env.PASSWORD) {
-      return res.json({
-        token: createToken(),
-        user: {
-          username,
-          role: "admin"
-        }
-      });
+    const result = await loginWithCredentials(prisma, username, password);
+    if (result) {
+      return res.json(result);
     }
 
     return res.status(401).json({ message: "Invalid credentials" });
   });
 
-  router.get("/me", requireAuth, (_req, res) => {
-    res.json({
-      username: process.env.USERNAME,
-      role: "admin"
-    });
+  router.get("/me", requireAuth, (req, res) => {
+    res.json(req.user);
+  });
+
+  router.post("/logout", requireAuth, (req, res) => {
+    revokeSession(req.authToken);
+    res.status(204).send();
   });
 
   return router;

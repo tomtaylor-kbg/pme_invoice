@@ -4,13 +4,35 @@ const prisma = new PrismaClient();
 
 async function main() {
   const user = await prisma.user.upsert({
-    where: { email: "admin@example.com" },
+    where: { email: "admin@facturation.local" },
     update: {},
     create: {
-      name: "Admin Interne",
-      email: "admin@example.com",
+      name: "admin",
+      email: "admin@facturation.local",
       role: "admin",
-      passwordHash: "bootstrap"
+      passwordHash: "changeme"
+    }
+  });
+
+  await prisma.user.upsert({
+    where: { email: "finance@facturation.local" },
+    update: {},
+    create: {
+      name: "finance",
+      email: "finance@facturation.local",
+      role: "finance",
+      passwordHash: "changeme"
+    }
+  });
+
+  await prisma.user.upsert({
+    where: { email: "sales@facturation.local" },
+    update: {},
+    create: {
+      name: "sales",
+      email: "sales@facturation.local",
+      role: "sales",
+      passwordHash: "changeme"
     }
   });
 
@@ -47,6 +69,7 @@ async function main() {
     update: {
       clientId: client.id,
       userId: user.id,
+      templateType: "professional",
       status: "paid",
       currency: "EUR",
       issueDate: new Date("2026-06-12T00:00:00.000Z"),
@@ -58,6 +81,7 @@ async function main() {
       number: "FAC-2026-0001",
       clientId: client.id,
       userId: user.id,
+      templateType: "professional",
       status: "paid",
       currency: "EUR",
       issueDate: new Date("2026-06-12T00:00:00.000Z"),
@@ -84,6 +108,48 @@ async function main() {
         description: "Support prioritaire",
         quantity: 1,
         unitPrice: 550
+      }
+    ]
+  });
+
+  const receiptInvoice = await prisma.invoice.upsert({
+    where: { number: "REC-2026-0001" },
+    update: {
+      clientId: client.id,
+      userId: user.id,
+      templateType: "receipt",
+      status: "sent",
+      currency: "EUR",
+      issueDate: new Date("2026-06-18T00:00:00.000Z"),
+      dueDate: new Date("2026-06-18T00:00:00.000Z"),
+      total: 260,
+      notes: "Reçu destiné au service direct"
+    },
+    create: {
+      number: "REC-2026-0001",
+      clientId: client.id,
+      userId: user.id,
+      templateType: "receipt",
+      status: "sent",
+      currency: "EUR",
+      issueDate: new Date("2026-06-18T00:00:00.000Z"),
+      dueDate: new Date("2026-06-18T00:00:00.000Z"),
+      total: 260,
+      notes: "Reçu destiné au service direct"
+    }
+  });
+
+  await prisma.invoiceLine.deleteMany({
+    where: { invoiceId: receiptInvoice.id }
+  });
+
+  await prisma.invoiceLine.createMany({
+    data: [
+      {
+        invoiceId: receiptInvoice.id,
+        description: "Paiement service direct",
+        quantity: 1,
+        unitPrice: 260
       }
     ]
   });

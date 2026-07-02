@@ -1,4 +1,5 @@
-import { slug, money, formatDate, personLabel, receiptWidthLabel, receiptTone, statusToLabel } from "../utils/formatters";
+import { useEffect, useRef } from "react";
+import { slug, money, formatDate, personLabel, receiptWidthLabel, receiptTone, statusToLabel, invoiceTemplateLabel } from "../utils/formatters";
 
 export function Badge({ value }) {
   return <span className={`badge ${slug(value)}`}>{value}</span>;
@@ -26,6 +27,57 @@ export function SectionHeader({ title, action, buttonLabel, onButtonClick }) {
           {buttonLabel}
         </button>
       ) : null}
+    </div>
+  );
+}
+
+export function OverlayDialog({ title, description, open, onClose, children, footer }) {
+  const bodyRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const frame = window.requestAnimationFrame(() => {
+      const focusable = bodyRef.current?.querySelector("input, select, textarea, button");
+      if (focusable && typeof focusable.focus === "function") {
+        focusable.focus();
+      }
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="overlay-backdrop" role="presentation" onMouseDown={onClose}>
+      <div
+        className="overlay-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="overlay-title"
+        aria-describedby={description ? "overlay-description" : undefined}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="overlay-head">
+          <div>
+            <h2 id="overlay-title">{title}</h2>
+            {description ? (
+              <p id="overlay-description">{description}</p>
+            ) : null}
+          </div>
+          <button type="button" className="ghost-button" onClick={onClose}>
+            Fermer
+          </button>
+        </div>
+
+        <div className="overlay-body" ref={bodyRef}>{children}</div>
+
+        {footer ? <div className="overlay-footer">{footer}</div> : null}
+      </div>
     </div>
   );
 }
@@ -92,9 +144,10 @@ export function InvoiceCard({ invoice, onEdit, onDelete, loading, tone = "invoic
     <EntityCard
       title={invoice.number}
       subtitle={personLabel(invoice.client) || invoice.client?.displayName || invoice.client?.company || "-"}
-      badge={statusToLabel(invoice.status)}
+      badge={`${invoiceTemplateLabel(invoice.templateType)} · ${statusToLabel(invoice.status)}`}
       meta={
         <>
+          <span>Créée par {invoice.creator?.name || invoice.creator?.email || "session courante"}</span>
           <span>{money(invoice.total)}</span>
           <span>{formatDate(invoice.dueDate)}</span>
         </>

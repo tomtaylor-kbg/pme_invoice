@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useWorkspace } from "./WorkspaceProvider";
 
 export const navItems = [
@@ -11,8 +11,9 @@ export const navItems = [
 ];
 
 export function AppLayout() {
-  const { user, logout, loading, error } = useWorkspace();
-  const location = useLocation();
+  const { user, logout } = useWorkspace();
+  const displayName = user?.name?.trim() || user?.email?.trim() || "Utilisateur connecté";
+  const displayRole = user?.role || "user";
 
   return (
     <div className="app-shell">
@@ -21,7 +22,7 @@ export function AppLayout() {
           <span className="brand-mark" />
           <div>
             <strong>Facturation Interne</strong>
-            <p>{user ? `${user.username} · ${user.role}` : "Session active"}</p>
+            <p>{user ? `${displayName} · ${displayRole}` : "Session active"}</p>
           </div>
         </div>
 
@@ -39,18 +40,9 @@ export function AppLayout() {
         </nav>
 
         <div className="sidebar-note">
-          <span>Données synchronisées</span>
-          <strong>Prisma + Express</strong>
-          <p>Les données affichées proviennent de l’API locale et sont persistées en base.</p>
           <button className="ghost-button" type="button" onClick={logout}>
             Déconnexion
           </button>
-        </div>
-
-        <div className="sidebar-meta">
-          <span>{location.pathname}</span>
-          {loading ? <strong>Chargement...</strong> : <strong>Prêt</strong>}
-          {error ? <p>{error}</p> : null}
         </div>
       </aside>
 

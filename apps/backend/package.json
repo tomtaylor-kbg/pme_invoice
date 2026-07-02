@@ -8,7 +8,7 @@
     "build": "node -e \"console.log('Backend build: no transpilation needed')\"",
     "lint": "node --check src/server.js",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "node prisma/seed.js"
   },
   "dependencies": {

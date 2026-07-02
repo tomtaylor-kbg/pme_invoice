@@ -15,12 +15,21 @@ import {
   getReceipts,
   getUsers,
   login,
+  logout as apiLogout,
   updateClient,
   updateInvoice,
   updateReceipt,
   updateUser
 } from "../api";
-import { todayISO, suggestInvoiceNumber } from "../utils/formatters";
+import {
+  todayISO,
+  suggestInvoiceNumber,
+  invoicePrefixForType,
+  createInvoiceLineDraft,
+  normalizeInvoiceLine,
+  invoiceLinesTotal,
+  toMoneyValue
+} from "../utils/formatters";
 
 const STORAGE_KEY = "facturation_token";
 
@@ -34,12 +43,13 @@ function emptyForms() {
       number: "",
       clientId: "",
       userId: "",
+      templateType: "professional",
       status: "draft",
       currency: "EUR",
       issueDate: todayISO(),
       dueDate: todayISO(),
-      total: "",
-      notes: ""
+      notes: "",
+      lines: [createInvoiceLineDraft()]
     },
     receipt: {
       name: "",
@@ -56,15 +66,18 @@ function emptyForms() {
 
 function createInvoiceDraft(invoices, clients, users, overrides = {}) {
   const issueDate = overrides.issueDate || todayISO();
-  return {
-    ...emptyForms().invoice,
-    number: overrides.number || suggestInvoiceNumber(invoices, overrides.prefix || "FAC", issueDate),
-    clientId: overrides.clientId || clients[0]?.id || "",
-    userId: overrides.userId || users[0]?.id || "",
-    issueDate,
-    dueDate: overrides.dueDate || issueDate
-  };
-}
+  const templateType = overrides.templateType || "professional";
+    return {
+      ...emptyForms().invoice,
+      templateType,
+      number: overrides.number || suggestInvoiceNumber(invoices, overrides.prefix || invoicePrefixForType(templateType), issueDate),
+      clientId: overrides.clientId || clients[0]?.id || "",
+      userId: overrides.userId || users[0]?.id || "",
+      lines: overrides.lines || [createInvoiceLineDraft()],
+      issueDate,
+      dueDate: overrides.dueDate || issueDate
+    };
+  }
 
 function createReceiptDraft(overrides = {}) {
   return {
@@ -123,7 +136,8 @@ export function WorkspaceProvider({ children }) {
         invoice: {
           ...current.invoice,
           clientId: current.invoice.clientId || clients[0]?.id || "",
-          userId: current.invoice.userId || users[0]?.id || "",
+          userId: current.invoice.userId || me?.id || users[0]?.id || "",
+          templateType: current.invoice.templateType || "professional",
           issueDate: current.invoice.issueDate || todayISO(),
           dueDate: current.invoice.dueDate || todayISO()
         }
@@ -146,6 +160,10 @@ export function WorkspaceProvider({ children }) {
 
   const actions = useMemo(() => {
     function logout() {
+      const currentToken = token;
+      if (currentToken) {
+        apiLogout(currentToken).catch(() => {});
+      }
       localStorage.removeItem(STORAGE_KEY);
       setToken("");
       setUser(null);
@@ -213,7 +231,9 @@ export function WorkspaceProvider({ children }) {
       setEditor({ kind: "invoice", id: null });
       setForms((current) => ({
         ...current,
-        invoice: createInvoiceDraft(data.invoices, data.clients, data.users)
+        invoice: createInvoiceDraft(data.invoices, data.clients, data.users, {
+          userId: user?.id || data.users[0]?.id || ""
+        })
       }));
     }
 
@@ -221,7 +241,10 @@ export function WorkspaceProvider({ children }) {
       setEditor({ kind: "invoice", id: null });
       setForms((current) => ({
         ...current,
-        invoice: createInvoiceDraft(data.invoices, data.clients, data.users, overrides)
+        invoice: createInvoiceDraft(data.invoices, data.clients, data.users, {
+          ...overrides,
+          userId: overrides.userId || user?.id || data.users[0]?.id || ""
+        })
       }));
     }
 
@@ -258,12 +281,13 @@ export function WorkspaceProvider({ children }) {
           number: item.number || "",
           clientId: item.clientId || item.client?.id || "",
           userId: item.userId || item.creator?.id || "",
+          templateType: item.templateType || "professional",
           status: item.status || "draft",
           currency: item.currency || "EUR",
           issueDate: item.issueDate ? item.issueDate.slice(0, 10) : todayISO(),
           dueDate: item.dueDate ? item.dueDate.slice(0, 10) : todayISO(),
-          total: String(item.total ?? ""),
-          notes: item.notes || ""
+          notes: item.notes || "",
+          lines: (item.lines?.length ? item.lines : [createInvoiceLineDraft()]).map((line) => normalizeInvoiceLine(line))
         }
       }));
     }
@@ -285,7 +309,7 @@ export function WorkspaceProvider({ children }) {
           await createClient(token, payload);
         }
         await refresh();
-        beginCreateClient();
+        setEditor({ kind: null, id: null });
       } catch (err) {
         setError(normalizeError(err));
       } finally {
@@ -309,7 +333,7 @@ export function WorkspaceProvider({ children }) {
           await createReceipt(token, payload);
         }
         await refresh();
-        beginCreateReceipt();
+        setEditor({ kind: null, id: null });
       } catch (err) {
         setError(normalizeError(err));
       } finally {
@@ -335,7 +359,7 @@ export function WorkspaceProvider({ children }) {
           });
         }
         await refresh();
-        beginCreateUser();
+        setEditor({ kind: null, id: null });
       } catch (err) {
         setError(normalizeError(err));
       } finally {
@@ -347,26 +371,27 @@ export function WorkspaceProvider({ children }) {
       setLoading(true);
       setError("");
       try {
+        const lines = (forms.invoice.lines || [])
+          .map((line) => ({
+            description: String(line.description || "").trim(),
+            quantity: toMoneyValue(line.quantity),
+            unitPrice: toMoneyValue(line.unitPrice)
+          }))
+          .filter((line) => line.description);
+
         const payload = {
           ...forms.invoice,
-          total: Number(forms.invoice.total || 0)
+          userId: forms.invoice.userId || user?.id || "",
+          total: invoiceLinesTotal(lines),
+          lines
         };
         if (editor.kind === "invoice" && editor.id) {
           await updateInvoice(token, editor.id, payload);
         } else {
-          await createInvoice(token, {
-            ...payload,
-            lines: [
-              {
-                description: "Prestation interne",
-                quantity: 1,
-                unitPrice: Number(forms.invoice.total || 0)
-              }
-            ]
-          });
+          await createInvoice(token, payload);
         }
         await refresh();
-        beginCreateInvoice();
+        setEditor({ kind: null, id: null });
       } catch (err) {
         setError(normalizeError(err));
       } finally {
@@ -437,6 +462,7 @@ export function WorkspaceProvider({ children }) {
       setForms,
       authenticate,
       logout,
+      closeEditor: () => setEditor({ kind: null, id: null }),
       refresh,
       beginCreateClient,
       beginEditClient,

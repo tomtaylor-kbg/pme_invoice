@@ -1,15 +1,8 @@
-import { useEffect } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
-import { ClientCard, SectionHeader } from "../ui";
+import { ClientCard, OverlayDialog, SectionHeader } from "../ui";
 
 export function ClientsPage() {
-  const { data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading } = useWorkspace();
-
-  useEffect(() => {
-    if (editor.kind !== "client") {
-      beginCreateClient();
-    }
-  }, [beginCreateClient, editor.kind]);
+  const { data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor } = useWorkspace();
 
   const isEditing = editor.kind === "client" && Boolean(editor.id);
 
@@ -43,90 +36,96 @@ export function ClientsPage() {
             ))}
           </div>
         </div>
-
-        <div className="panel panel-side">
-          <SectionHeader title={isEditing ? "Modifier contact" : "Créer contact"} action="Saisie courte et orientée personne." />
-          <form className="stack-form" onSubmit={(event) => { event.preventDefault(); saveClient(); }}>
-            <label>
-              Prénom
-              <input
-                value={forms.client.firstName}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  client: { ...current.client, firstName: event.target.value }
-                }))}
-              />
-            </label>
-            <label>
-              Nom
-              <input
-                value={forms.client.lastName}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  client: { ...current.client, lastName: event.target.value }
-                }))}
-              />
-            </label>
-            <label>
-              Société
-              <input
-                value={forms.client.company}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  client: { ...current.client, company: event.target.value }
-                }))}
-              />
-            </label>
-            <label>
-              Email
-              <input
-                type="email"
-                value={forms.client.email}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  client: { ...current.client, email: event.target.value }
-                }))}
-              />
-            </label>
-            <label>
-              Ville
-              <input
-                value={forms.client.city}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  client: { ...current.client, city: event.target.value }
-                }))}
-              />
-            </label>
-            <label>
-              Téléphone
-              <input
-                value={forms.client.phone}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  client: { ...current.client, phone: event.target.value }
-                }))}
-              />
-            </label>
-            <label>
-              Statut
-              <select
-                value={forms.client.status}
-                onChange={(event) => setForms((current) => ({
-                  ...current,
-                  client: { ...current.client, status: event.target.value }
-                }))}
-              >
-                <option value="active">Actif</option>
-                <option value="inactive">Inactif</option>
-              </select>
-            </label>
-            <button className="primary-button" type="submit" disabled={loading}>
-              {isEditing ? "Enregistrer" : "Créer contact"}
-            </button>
-          </form>
-        </div>
       </section>
+
+      <OverlayDialog
+        open={editor.kind === "client"}
+        title={isEditing ? "Modifier contact" : "Créer contact"}
+        description="Saisie courte et orientée personne."
+        onClose={closeEditor}
+        footer={
+          <button className="primary-button" type="submit" form="client-form" disabled={loading}>
+            {isEditing ? "Enregistrer" : "Créer contact"}
+          </button>
+        }
+      >
+        <form id="client-form" className="stack-form" onSubmit={(event) => { event.preventDefault(); saveClient(); }}>
+          <label>
+            Prénom
+            <input
+              value={forms.client.firstName}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                client: { ...current.client, firstName: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Nom
+            <input
+              value={forms.client.lastName}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                client: { ...current.client, lastName: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Société
+            <input
+              value={forms.client.company}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                client: { ...current.client, company: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Email
+            <input
+              type="email"
+              value={forms.client.email}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                client: { ...current.client, email: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Ville
+            <input
+              value={forms.client.city}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                client: { ...current.client, city: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Téléphone
+            <input
+              value={forms.client.phone}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                client: { ...current.client, phone: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Statut
+            <select
+              value={forms.client.status}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                client: { ...current.client, status: event.target.value }
+              }))}
+            >
+              <option value="active">Actif</option>
+              <option value="inactive">Inactif</option>
+            </select>
+          </label>
+        </form>
+      </OverlayDialog>
     </>
   );
 }

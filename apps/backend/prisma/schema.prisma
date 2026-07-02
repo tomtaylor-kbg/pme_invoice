@@ -51,6 +51,7 @@ model Invoice {
   number      String        @unique
   clientId    String
   userId      String?
+  templateType String       @default("professional")
   status      String        @default("draft")
   currency    String        @default("EUR")
   issueDate   DateTime

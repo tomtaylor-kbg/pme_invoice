@@ -26,6 +26,10 @@ export function login(username, password) {
   });
 }
 
+export function logout(token) {
+  return request("/api/auth/logout", { token, method: "POST" });
+}
+
 export function getMe(token) {
   return request("/api/me", { token });
 }

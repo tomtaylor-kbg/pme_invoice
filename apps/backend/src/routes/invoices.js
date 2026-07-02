@@ -19,7 +19,12 @@ function createInvoicesRouter({ prisma, requireAuth }) {
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
-      res.status(201).json(await createInvoice(prisma, req.body || {}));
+      res.status(201).json(
+        await createInvoice(prisma, {
+          ...req.body,
+          userId: req.user?.id
+        })
+      );
     } catch (error) {
       next(error);
     }

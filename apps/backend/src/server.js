@@ -3,12 +3,13 @@ require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const { prisma } = require("./prisma");
-const { createToken, requireAuth } = require("./auth");
+const { loginWithCredentials, attachUser, revokeSession } = require("./auth");
 const { errorHandler } = require("./middleware/errorHandler");
 const { registerRoutes } = require("./routes");
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
+const requireAuth = attachUser(prisma);
 
 app.use(cors());
 app.use(express.json());
@@ -17,7 +18,7 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "backend" });
 });
 
-registerRoutes(app, { prisma, createToken, requireAuth });
+registerRoutes(app, { prisma, loginWithCredentials, requireAuth, revokeSession });
 
 app.use(errorHandler);
 
