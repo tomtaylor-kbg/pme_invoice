@@ -31,16 +31,6 @@ export function SectionHeader({ title, action, buttonLabel, onButtonClick }) {
   );
 }
 
-function invoiceTemplateCompactLabel(value) {
-  switch (value) {
-    case "receipt":
-      return "Receipt";
-    case "professional":
-    default:
-      return "Pro";
-  }
-}
-
 export function OverlayDialog({ title, description, open, onClose, children, footer }) {
   const bodyRef = useRef(null);
 
@@ -151,22 +141,35 @@ export function InvoiceCard({ invoice, onEdit, onDelete, loading, tone = "invoic
   ) : null;
 
   return (
-    <EntityCard
-      title={invoice.number}
-      subtitle={personLabel(invoice.client) || invoice.client?.displayName || invoice.client?.company || "-"}
-      badge={`${invoiceTemplateCompactLabel(invoice.templateType)} · ${statusToLabel(invoice.status)}`}
-      meta={
-        <>
-          <span>Créée par {invoice.creator?.name || invoice.creator?.email || "session courante"}</span>
-          <span>{money(invoice.total, invoice.currency)}</span>
-          <span>{formatDate(invoice.dueDate)}</span>
-        </>
-      }
-      actions={actions}
-      tone={tone}
-    >
+    <article className={`entity-card invoice ${tone}`}>
+      <div className="entity-card-head invoice-card-head">
+        <div className="invoice-card-title">
+          <h3>{invoice.number}</h3>
+          <p>{personLabel(invoice.client) || invoice.client?.displayName || invoice.client?.company || "-"}</p>
+          <span>{invoiceTemplateLabel(invoice.templateType)}</span>
+        </div>
+        <span className="entity-badge">{statusToLabel(invoice.status)}</span>
+      </div>
+
+      <div className="invoice-card-summary">
+        <div>
+          <span>Créée par</span>
+          <strong>{invoice.creator?.name || invoice.creator?.email || "session courante"}</strong>
+        </div>
+        <div>
+          <span>Montant</span>
+          <strong>{money(invoice.total, invoice.currency)}</strong>
+        </div>
+        <div>
+          <span>Échéance</span>
+          <strong>{formatDate(invoice.dueDate)}</strong>
+        </div>
+      </div>
+
       <p className="entity-note">{invoice.notes || "Aucune note."}</p>
-    </EntityCard>
+
+      {actions ? <div className="entity-actions">{actions}</div> : null}
+    </article>
   );
 }
 
