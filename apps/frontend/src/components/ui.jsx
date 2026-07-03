@@ -148,7 +148,7 @@ export function InvoiceCard({ invoice, onEdit, onDelete, loading, tone = "invoic
       meta={
         <>
           <span>Créée par {invoice.creator?.name || invoice.creator?.email || "session courante"}</span>
-          <span>{money(invoice.total)}</span>
+          <span>{money(invoice.total, invoice.currency)}</span>
           <span>{formatDate(invoice.dueDate)}</span>
         </>
       }

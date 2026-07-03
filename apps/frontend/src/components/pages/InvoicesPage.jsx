@@ -29,6 +29,7 @@ export function InvoicesPage() {
   const taxRateVal = Number(forms.invoice.taxRate || 20);
   const taxAmountVal = invoiceTotalHT * (taxRateVal / 100);
   const invoiceTotalTTC = invoiceTotalHT + taxAmountVal;
+  const selectedCurrency = forms.invoice.currency || "EUR";
 
   const selectedClient = data.clients.find((client) => client.id === forms.invoice.clientId) || null;
   const selectedCreator = data.users.find((item) => item.id === forms.invoice.userId) || user || null;
@@ -450,7 +451,7 @@ export function InvoicesPage() {
                         placeholder="0.00"
                       />
                     </label>
-                    <strong className="invoice-line-total">{money(lineTotal)}</strong>
+                    <strong className="invoice-line-total">{money(lineTotal, selectedCurrency)}</strong>
                     <button className="ghost-button invoice-line-remove" type="button" onClick={() => removeInvoiceLine(index)}>
                       Supprimer
                     </button>
@@ -461,11 +462,11 @@ export function InvoicesPage() {
 
             <div className="invoice-lines-summary" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px 24px", width: "100%", maxWidth: "320px", marginLeft: "auto", borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
               <span>Total HT</span>
-              <strong style={{ textAlign: "right" }}>{money(invoiceTotalHT)}</strong>
+              <strong style={{ textAlign: "right" }}>{money(invoiceTotalHT, selectedCurrency)}</strong>
               <span>TVA ({taxRateVal}%)</span>
-              <strong style={{ textAlign: "right" }}>{money(taxAmountVal)}</strong>
+              <strong style={{ textAlign: "right" }}>{money(taxAmountVal, selectedCurrency)}</strong>
               <span style={{ fontSize: "1.1em", fontWeight: "bold" }}>Total TTC</span>
-              <strong style={{ fontSize: "1.1em", fontWeight: "bold", textAlign: "right" }}>{money(invoiceTotalTTC)}</strong>
+              <strong style={{ fontSize: "1.1em", fontWeight: "bold", textAlign: "right" }}>{money(invoiceTotalTTC, selectedCurrency)}</strong>
             </div>
           </div>
           <label>
