@@ -193,6 +193,132 @@ export function invoicePrefixForType(value) {
   return value === "receipt" ? "REC" : "FAC";
 }
 
+export function csvCell(value) {
+  const text = String(value ?? "");
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+export function buildCsv(rows = [], headers = []) {
+  const lines = [];
+  if (headers.length) {
+    lines.push(headers.map(csvCell).join(","));
+  }
+  rows.forEach((row) => {
+    lines.push(row.map(csvCell).join(","));
+  });
+  return lines.join("\n");
+}
+
+export function buildInvoicesCsv(invoices = []) {
+  return buildCsv(
+    invoices.map((invoice) => [
+      invoice.number,
+      [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ").trim() || invoice.client?.company || "",
+      invoice.client?.company || "",
+      invoice.creator?.name || invoice.creator?.email || "",
+      invoice.templateType || "",
+      invoice.status || "",
+      invoice.currency || "EUR",
+      formatISODate(invoice.issueDate),
+      formatISODate(invoice.dueDate),
+      invoice.total ?? 0,
+      invoice.taxRate ?? 20,
+      invoice.notes || ""
+    ]),
+    ["Numéro", "Client", "Société", "Créée par", "Modèle", "Statut", "Devise", "Date d'émission", "Échéance", "Total TTC", "TVA %", "Notes"]
+  );
+}
+
+export function buildClientsCsv(clients = []) {
+  return buildCsv(
+    clients.map((client) => [
+      client.firstName || "",
+      client.lastName || "",
+      client.company || "",
+      client.email || "",
+      client.phone || "",
+      client.city || "",
+      client.status || "active",
+      client.invoicesCount ?? 0
+    ]),
+    ["Prénom", "Nom", "Société", "Email", "Téléphone", "Ville", "Statut", "Factures liées"]
+  );
+}
+
+export function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mimeType });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+}
+
+export function formatMonthKey(date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function monthLabel(value) {
+  const [year, month] = String(value || "").split("-").map(Number);
+  if (!year || !month) {
+    return value || "";
+  }
+  return new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric", timeZone: "UTC" }).format(
+    new Date(Date.UTC(year, month - 1, 1))
+  );
+}
+
+export function buildMonthlyRevenueSeries(invoices = [], months = 12) {
+  const now = new Date();
+  const keys = [];
+
+  for (let index = months - 1; index >= 0; index -= 1) {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - index, 1));
+    keys.push(formatMonthKey(date));
+  }
+
+  const totals = new Map(keys.map((key) => [key, 0]));
+
+  invoices.forEach((invoice) => {
+    const date = new Date(invoice.issueDate || invoice.createdAt || Date.now());
+    if (Number.isNaN(date.getTime())) {
+      return;
+    }
+    const key = formatMonthKey(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)));
+    if (totals.has(key)) {
+      totals.set(key, totals.get(key) + Number(invoice.total || 0));
+    }
+  });
+
+  return keys.map((key) => ({
+    key,
+    label: monthLabel(key),
+    value: totals.get(key) || 0
+  }));
+}
+
+export function buildClientPerformanceSeries(invoices = [], limit = 5) {
+  const totals = new Map();
+
+  invoices.forEach((invoice) => {
+    const key = invoice.client?.id || invoice.clientId || "unknown";
+    const label = [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ").trim() || invoice.client?.company || "Client";
+    const current = totals.get(key) || { key, label, value: 0 };
+    current.value += Number(invoice.total || 0);
+    totals.set(key, current);
+  });
+
+  return Array.from(totals.values())
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
 export function buildInvoicePdfFilename({ invoice, client }) {
   const number = String(invoice?.number || "facture").trim();
   const clientLabel = [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim() || client?.company || "";

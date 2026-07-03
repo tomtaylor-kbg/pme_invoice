@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
 import { ClientCard, OverlayDialog, SectionHeader } from "../ui";
+import { buildClientsCsv, downloadTextFile } from "../../utils/formatters";
 
 export function ClientsPage() {
   const { data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor } = useWorkspace();
@@ -26,6 +27,11 @@ export function ClientsPage() {
     return true;
   });
 
+  function exportClientsCsv() {
+    const filename = `clients-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadTextFile(filename, buildClientsCsv(filteredClients), "text/csv;charset=utf-8");
+  }
+
   return (
     <>
       <header className="hero">
@@ -37,6 +43,9 @@ export function ClientsPage() {
         <div className="hero-actions">
           <button className="secondary-button" type="button" onClick={beginCreateClient}>
             Nouveau contact
+          </button>
+          <button className="secondary-button" type="button" onClick={exportClientsCsv}>
+            Export CSV
           </button>
         </div>
       </header>

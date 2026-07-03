@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "../WorkspaceProvider";
 import { InvoiceCard, SectionHeader, StatCard } from "../ui";
-import { money } from "../../utils/formatters";
+import { buildClientPerformanceSeries, buildMonthlyRevenueSeries, money } from "../../utils/formatters";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -16,6 +16,9 @@ export function DashboardPage() {
     { label: "CA", value: money(data.metrics?.turnover ?? 0), detail: "Somme des factures", tone: "success" }
   ];
 
+  const monthlySeries = buildMonthlyRevenueSeries(data.invoices, 12);
+  const topClients = buildClientPerformanceSeries(data.invoices, 5);
+  const maxMonthlyValue = Math.max(...monthlySeries.map((point) => point.value), 1);
   const recent = data.recentInvoices.length ? data.recentInvoices : data.invoices.slice(0, 5);
 
   return (
@@ -70,6 +73,59 @@ export function DashboardPage() {
         {summaryCards.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
+      </section>
+
+      <section className="content-grid dashboard-analytics">
+        <div className="panel">
+          <SectionHeader title="Revenu mensuel" action="Évolution du chiffre d'affaires sur les 12 derniers mois." />
+          <div className="analytics-chart">
+            <div className="analytics-chart-bars">
+              {monthlySeries.map((point) => {
+                const height = Math.max((point.value / maxMonthlyValue) * 100, 4);
+
+                return (
+                  <div className="analytics-bar" key={point.key}>
+                    <div className="analytics-bar-track">
+                      <span style={{ height: `${height}%` }} />
+                    </div>
+                    <strong>{money(point.value)}</strong>
+                    <span>{point.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="panel">
+          <SectionHeader title="Performance client" action="Les clients qui génèrent le plus de revenus." />
+          <div className="performance-list">
+            {topClients.length > 0 ? (
+              topClients.map((client, index) => {
+                const total = topClients[0]?.value || 1;
+                const width = Math.max((client.value / total) * 100, 6);
+
+                return (
+                  <article className="performance-row" key={client.key}>
+                    <div className="performance-row-head">
+                      <span className="performance-rank">{index + 1}</span>
+                      <div>
+                        <strong>{client.label}</strong>
+                        <p>Revenus cumulés sur les factures enregistrées.</p>
+                      </div>
+                      <strong>{money(client.value)}</strong>
+                    </div>
+                    <div className="performance-meter">
+                      <span style={{ width: `${width}%` }} />
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="empty-state">Aucune donnée client disponible pour le moment.</div>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="content-grid">

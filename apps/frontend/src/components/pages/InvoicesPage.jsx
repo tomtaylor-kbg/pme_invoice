@@ -5,10 +5,12 @@ import {
   createInvoiceLineDraft,
   buildInvoicePrintHtml,
   buildInvoicePdfFilename,
+  buildInvoicesCsv,
   invoiceLinesTotal,
   invoicePrefixForType,
   invoiceTemplateAudience,
   invoiceTemplateLabel,
+  downloadTextFile,
   money,
   suggestInvoiceNumber,
   toMoneyValue
@@ -50,6 +52,11 @@ export function InvoicesPage() {
     }
     return true;
   });
+
+  function exportInvoicesCsv() {
+    const filename = `factures-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadTextFile(filename, buildInvoicesCsv(filteredInvoices), "text/csv;charset=utf-8");
+  }
 
   function updateInvoiceLine(index, field, value) {
     setForms((current) => ({
@@ -182,6 +189,9 @@ export function InvoicesPage() {
           </button>
           <button className="secondary-button" type="button" onClick={() => beginCreateInvoiceWithPreset({ templateType: "receipt" })}>
             Reçu direct
+          </button>
+          <button className="secondary-button" type="button" onClick={exportInvoicesCsv}>
+            Export CSV
           </button>
         </div>
       </header>
