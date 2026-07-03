@@ -33,7 +33,7 @@ export function ClientsPage() {
   }
 
   return (
-    <>
+    <div className="page-shell clients-page">
       <header className="hero">
         <div>
           <span className="eyebrow">CRM</span>
@@ -50,53 +50,55 @@ export function ClientsPage() {
         </div>
       </header>
 
-      <section className="content-grid clients-layout">
-        <div className="panel">
-          <SectionHeader title="Contacts" action="Chaque carte met la personne au premier plan." />
-          <div className="filter-bar" style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", background: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
-            <label style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
-              Rechercher client
-              <input
-                type="text"
-                placeholder="Nom, société, ville, email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal" }}
-              />
-            </label>
-            <label style={{ flex: "0 1 200px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
-              Statut
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="active">Actif</option>
-                <option value="inactive">Inactif</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="card-grid">
-            {filteredClients.length > 0 ? (
-              filteredClients.map((client) => (
-                <ClientCard
-                  key={client.id}
-                  client={client}
-                  loading={loading}
-                  onEdit={() => beginEditClient(client)}
-                  onDelete={() => removeClient(client.id)}
+      <div className="page-scroll">
+        <section className="content-grid clients-layout">
+          <div className="panel">
+            <SectionHeader title="Contacts" action="Chaque carte met la personne au premier plan." />
+            <div className="filter-bar" style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", background: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+              <label style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+                Rechercher client
+                <input
+                  type="text"
+                  placeholder="Nom, société, ville, email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal" }}
                 />
-              ))
-            ) : (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 20px", color: "#64748b", background: "#f8fafc", borderRadius: "14px", border: "1px dashed #cbd5e1" }}>
-                Aucun contact ne correspond à vos critères.
-              </div>
-            )}
+              </label>
+              <label style={{ flex: "0 1 200px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+                Statut
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
+                >
+                  <option value="all">Tous les statuts</option>
+                  <option value="active">Actif</option>
+                  <option value="inactive">Inactif</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="card-grid">
+              {filteredClients.length > 0 ? (
+                filteredClients.map((client) => (
+                  <ClientCard
+                    key={client.id}
+                    client={client}
+                    loading={loading}
+                    onEdit={() => beginEditClient(client)}
+                    onDelete={() => removeClient(client.id)}
+                  />
+                ))
+              ) : (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 20px", color: "#64748b", background: "#f8fafc", borderRadius: "14px", border: "1px dashed #cbd5e1" }}>
+                  Aucun contact ne correspond à vos critères.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <OverlayDialog
         open={editor.kind === "client"}
@@ -108,7 +110,7 @@ export function ClientsPage() {
             {isEditing ? "Enregistrer" : "Créer contact"}
           </button>
         }
-      >
+        >
         <form id="client-form" className="stack-form" onSubmit={(event) => { event.preventDefault(); saveClient(); }}>
           <label>
             Prénom
@@ -186,6 +188,6 @@ export function ClientsPage() {
           </label>
         </form>
       </OverlayDialog>
-    </>
+    </div>
   );
 }

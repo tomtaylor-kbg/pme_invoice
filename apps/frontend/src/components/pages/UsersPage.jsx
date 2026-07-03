@@ -21,7 +21,7 @@ export function UsersPage() {
   const isEditing = editor.kind === "user" && Boolean(editor.id);
 
   return (
-    <>
+    <div className="page-shell users-page">
       <header className="hero">
         <div>
           <span className="eyebrow">Administration</span>
@@ -35,12 +35,14 @@ export function UsersPage() {
         </div>
       </header>
 
-      <section className="content-grid">
-        <div className="panel">
-          <SectionHeader title="Liste utilisateurs" action="Comptes connectés à l’instance interne." />
-          <Table columns={["Nom", "Email", "Rôle", "Actions"]} rows={rows} />
-        </div>
-      </section>
+      <div className="page-scroll">
+        <section className="content-grid">
+          <div className="panel">
+            <SectionHeader title="Liste utilisateurs" action="Comptes connectés à l’instance interne." />
+            <Table columns={["Nom", "Email", "Rôle", "Actions"]} rows={rows} />
+          </div>
+        </section>
+      </div>
 
       <OverlayDialog
         open={editor.kind === "user"}
@@ -52,7 +54,7 @@ export function UsersPage() {
             {isEditing ? "Enregistrer" : "Créer utilisateur"}
           </button>
         }
-      >
+        >
         <form id="user-form" className="stack-form" onSubmit={(event) => { event.preventDefault(); saveUser(); }}>
           <label>
             Nom
@@ -102,6 +104,6 @@ export function UsersPage() {
           </label>
         </form>
       </OverlayDialog>
-    </>
+    </div>
   );
 }

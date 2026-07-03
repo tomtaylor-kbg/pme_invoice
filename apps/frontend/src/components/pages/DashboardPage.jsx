@@ -22,7 +22,7 @@ export function DashboardPage() {
   const recent = data.recentInvoices.length ? data.recentInvoices : data.invoices.slice(0, 5);
 
   return (
-    <>
+    <div className="page-shell dashboard-page">
       <header className="hero">
         <div>
           <span className="eyebrow">Pilotage</span>
@@ -69,123 +69,125 @@ export function DashboardPage() {
         </div>
       </header>
 
-      <section className="stats-grid">
-        {summaryCards.map((item) => (
-          <StatCard key={item.label} {...item} />
-        ))}
-      </section>
+      <div className="page-scroll">
+        <section className="stats-grid">
+          {summaryCards.map((item) => (
+            <StatCard key={item.label} {...item} />
+          ))}
+        </section>
 
-      <section className="content-grid dashboard-analytics">
-        <div className="panel">
-          <SectionHeader title="Revenu mensuel" action="Évolution du chiffre d'affaires sur les 12 derniers mois." />
-          <div className="analytics-chart">
-            <div className="analytics-chart-bars">
-              {monthlySeries.map((point) => {
-                const height = Math.max((point.value / maxMonthlyValue) * 100, 4);
+        <section className="content-grid dashboard-analytics">
+          <div className="panel">
+            <SectionHeader title="Revenu mensuel" action="Évolution du chiffre d'affaires sur les 12 derniers mois." />
+            <div className="analytics-chart">
+              <div className="analytics-chart-bars">
+                {monthlySeries.map((point) => {
+                  const height = Math.max((point.value / maxMonthlyValue) * 100, 4);
 
-                return (
-                  <div className="analytics-bar" key={point.key}>
-                    <div className="analytics-bar-track">
-                      <span style={{ height: `${height}%` }} />
+                  return (
+                    <div className="analytics-bar" key={point.key}>
+                      <div className="analytics-bar-track">
+                        <span style={{ height: `${height}%` }} />
+                      </div>
+                      <strong>{money(point.value)}</strong>
+                      <span>{point.label}</span>
                     </div>
-                    <strong>{money(point.value)}</strong>
-                    <span>{point.label}</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="panel">
-          <SectionHeader title="Performance client" action="Les clients qui génèrent le plus de revenus." />
-          <div className="performance-list">
-            {topClients.length > 0 ? (
-              topClients.map((client, index) => {
-                const total = topClients[0]?.value || 1;
-                const width = Math.max((client.value / total) * 100, 6);
+          <div className="panel">
+            <SectionHeader title="Performance client" action="Les clients qui génèrent le plus de revenus." />
+            <div className="performance-list">
+              {topClients.length > 0 ? (
+                topClients.map((client, index) => {
+                  const total = topClients[0]?.value || 1;
+                  const width = Math.max((client.value / total) * 100, 6);
 
-                return (
-                  <article className="performance-row" key={client.key}>
-                    <div className="performance-row-head">
-                      <span className="performance-rank">{index + 1}</span>
-                      <div>
-                        <strong>{client.label}</strong>
-                        <p>Revenus cumulés sur les factures enregistrées.</p>
+                  return (
+                    <article className="performance-row" key={client.key}>
+                      <div className="performance-row-head">
+                        <span className="performance-rank">{index + 1}</span>
+                        <div>
+                          <strong>{client.label}</strong>
+                          <p>Revenus cumulés sur les factures enregistrées.</p>
+                        </div>
+                        <strong>{money(client.value)}</strong>
                       </div>
-                      <strong>{money(client.value)}</strong>
-                    </div>
-                    <div className="performance-meter">
-                      <span style={{ width: `${width}%` }} />
-                    </div>
-                  </article>
-                );
-              })
-            ) : (
-              <div className="empty-state">Aucune donnée client disponible pour le moment.</div>
-            )}
+                      <div className="performance-meter">
+                        <span style={{ width: `${width}%` }} />
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <div className="empty-state">Aucune donnée client disponible pour le moment.</div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="content-grid">
-        <div className="panel">
-          <SectionHeader title="Factures récentes" action="Derniers documents enregistrés." />
-          <div className="card-grid invoices-grid">
-            {recent.map((invoice) => (
-              <InvoiceCard key={invoice.id} invoice={invoice} tone="compact" />
-            ))}
+        <section className="content-grid">
+          <div className="panel">
+            <SectionHeader title="Factures récentes" action="Derniers documents enregistrés." />
+            <div className="card-grid invoices-grid">
+              {recent.map((invoice) => (
+                <InvoiceCard key={invoice.id} invoice={invoice} tone="compact" />
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="panel panel-side">
-          <SectionHeader title="Raccourcis" action="Accès direct aux actions les plus utilisées." />
-          <div className="quick-list">
-            <article>
-              <strong>Créer une facture</strong>
-              <p>Ouvrir le formulaire avec le prochain numéro.</p>
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => {
-                  beginCreateInvoiceWithPreset({ templateType: "professional" });
-                  navigate("/invoices");
-                }}
-              >
-                Ouvrir
-              </button>
-            </article>
-            <article>
-              <strong>Créer un contact</strong>
-              <p>Ajouter une personne liée à une entreprise ou non.</p>
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => {
-                  beginCreateClient();
-                  navigate("/clients");
-                }}
-              >
-                Ouvrir
-              </button>
-            </article>
-            <article>
-              <strong>Créer un reçu</strong>
-              <p>Préparer un modèle compact pour imprimante thermique.</p>
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => {
-                  beginCreateReceipt();
-                  navigate("/receipts");
-                }}
-              >
-                Ouvrir
-              </button>
-            </article>
+          <div className="panel panel-side">
+            <SectionHeader title="Raccourcis" action="Accès direct aux actions les plus utilisées." />
+            <div className="quick-list">
+              <article>
+                <strong>Créer une facture</strong>
+                <p>Ouvrir le formulaire avec le prochain numéro.</p>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    beginCreateInvoiceWithPreset({ templateType: "professional" });
+                    navigate("/invoices");
+                  }}
+                >
+                  Ouvrir
+                </button>
+              </article>
+              <article>
+                <strong>Créer un contact</strong>
+                <p>Ajouter une personne liée à une entreprise ou non.</p>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    beginCreateClient();
+                    navigate("/clients");
+                  }}
+                >
+                  Ouvrir
+                </button>
+              </article>
+              <article>
+                <strong>Créer un reçu</strong>
+                <p>Préparer un modèle compact pour imprimante thermique.</p>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    beginCreateReceipt();
+                    navigate("/receipts");
+                  }}
+                >
+                  Ouvrir
+                </button>
+              </article>
+            </div>
           </div>
-        </div>
-      </section>
-    </>
+        </section>
+      </div>
+    </div>
   );
 }

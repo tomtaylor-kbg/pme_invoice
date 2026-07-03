@@ -176,7 +176,7 @@ export function InvoicesPage() {
   }
 
   return (
-    <>
+    <div className="page-shell invoices-page">
       <header className="hero">
         <div>
           <span className="eyebrow">Facturation</span>
@@ -196,70 +196,72 @@ export function InvoicesPage() {
         </div>
       </header>
 
-      <section className="content-grid invoices-layout">
-        <div className="panel">
-          <SectionHeader title="Cartes factures" action="Une carte par document pour accélérer le scan visuel." />
-          <div className="filter-bar" style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", background: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
-            <label style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
-              Rechercher
-              <input
-                type="text"
-                placeholder="N° facture, client, notes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal" }}
-              />
-            </label>
-            <label style={{ flex: "0 1 200px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
-              Statut
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="draft">Brouillon</option>
-                <option value="sent">Envoyée</option>
-                <option value="paid">Payée</option>
-                <option value="overdue">En retard</option>
-              </select>
-            </label>
-            <label style={{ flex: "0 1 220px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
-              Client
-              <select
-                value={clientFilter}
-                onChange={(e) => setClientFilter(e.target.value)}
-                style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
-              >
-                <option value="all">Tous les clients</option>
-                {data.clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName}{c.company ? ` · ${c.company}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="card-grid invoices-grid">
-            {filteredInvoices.length > 0 ? (
-              filteredInvoices.map((invoice) => (
-                <InvoiceCard
-                  key={invoice.id}
-                  invoice={invoice}
-                  loading={loading}
-                  onEdit={() => beginEditInvoice(invoice)}
-                  onDelete={() => removeInvoice(invoice.id)}
+      <div className="page-scroll">
+        <section className="content-grid invoices-layout">
+          <div className="panel">
+            <SectionHeader title="Cartes factures" action="Une carte par document pour accélérer le scan visuel." />
+            <div className="filter-bar" style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", background: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+              <label style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+                Rechercher
+                <input
+                  type="text"
+                  placeholder="N° facture, client, notes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal" }}
                 />
-              ))
-            ) : (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 20px", color: "#64748b", background: "#f8fafc", borderRadius: "14px", border: "1px dashed #cbd5e1" }}>
-                Aucune facture ne correspond à vos critères.
-              </div>
-            )}
+              </label>
+              <label style={{ flex: "0 1 200px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+                Statut
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
+                >
+                  <option value="all">Tous les statuts</option>
+                  <option value="draft">Brouillon</option>
+                  <option value="sent">Envoyée</option>
+                  <option value="paid">Payée</option>
+                  <option value="overdue">En retard</option>
+                </select>
+              </label>
+              <label style={{ flex: "0 1 220px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+                Client
+                <select
+                  value={clientFilter}
+                  onChange={(e) => setClientFilter(e.target.value)}
+                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
+                >
+                  <option value="all">Tous les clients</option>
+                  {data.clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.firstName} {c.lastName}{c.company ? ` · ${c.company}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="card-grid invoices-grid">
+              {filteredInvoices.length > 0 ? (
+                filteredInvoices.map((invoice) => (
+                  <InvoiceCard
+                    key={invoice.id}
+                    invoice={invoice}
+                    loading={loading}
+                    onEdit={() => beginEditInvoice(invoice)}
+                    onDelete={() => removeInvoice(invoice.id)}
+                  />
+                ))
+              ) : (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 20px", color: "#64748b", background: "#f8fafc", borderRadius: "14px", border: "1px dashed #cbd5e1" }}>
+                  Aucune facture ne correspond à vos critères.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <OverlayDialog
         open={editor.kind === "invoice"}
@@ -276,7 +278,7 @@ export function InvoicesPage() {
             </button>
           </>
         }
-      >
+        >
         <form className="stack-form" id="invoice-form" onSubmit={(event) => { event.preventDefault(); saveInvoice(); }}>
           <label>
             Modèle
@@ -484,6 +486,6 @@ export function InvoicesPage() {
           </div>
         </form>
       </OverlayDialog>
-    </>
+    </div>
   );
 }

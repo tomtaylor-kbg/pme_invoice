@@ -3,7 +3,6 @@ import { useWorkspace } from "./WorkspaceProvider";
 
 export const navItems = [
   { key: "dashboard", label: "Dashboard", path: "/dashboard" },
-  { key: "tools", label: "Outils", path: "/tools" },
   { key: "receipts", label: "Reçus", path: "/receipts" },
   { key: "invoices", label: "Factures", path: "/invoices" },
   { key: "clients", label: "Clients CRM", path: "/clients" },
@@ -39,15 +38,22 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <div className="sidebar-note">
-          <button className="ghost-button" type="button" onClick={logout}>
-            Déconnexion
-          </button>
+        <div className="sidebar-bottom">
+          <NavLink to="/tools" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")} end>
+            Outils
+          </NavLink>
+          <div className="sidebar-note">
+            <button className="ghost-button" type="button" onClick={logout}>
+              Déconnexion
+            </button>
+          </div>
         </div>
       </aside>
 
       <main className="main">
-        <Outlet />
+        <div className="main-scroll">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

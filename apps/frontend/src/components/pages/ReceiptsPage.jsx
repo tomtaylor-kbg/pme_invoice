@@ -7,7 +7,7 @@ export function ReceiptsPage() {
   const isEditing = editor.kind === "receipt" && Boolean(editor.id);
 
   return (
-    <>
+    <div className="page-shell receipts-page">
       <header className="hero">
         <div>
           <span className="eyebrow">Thermique</span>
@@ -21,22 +21,24 @@ export function ReceiptsPage() {
         </div>
       </header>
 
-      <section className="content-grid receipts-layout">
-        <div className="panel">
-          <SectionHeader title="Modèles" action="Cartes de rendu prêtes pour les tickets thermiques." />
-          <div className="card-grid receipts-grid">
-            {data.receipts.map((receipt) => (
-              <ReceiptCard
-                key={receipt.id}
-                receipt={receipt}
-                loading={loading}
-                onEdit={() => beginEditReceipt(receipt)}
-                onDelete={() => removeReceipt(receipt.id)}
-              />
-            ))}
+      <div className="page-scroll">
+        <section className="content-grid receipts-layout">
+          <div className="panel">
+            <SectionHeader title="Modèles" action="Cartes de rendu prêtes pour les tickets thermiques." />
+            <div className="card-grid receipts-grid">
+              {data.receipts.map((receipt) => (
+                <ReceiptCard
+                  key={receipt.id}
+                  receipt={receipt}
+                  loading={loading}
+                  onEdit={() => beginEditReceipt(receipt)}
+                  onDelete={() => removeReceipt(receipt.id)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <OverlayDialog
         open={editor.kind === "receipt"}
@@ -48,7 +50,7 @@ export function ReceiptsPage() {
             {isEditing ? "Enregistrer" : "Créer modèle"}
           </button>
         }
-      >
+        >
         <form className="stack-form" id="receipt-form" onSubmit={(event) => { event.preventDefault(); saveReceipt(); }}>
           <label>
             Nom du modèle
@@ -145,6 +147,6 @@ export function ReceiptsPage() {
           </div>
         </form>
       </OverlayDialog>
-    </>
+    </div>
   );
 }
