@@ -31,6 +31,16 @@ export function SectionHeader({ title, action, buttonLabel, onButtonClick }) {
   );
 }
 
+function invoiceTemplateCompactLabel(value) {
+  switch (value) {
+    case "receipt":
+      return "Receipt";
+    case "professional":
+    default:
+      return "Pro";
+  }
+}
+
 export function OverlayDialog({ title, description, open, onClose, children, footer }) {
   const bodyRef = useRef(null);
 
@@ -144,7 +154,7 @@ export function InvoiceCard({ invoice, onEdit, onDelete, loading, tone = "invoic
     <EntityCard
       title={invoice.number}
       subtitle={personLabel(invoice.client) || invoice.client?.displayName || invoice.client?.company || "-"}
-      badge={`${invoiceTemplateLabel(invoice.templateType)} · ${statusToLabel(invoice.status)}`}
+      badge={`${invoiceTemplateCompactLabel(invoice.templateType)} · ${statusToLabel(invoice.status)}`}
       meta={
         <>
           <span>Créée par {invoice.creator?.name || invoice.creator?.email || "session courante"}</span>
