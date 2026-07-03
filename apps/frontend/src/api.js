@@ -31,7 +31,7 @@ export function logout(token) {
 }
 
 export function getMe(token) {
-  return request("/api/me", { token });
+  return request("/api/auth/me", { token });
 }
 
 export function getDashboard(token) {

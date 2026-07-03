@@ -2,6 +2,10 @@ const { Prisma } = require("@prisma/client");
 const { toNumber } = require("../utils/number");
 const { serializeInvoice } = require("../utils/serializers");
 
+function getUtcDayStart(date = new Date()) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
 function normalizeInvoiceLine(line = {}) {
   return {
     description: String(line.description || "").trim(),
@@ -19,7 +23,24 @@ function calculateInvoiceTotal(lines = [], taxRate = 20) {
   return subtotal * (1 + Number(taxRate) / 100);
 }
 
+async function syncOverdueInvoices(prisma) {
+  const cutoff = getUtcDayStart();
+  const result = await prisma.invoice.updateMany({
+    where: {
+      status: "sent",
+      dueDate: { lt: cutoff }
+    },
+    data: {
+      status: "overdue"
+    }
+  });
+
+  return result.count;
+}
+
 async function listInvoices(prisma) {
+  await syncOverdueInvoices(prisma);
+
   const invoices = await prisma.invoice.findMany({
     orderBy: { createdAt: "desc" },
     include: {
@@ -52,7 +73,7 @@ async function listInvoices(prisma) {
 async function createInvoice(prisma, data) {
   const lines = Array.isArray(data.lines) ? data.lines.map(normalizeInvoiceLine) : [];
   const taxRate = data.taxRate !== undefined ? toNumber(data.taxRate, 20) : 20;
-  const invoice = await prisma.invoice.create({
+  const created = await prisma.invoice.create({
     data: {
       number: data.number,
       clientId: data.clientId,
@@ -70,6 +91,17 @@ async function createInvoice(prisma, data) {
       }
     },
     include: { lines: true }
+  });
+
+  await syncOverdueInvoices(prisma);
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: created.id },
+    include: {
+      client: true,
+      creator: true,
+      lines: true
+    }
   });
 
   return serializeInvoice(invoice);
@@ -140,7 +172,18 @@ async function updateInvoice(prisma, id, data) {
     });
   });
 
-  return serializeInvoice(invoice);
+  await syncOverdueInvoices(prisma);
+
+  const refreshedInvoice = await prisma.invoice.findUnique({
+    where: { id },
+    include: {
+      client: true,
+      creator: true,
+      lines: true
+    }
+  });
+
+  return serializeInvoice(refreshedInvoice || invoice);
 }
 
 async function deleteInvoice(prisma, id) {
@@ -148,6 +191,7 @@ async function deleteInvoice(prisma, id) {
 }
 
 module.exports = {
+  syncOverdueInvoices,
   listInvoices,
   createInvoice,
   updateInvoice,

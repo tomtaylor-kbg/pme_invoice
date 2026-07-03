@@ -1,10 +1,15 @@
+const { syncOverdueInvoices } = require("./invoicesService");
+
 async function getDashboardData(prisma) {
-  const [users, clients, invoices, receipts, paidInvoices, totalAmount] = await Promise.all([
+  await syncOverdueInvoices(prisma);
+
+  const [users, clients, invoices, receipts, paidInvoices, overdueInvoices, totalAmount] = await Promise.all([
     prisma.user.count(),
     prisma.client.count(),
     prisma.invoice.count(),
     prisma.receipt.count(),
     prisma.invoice.count({ where: { status: "paid" } }),
+    prisma.invoice.count({ where: { status: "overdue" } }),
     prisma.invoice.aggregate({ _sum: { total: true } })
   ]);
 
@@ -21,6 +26,7 @@ async function getDashboardData(prisma) {
       invoices,
       receipts,
       paidInvoices,
+      overdueInvoices,
       turnover: Number(totalAmount._sum.total || 0)
     },
     recentInvoices
