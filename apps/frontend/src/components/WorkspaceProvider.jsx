@@ -68,17 +68,18 @@ function emptyForms() {
 function createInvoiceDraft(invoices, clients, users, overrides = {}) {
   const issueDate = overrides.issueDate || todayISO();
   const templateType = overrides.templateType || "professional";
-    return {
-      ...emptyForms().invoice,
-      templateType,
-      number: overrides.number || suggestInvoiceNumber(invoices, overrides.prefix || invoicePrefixForType(templateType), issueDate),
-      clientId: overrides.clientId || clients[0]?.id || "",
-      userId: overrides.userId || users[0]?.id || "",
-      lines: overrides.lines || [createInvoiceLineDraft()],
-      issueDate,
-      dueDate: overrides.dueDate || issueDate
-    };
-  }
+  return {
+    ...emptyForms().invoice,
+    templateType,
+    currency: overrides.currency || emptyForms().invoice.currency,
+    number: overrides.number || suggestInvoiceNumber(invoices, overrides.prefix || invoicePrefixForType(templateType), issueDate),
+    clientId: overrides.clientId || clients[0]?.id || "",
+    userId: overrides.userId || users[0]?.id || "",
+    lines: overrides.lines || [createInvoiceLineDraft()],
+    issueDate,
+    dueDate: overrides.dueDate || issueDate
+  };
+}
 
 function createReceiptDraft(overrides = {}) {
   return {
@@ -233,7 +234,8 @@ export function WorkspaceProvider({ children }) {
       setForms((current) => ({
         ...current,
         invoice: createInvoiceDraft(data.invoices, data.clients, data.users, {
-          userId: user?.id || data.users[0]?.id || ""
+          userId: user?.id || data.users[0]?.id || "",
+          currency: current.invoice.currency || emptyForms().invoice.currency
         })
       }));
     }
@@ -244,7 +246,8 @@ export function WorkspaceProvider({ children }) {
         ...current,
         invoice: createInvoiceDraft(data.invoices, data.clients, data.users, {
           ...overrides,
-          userId: overrides.userId || user?.id || data.users[0]?.id || ""
+          userId: overrides.userId || user?.id || data.users[0]?.id || "",
+          currency: overrides.currency || current.invoice.currency || emptyForms().invoice.currency
         })
       }));
     }
