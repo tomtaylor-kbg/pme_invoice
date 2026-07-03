@@ -363,9 +363,8 @@ button:disabled {
   gap: 14px;
 }
 
-.invoices-grid,
-.receipts-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+.invoices-grid {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
 }
 
 .entity-card {
@@ -377,6 +376,17 @@ button:disabled {
 
 .entity-card.invoice {
   background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(2, 6, 23, 0.32));
+  padding: 18px 18px 20px;
+}
+
+.entity-card.invoice .entity-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.entity-card.invoice .entity-meta span:last-child {
+  grid-column: 1 / -1;
 }
 
 .entity-card.receipt {
