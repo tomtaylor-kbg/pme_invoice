@@ -412,8 +412,8 @@ export function InvoicesPage() {
                 <span>N°</span>
                 <span>Désignation</span>
                 <span>Qte</span>
-                <span>PU</span>
-                <span>PT</span>
+                <span>PU ({selectedCurrency})</span>
+                <span>PT ({selectedCurrency})</span>
                 <span>Action</span>
               </div>
               {invoiceLines.map((line, index) => {
@@ -448,7 +448,7 @@ export function InvoicesPage() {
                         step="0.01"
                         value={line.unitPrice}
                         onChange={(event) => updateInvoiceLine(index, "unitPrice", event.target.value)}
-                        placeholder="0.00"
+                        placeholder={`0.00 ${selectedCurrency}`}
                       />
                     </label>
                     <strong className="invoice-line-total">{money(lineTotal, selectedCurrency)}</strong>
