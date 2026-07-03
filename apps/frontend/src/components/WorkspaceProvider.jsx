@@ -48,6 +48,7 @@ function emptyForms() {
       currency: "EUR",
       issueDate: todayISO(),
       dueDate: todayISO(),
+      taxRate: "20",
       notes: "",
       lines: [createInvoiceLineDraft()]
     },
@@ -286,6 +287,7 @@ export function WorkspaceProvider({ children }) {
           currency: item.currency || "EUR",
           issueDate: item.issueDate ? item.issueDate.slice(0, 10) : todayISO(),
           dueDate: item.dueDate ? item.dueDate.slice(0, 10) : todayISO(),
+          taxRate: item.taxRate !== undefined ? String(item.taxRate) : "20",
           notes: item.notes || "",
           lines: (item.lines?.length ? item.lines : [createInvoiceLineDraft()]).map((line) => normalizeInvoiceLine(line))
         }
@@ -382,7 +384,8 @@ export function WorkspaceProvider({ children }) {
         const payload = {
           ...forms.invoice,
           userId: forms.invoice.userId || user?.id || "",
-          total: invoiceLinesTotal(lines),
+          total: invoiceLinesTotal(lines) * (1 + Number(forms.invoice.taxRate || 20) / 100),
+          taxRate: Number(forms.invoice.taxRate || 20),
           lines
         };
         if (editor.kind === "invoice" && editor.id) {

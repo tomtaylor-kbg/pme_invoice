@@ -210,7 +210,10 @@ export function buildInvoicePrintHtml({ invoice, client, creator }) {
   const lines = (Array.isArray(invoice?.lines) ? invoice.lines : []).filter(
     (line) => String(line?.description || "").trim() || Number(line?.quantity || 0) > 0 || Number(line?.unitPrice || 0) > 0
   );
-  const total = invoiceLinesTotal(lines);
+  const taxRate = Number(invoice?.taxRate ?? 20);
+  const totalHT = invoiceLinesTotal(lines);
+  const taxAmount = totalHT * (taxRate / 100);
+  const totalTTC = totalHT + taxAmount;
   const createdBy = creator?.name || creator?.email || "Session courante";
   const clientLabel = [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim() || client?.company || "Client";
   const clientCompany = client?.company || "";
@@ -457,10 +460,18 @@ export function buildInvoicePrintHtml({ invoice, client, creator }) {
         <div class="summary">
           <div class="summary-box">
             <div class="summary-row">
-              <span>Coût total</span>
-              <strong>${escapeHtml(formatMoney(total, currency))}</strong>
+              <span>Total HT</span>
+              <span>${escapeHtml(formatMoney(totalHT, currency))}</span>
             </div>
-            <div class="meta">Total calculé à partir des lignes saisies.</div>
+            <div class="summary-row">
+              <span>TVA (${taxRate}%)</span>
+              <span>${escapeHtml(formatMoney(taxAmount, currency))}</span>
+            </div>
+            <div class="summary-row divider-row" style="border-top: 1px solid #cbd5e1; margin-top: 8px; padding-top: 8px;">
+              <span>Total TTC</span>
+              <strong>${escapeHtml(formatMoney(totalTTC, currency))}</strong>
+            </div>
+            <div class="meta" style="font-size: 10px; color: #64748b; margin-top: 6px;">Total calculé avec TVA.</div>
           </div>
         </div>
 
@@ -477,7 +488,10 @@ export function buildThermalReceiptPrintHtml({ invoice, client, creator }) {
   const lines = (Array.isArray(invoice?.lines) ? invoice.lines : []).filter(
     (line) => String(line?.description || "").trim() || Number(line?.quantity || 0) > 0 || Number(line?.unitPrice || 0) > 0
   );
-  const total = invoiceLinesTotal(lines);
+  const taxRate = Number(invoice?.taxRate ?? 20);
+  const totalHT = invoiceLinesTotal(lines);
+  const taxAmount = totalHT * (taxRate / 100);
+  const totalTTC = totalHT + taxAmount;
   const createdBy = creator?.name || creator?.email || "Session courante";
   const clientLabel = [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim() || client?.company || "Client";
   const widthMm = 58;
@@ -619,9 +633,17 @@ export function buildThermalReceiptPrintHtml({ invoice, client, creator }) {
       <div class="divider"></div>
 
       <div class="totals">
-        <div class="totals-row total-grand">
-          <span>Total</span>
-          <strong>${escapeHtml(formatMoney(total, currency))}</strong>
+        <div class="totals-row">
+          <span>Sous-total HT</span>
+          <span>${escapeHtml(formatMoney(totalHT, currency))}</span>
+        </div>
+        <div class="totals-row">
+          <span>TVA (${taxRate}%)</span>
+          <span>${escapeHtml(formatMoney(taxAmount, currency))}</span>
+        </div>
+        <div class="totals-row total-grand" style="font-weight: 700; border-top: 1px dashed #cbd5e1; margin-top: 4px; padding-top: 4px;">
+          <span>Total TTC</span>
+          <strong>${escapeHtml(formatMoney(totalTTC, currency))}</strong>
         </div>
       </div>
 

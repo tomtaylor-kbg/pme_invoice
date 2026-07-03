@@ -2,6 +2,7 @@ function serializeInvoice(invoice) {
   return {
     ...invoice,
     total: Number(invoice.total),
+    taxRate: Number(invoice.taxRate ?? 20),
     issueDate: invoice.issueDate.toISOString(),
     dueDate: invoice.dueDate.toISOString(),
     createdAt: invoice.createdAt.toISOString(),

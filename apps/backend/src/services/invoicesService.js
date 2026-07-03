@@ -10,12 +10,13 @@ function normalizeInvoiceLine(line = {}) {
   };
 }
 
-function calculateInvoiceTotal(lines = []) {
-  return lines.reduce((sum, line) => {
+function calculateInvoiceTotal(lines = [], taxRate = 20) {
+  const subtotal = lines.reduce((sum, line) => {
     const quantity = Math.max(0, toNumber(line.quantity, 0));
     const unitPrice = Number(line.unitPrice || 0);
     return sum + quantity * unitPrice;
   }, 0);
+  return subtotal * (1 + Number(taxRate) / 100);
 }
 
 async function listInvoices(prisma) {
@@ -50,6 +51,7 @@ async function listInvoices(prisma) {
 
 async function createInvoice(prisma, data) {
   const lines = Array.isArray(data.lines) ? data.lines.map(normalizeInvoiceLine) : [];
+  const taxRate = data.taxRate !== undefined ? toNumber(data.taxRate, 20) : 20;
   const invoice = await prisma.invoice.create({
     data: {
       number: data.number,
@@ -60,7 +62,8 @@ async function createInvoice(prisma, data) {
       currency: data.currency || "EUR",
       issueDate: data.issueDate ? new Date(data.issueDate) : new Date(),
       dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
-      total: new Prisma.Decimal(calculateInvoiceTotal(lines)),
+      total: new Prisma.Decimal(calculateInvoiceTotal(lines, taxRate)),
+      taxRate: new Prisma.Decimal(taxRate),
       notes: data.notes || null,
       lines: {
         create: lines
@@ -73,6 +76,13 @@ async function createInvoice(prisma, data) {
 }
 
 async function updateInvoice(prisma, id, data) {
+  const existingInvoice = await prisma.invoice.findUnique({
+    where: { id },
+    include: { lines: true }
+  });
+
+  const taxRate = data.taxRate !== undefined ? toNumber(data.taxRate, 20) : (existingInvoice ? Number(existingInvoice.taxRate) : 20);
+
   const invoiceData = {
     ...(data.number !== undefined ? { number: data.number } : {}),
     ...(data.clientId !== undefined ? { clientId: data.clientId } : {}),
@@ -82,12 +92,14 @@ async function updateInvoice(prisma, id, data) {
     ...(data.currency !== undefined ? { currency: data.currency } : {}),
     ...(data.issueDate !== undefined ? { issueDate: new Date(data.issueDate) } : {}),
     ...(data.dueDate !== undefined ? { dueDate: new Date(data.dueDate) } : {}),
+    ...(data.taxRate !== undefined ? { taxRate: new Prisma.Decimal(taxRate) } : {}),
     ...(data.notes !== undefined ? { notes: data.notes || null } : {})
   };
 
   const lines = Array.isArray(data.lines) ? data.lines.map(normalizeInvoiceLine) : null;
-  if (lines) {
-    invoiceData.total = new Prisma.Decimal(calculateInvoiceTotal(lines));
+  if (lines || data.taxRate !== undefined) {
+    const linesToCalculate = lines || (existingInvoice ? existingInvoice.lines : []);
+    invoiceData.total = new Prisma.Decimal(calculateInvoiceTotal(linesToCalculate, taxRate));
   }
 
   const invoice = await prisma.$transaction(async (tx) => {

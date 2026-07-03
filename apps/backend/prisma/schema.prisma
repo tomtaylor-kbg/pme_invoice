@@ -57,6 +57,7 @@ model Invoice {
   issueDate   DateTime
   dueDate     DateTime
   total       Decimal       @default(0)
+  taxRate     Decimal       @default(20)
   notes       String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
