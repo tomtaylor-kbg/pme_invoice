@@ -568,15 +568,31 @@ button:disabled {
 
 .entity-badge {
   flex: none;
-  padding: 5px 10px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 108px;
+  padding: 7px 10px;
   border-radius: 999px;
   background: var(--accent-soft);
-  color: #bfdbfe;
+  color: var(--text);
   font-size: 0.8rem;
-  max-width: 132px;
-  white-space: normal;
   line-height: 1.15;
-  text-align: center;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.entity-badge span {
+  display: block;
+}
+
+.entity-card.invoice .entity-badge {
+  max-width: 112px;
+}
+
+.entity-card.receipt .entity-badge {
+  max-width: 112px;
 }
 
 .entity-meta {

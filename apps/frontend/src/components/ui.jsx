@@ -115,7 +115,7 @@ export function EntityCard({ title, subtitle, badge, meta, children, actions, to
           <h3>{title}</h3>
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
-        {badge ? <span className="entity-badge">{badge}</span> : null}
+        {badge ? <div className="entity-badge">{badge}</div> : null}
       </div>
       {meta ? <div className="entity-meta">{meta}</div> : null}
       {children}
@@ -255,7 +255,12 @@ export function ReceiptCard({ receipt, onEdit, onDelete, loading }) {
     <EntityCard
       title={receipt.name}
       subtitle={receipt.title}
-      badge={`${receiptWidthLabel(receipt.paperWidthMm)} · ${statusToLabel(receipt.status)}`}
+      badge={
+        <>
+          <span>{receiptWidthLabel(receipt.paperWidthMm)}</span>
+          <span>{statusToLabel(receipt.status)}</span>
+        </>
+      }
       meta={
         <>
           <span>{receipt.showLogo ? "Logo affiché" : "Sans logo"}</span>
