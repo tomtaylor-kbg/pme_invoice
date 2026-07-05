@@ -219,7 +219,6 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: start;
   width: 44px;
   height: 44px;
   padding: 0;
@@ -244,9 +243,46 @@ button:disabled {
 }
 
 .main-scroll {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
+}
+
+.main-content {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 22px 28px 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(2, 6, 23, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.topbar-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.topbar-copy strong {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.topbar-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .page-shell {
@@ -1307,6 +1343,10 @@ body[data-theme="light"] .sidebar {
   background: rgba(255, 255, 255, 0.82);
 }
 
+body[data-theme="light"] .topbar {
+  background: rgba(255, 255, 255, 0.76);
+}
+
 body[data-theme="light"] .sidebar-note {
   background: rgba(248, 250, 252, 0.95);
 }
@@ -1489,6 +1529,10 @@ body[data-theme="light"] .entity-card.invoice .entity-note {
 @media (max-width: 720px) {
   .main {
     padding: 16px;
+  }
+
+  .topbar {
+    padding: 16px 16px 12px;
   }
 
   .hero {
