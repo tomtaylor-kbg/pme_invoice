@@ -32,8 +32,43 @@ import {
 } from "../utils/formatters";
 
 const STORAGE_KEY = "facturation_token";
+const SETTINGS_STORAGE_KEY = "facturation_workspace_settings";
 
 const WorkspaceContext = createContext(null);
+
+function defaultWorkspaceSettings() {
+  return {
+    companyName: "Facturation Interne",
+    vatRate: "20",
+    defaultCurrency: "EUR",
+    addressLine1: "",
+    addressLine2: "",
+    postalCode: "",
+    city: "",
+    country: "",
+    phone: "",
+    email: "",
+    website: "",
+    invoicePrefix: "FAC",
+    paymentTermsDays: "30",
+    services: ""
+  };
+}
+
+function readWorkspaceSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) {
+      return defaultWorkspaceSettings();
+    }
+    return {
+      ...defaultWorkspaceSettings(),
+      ...JSON.parse(raw)
+    };
+  } catch {
+    return defaultWorkspaceSettings();
+  }
+}
 
 function emptyForms() {
   return {
@@ -65,14 +100,17 @@ function emptyForms() {
   };
 }
 
-function createInvoiceDraft(invoices, clients, users, overrides = {}) {
+function createInvoiceDraft(invoices, clients, users, settings, overrides = {}) {
   const issueDate = overrides.issueDate || todayISO();
   const templateType = overrides.templateType || "professional";
   return {
     ...emptyForms().invoice,
     templateType,
-    currency: overrides.currency || emptyForms().invoice.currency,
-    number: overrides.number || suggestInvoiceNumber(invoices, overrides.prefix || invoicePrefixForType(templateType), issueDate),
+    currency: overrides.currency || settings.defaultCurrency || emptyForms().invoice.currency,
+    taxRate: overrides.taxRate || settings.vatRate || emptyForms().invoice.taxRate,
+    number:
+      overrides.number ||
+      suggestInvoiceNumber(invoices, overrides.prefix || settings.invoicePrefix || invoicePrefixForType(templateType), issueDate),
     clientId: overrides.clientId || clients[0]?.id || "",
     userId: overrides.userId || users[0]?.id || "",
     lines: overrides.lines || [createInvoiceLineDraft()],
@@ -108,8 +146,17 @@ export function WorkspaceProvider({ children }) {
     users: [],
     receipts: []
   });
+  const [workspaceSettings, setWorkspaceSettings] = useState(() => readWorkspaceSettings());
   const [forms, setForms] = useState(emptyForms());
   const [editor, setEditor] = useState({ kind: null, id: null });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(workspaceSettings));
+    } catch {
+      // Ignore persistence errors.
+    }
+  }, [workspaceSettings]);
 
   async function hydrate(currentToken) {
     setLoading(true);
@@ -172,6 +219,7 @@ export function WorkspaceProvider({ children }) {
       setData({ metrics: null, recentInvoices: [], invoices: [], clients: [], users: [], receipts: [] });
       setForms(emptyForms());
       setEditor({ kind: null, id: null });
+      setWorkspaceSettings(defaultWorkspaceSettings());
     }
 
     async function authenticate(username, password) {
@@ -233,9 +281,8 @@ export function WorkspaceProvider({ children }) {
       setEditor({ kind: "invoice", id: null });
       setForms((current) => ({
         ...current,
-        invoice: createInvoiceDraft(data.invoices, data.clients, data.users, {
-          userId: user?.id || data.users[0]?.id || "",
-          currency: current.invoice.currency || emptyForms().invoice.currency
+        invoice: createInvoiceDraft(data.invoices, data.clients, data.users, workspaceSettings, {
+          userId: user?.id || data.users[0]?.id || ""
         })
       }));
     }
@@ -244,10 +291,11 @@ export function WorkspaceProvider({ children }) {
       setEditor({ kind: "invoice", id: null });
       setForms((current) => ({
         ...current,
-        invoice: createInvoiceDraft(data.invoices, data.clients, data.users, {
+        invoice: createInvoiceDraft(data.invoices, data.clients, data.users, workspaceSettings, {
           ...overrides,
           userId: overrides.userId || user?.id || data.users[0]?.id || "",
-          currency: overrides.currency || current.invoice.currency || emptyForms().invoice.currency
+          currency: overrides.currency || workspaceSettings.defaultCurrency || emptyForms().invoice.currency,
+          taxRate: overrides.taxRate || workspaceSettings.vatRate || emptyForms().invoice.taxRate
         })
       }));
     }
@@ -486,9 +534,11 @@ export function WorkspaceProvider({ children }) {
       removeClient,
       removeUser,
       removeInvoice,
-      removeReceipt
+      removeReceipt,
+      workspaceSettings,
+      setWorkspaceSettings
     };
-  }, [data.clients, data.invoices, data.receipts, data.users, editor, forms, loading, token, user, error]);
+  }, [data.clients, data.invoices, data.receipts, data.users, editor, forms, loading, token, user, error, workspaceSettings]);
 
   return <WorkspaceContext.Provider value={actions}>{children}</WorkspaceContext.Provider>;
 }
