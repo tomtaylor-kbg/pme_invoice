@@ -202,23 +202,24 @@ export function InvoicesPage() {
         <section className="content-grid invoices-layout">
           <div className="panel">
             <SectionHeader title="Cartes factures" action="Une carte par document pour accélérer le scan visuel." />
-            <div className="filter-bar" style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", background: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
-              <label style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+            <div className="filters-panel">
+              <div className="filters-grid">
+                <label className="filter-field search">
                 Rechercher
                 <input
+                  className="filter-input"
                   type="text"
                   placeholder="N° facture, client, notes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal" }}
                 />
-              </label>
-              <label style={{ flex: "0 1 200px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+                </label>
+                <label className="filter-field">
                 Statut
                 <select
+                  className="filter-select"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
                 >
                   <option value="all">Tous les statuts</option>
                   <option value="draft">Brouillon</option>
@@ -226,13 +227,13 @@ export function InvoicesPage() {
                   <option value="paid">Payée</option>
                   <option value="overdue">En retard</option>
                 </select>
-              </label>
-              <label style={{ flex: "0 1 220px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+                </label>
+                <label className="filter-field">
                 Client
                 <select
+                  className="filter-select"
                   value={clientFilter}
                   onChange={(e) => setClientFilter(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
                 >
                   <option value="all">Tous les clients</option>
                   {data.clients.map((c) => (
@@ -241,7 +242,9 @@ export function InvoicesPage() {
                     </option>
                   ))}
                 </select>
-              </label>
+                </label>
+              </div>
+              <div className="filters-hint">Chercher par numéro, client, notes ou statut.</div>
             </div>
 
             <div className="card-grid invoices-grid">

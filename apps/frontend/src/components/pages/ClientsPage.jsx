@@ -54,29 +54,32 @@ export function ClientsPage() {
         <section className="content-grid clients-layout">
           <div className="panel">
             <SectionHeader title="Contacts" action="Chaque carte met la personne au premier plan." />
-            <div className="filter-bar" style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", background: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
-              <label style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+            <div className="filters-panel">
+              <div className="filters-grid clients">
+                <label className="filter-field search">
                 Rechercher client
                 <input
+                  className="filter-input"
                   type="text"
                   placeholder="Nom, société, ville, email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal" }}
                 />
-              </label>
-              <label style={{ flex: "0 1 200px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#475569" }}>
+                </label>
+                <label className="filter-field">
                 Statut
                 <select
+                  className="filter-select"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "normal", background: "#fff" }}
                 >
                   <option value="all">Tous les statuts</option>
                   <option value="active">Actif</option>
                   <option value="inactive">Inactif</option>
                 </select>
-              </label>
+                </label>
+              </div>
+              <div className="filters-hint">Filtrer par nom, société, ville, email ou statut.</div>
             </div>
 
             <div className="card-grid">
