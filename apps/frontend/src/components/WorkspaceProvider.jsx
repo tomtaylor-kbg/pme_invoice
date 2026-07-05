@@ -33,6 +33,7 @@ import {
 
 const STORAGE_KEY = "facturation_token";
 const SETTINGS_STORAGE_KEY = "facturation_workspace_settings";
+const THEME_STORAGE_KEY = "facturation_theme";
 
 const WorkspaceContext = createContext(null);
 
@@ -68,6 +69,19 @@ function readWorkspaceSettings() {
   } catch {
     return defaultWorkspaceSettings();
   }
+}
+
+function readTheme() {
+  if (typeof window === "undefined") {
+    return "dark";
+  }
+
+  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  if (storedTheme === "light" || storedTheme === "dark") {
+    return storedTheme;
+  }
+
+  return "dark";
 }
 
 function emptyForms() {
@@ -147,6 +161,7 @@ export function WorkspaceProvider({ children }) {
     receipts: []
   });
   const [workspaceSettings, setWorkspaceSettings] = useState(() => readWorkspaceSettings());
+  const [theme, setTheme] = useState(() => readTheme());
   const [forms, setForms] = useState(emptyForms());
   const [editor, setEditor] = useState({ kind: null, id: null });
 
@@ -157,6 +172,19 @@ export function WorkspaceProvider({ children }) {
       // Ignore persistence errors.
     }
   }, [workspaceSettings]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    root.dataset.theme = theme;
+    body.dataset.theme = theme;
+    root.style.colorScheme = theme;
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignore persistence errors.
+    }
+  }, [theme]);
 
   async function hydrate(currentToken) {
     setLoading(true);
@@ -220,6 +248,10 @@ export function WorkspaceProvider({ children }) {
       setForms(emptyForms());
       setEditor({ kind: null, id: null });
       setWorkspaceSettings(defaultWorkspaceSettings());
+    }
+
+    function toggleTheme() {
+      setTheme((current) => (current === "dark" ? "light" : "dark"));
     }
 
     async function authenticate(username, password) {
@@ -536,9 +568,12 @@ export function WorkspaceProvider({ children }) {
       removeInvoice,
       removeReceipt,
       workspaceSettings,
-      setWorkspaceSettings
+      setWorkspaceSettings,
+      theme,
+      setTheme,
+      toggleTheme
     };
-  }, [data.clients, data.invoices, data.receipts, data.users, editor, forms, loading, token, user, error, workspaceSettings]);
+  }, [data.clients, data.invoices, data.receipts, data.users, editor, forms, loading, token, user, error, workspaceSettings, theme]);
 
   return <WorkspaceContext.Provider value={actions}>{children}</WorkspaceContext.Provider>;
 }

@@ -10,7 +10,7 @@ export const navItems = [
 ];
 
 export function AppLayout() {
-  const { user, logout } = useWorkspace();
+  const { user, logout, theme, toggleTheme } = useWorkspace();
   const displayName = user?.name?.trim() || user?.email?.trim() || "Utilisateur connecté";
   const displayRole = user?.role || "user";
 
@@ -39,6 +39,9 @@ export function AppLayout() {
         </nav>
 
         <div className="sidebar-bottom">
+          <button className="ghost-button theme-toggle" type="button" onClick={toggleTheme}>
+            {theme === "dark" ? "Passer en clair" : "Passer en sombre"}
+          </button>
           <NavLink to="/tools" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")} end>
             Outils
           </NavLink>
