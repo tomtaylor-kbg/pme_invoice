@@ -94,7 +94,7 @@ export function ClientsPage() {
                   />
                 ))
               ) : (
-                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 20px", color: "#64748b", background: "#f8fafc", borderRadius: "14px", border: "1px dashed #cbd5e1" }}>
+                <div className="empty-card-state">
                   Aucun contact ne correspond à vos critères.
                 </div>
               )}
