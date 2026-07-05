@@ -327,9 +327,27 @@ export function buildInvoicePdfFilename({ invoice, client }) {
   return `${rawName.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-").replace(/\s+/g, " ").trim()}.pdf`;
 }
 
-export function buildInvoicePrintHtml({ invoice, client, creator }) {
+function formatWorkspaceAddress(settings = {}) {
+  return [settings.addressLine1, settings.addressLine2, [settings.postalCode, settings.city].filter(Boolean).join(" "), settings.country]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function formatWorkspaceContact(settings = {}) {
+  return [settings.phone, settings.email, settings.website].filter(Boolean).join(" · ");
+}
+
+function formatWorkspaceServices(settings = {}) {
+  return String(settings.services || "")
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} }) {
   if (invoice?.templateType === "receipt") {
-    return buildThermalReceiptPrintHtml({ invoice, client, creator });
+    return buildThermalReceiptPrintHtml({ invoice, client, creator, settings });
   }
 
   const currency = invoice?.currency || "EUR";
@@ -345,6 +363,10 @@ export function buildInvoicePrintHtml({ invoice, client, creator }) {
   const clientCompany = client?.company || "";
   const clientEmail = client?.email || "";
   const clientPhone = client?.phone || "";
+  const companyName = settings.companyName || "Facturation Interne";
+  const addressLine = formatWorkspaceAddress(settings);
+  const contactLine = formatWorkspaceContact(settings);
+  const servicesLine = formatWorkspaceServices(settings);
 
   return `<!doctype html>
 <html lang="fr">
@@ -386,6 +408,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator }) {
       .brand {
         display: grid;
         gap: 6px;
+        max-width: 52%;
       }
       .brand strong {
         font-size: 20px;
@@ -396,8 +419,16 @@ export function buildInvoicePrintHtml({ invoice, client, creator }) {
         font-size: 12px;
         line-height: 1.5;
       }
+      .brand .highlight {
+        color: #0f172a;
+        font-weight: 600;
+      }
+      .brand .services {
+        color: #1d4ed8;
+      }
       .title-block {
         text-align: right;
+        max-width: 42%;
       }
       .title-block h1 {
         margin: 0;
@@ -521,9 +552,10 @@ export function buildInvoicePrintHtml({ invoice, client, creator }) {
         <div class="top">
           <div class="brand">
             <span class="badge">${escapeHtml(invoice?.templateType === "receipt" ? "Receipt" : "Facture professionnelle")}</span>
-            <strong>Facturation Interne</strong>
-            <span>${escapeHtml(invoice?.number || "-")}</span>
-            <span>Créée par ${escapeHtml(createdBy)}</span>
+            <strong>${escapeHtml(companyName)}</strong>
+            ${addressLine ? `<span class="highlight">${escapeHtml(addressLine)}</span>` : ""}
+            ${contactLine ? `<span>${escapeHtml(contactLine)}</span>` : ""}
+            ${servicesLine ? `<span class="services">Services: ${escapeHtml(servicesLine)}</span>` : ""}
           </div>
           <div class="title-block">
             <h1>${escapeHtml(invoice?.number || "Facture")}</h1>
@@ -547,6 +579,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator }) {
             <div class="invoice-meta">
               <div><span>Modèle</span><strong>${escapeHtml(invoiceTemplateLabel(invoice?.templateType))}</strong></div>
               <div><span>Devise</span><strong>${escapeHtml(currency)}</strong></div>
+              ${settings.vatRate ? `<div><span>TVA par défaut</span><strong>${escapeHtml(settings.vatRate)}%</strong></div>` : ""}
               <div><span>Créée par</span><strong>${escapeHtml(createdBy)}</strong></div>
             </div>
           </div>
@@ -609,7 +642,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator }) {
 </html>`;
 }
 
-export function buildThermalReceiptPrintHtml({ invoice, client, creator }) {
+export function buildThermalReceiptPrintHtml({ invoice, client, creator, settings = {} }) {
   const currency = invoice?.currency || "EUR";
   const lines = (Array.isArray(invoice?.lines) ? invoice.lines : []).filter(
     (line) => String(line?.description || "").trim() || Number(line?.quantity || 0) > 0 || Number(line?.unitPrice || 0) > 0
@@ -621,6 +654,10 @@ export function buildThermalReceiptPrintHtml({ invoice, client, creator }) {
   const createdBy = creator?.name || creator?.email || "Session courante";
   const clientLabel = [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim() || client?.company || "Client";
   const widthMm = 58;
+  const companyName = settings.companyName || "Facturation Interne";
+  const addressLine = formatWorkspaceAddress(settings);
+  const contactLine = formatWorkspaceContact(settings);
+  const servicesLine = formatWorkspaceServices(settings);
 
   return `<!doctype html>
 <html lang="fr">
@@ -720,7 +757,10 @@ export function buildThermalReceiptPrintHtml({ invoice, client, creator }) {
   <body>
     <div class="ticket">
       <div class="center brand">
-        <strong>Facturation Interne</strong>
+        <strong>${escapeHtml(companyName)}</strong>
+        ${addressLine ? `<span class="muted">${escapeHtml(addressLine)}</span>` : ""}
+        ${contactLine ? `<span class="muted">${escapeHtml(contactLine)}</span>` : ""}
+        ${servicesLine ? `<span class="muted">${escapeHtml(servicesLine)}</span>` : ""}
         <span class="muted">${escapeHtml(invoice?.number || "-")}</span>
         <span class="muted">${escapeHtml(invoiceTemplateLabel(invoice?.templateType))}</span>
       </div>

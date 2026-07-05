@@ -17,7 +17,7 @@ import {
 } from "../../utils/formatters";
 
 export function InvoicesPage() {
-  const { data, forms, setForms, editor, beginCreateInvoiceWithPreset, beginEditInvoice, saveInvoice, removeInvoice, loading, closeEditor, user } = useWorkspace();
+  const { data, forms, setForms, editor, beginCreateInvoiceWithPreset, beginEditInvoice, saveInvoice, removeInvoice, loading, closeEditor, user, workspaceSettings } = useWorkspace();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -109,7 +109,8 @@ export function InvoicesPage() {
         lines: invoiceLines
       },
       client: selectedClient,
-      creator: selectedCreator
+      creator: selectedCreator,
+      settings: workspaceSettings
     });
 
     const existingFrame = document.getElementById("invoice-print-frame");
