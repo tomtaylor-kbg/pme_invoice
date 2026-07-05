@@ -7,17 +7,37 @@ import {
   buildInvoicePdfFilename,
   buildInvoicesCsv,
   invoiceLinesTotal,
+  invoicePaymentTotal,
   invoicePrefixForType,
   invoiceTemplateAudience,
   invoiceTemplateLabel,
+  paymentMethodLabel,
   downloadTextFile,
+  formatDate,
   money,
   suggestInvoiceNumber,
   toMoneyValue
 } from "../../utils/formatters";
 
 export function InvoicesPage() {
-  const { data, forms, setForms, editor, beginCreateInvoiceWithPreset, beginEditInvoice, saveInvoice, removeInvoice, loading, closeEditor, user, workspaceSettings } = useWorkspace();
+  const {
+    data,
+    forms,
+    setForms,
+    editor,
+    beginCreateInvoiceWithPreset,
+    beginEditInvoice,
+    beginManagePayments,
+    beginEditPayment,
+    saveInvoice,
+    savePayment,
+    removeInvoice,
+    removePayment,
+    loading,
+    closeEditor,
+    user,
+    workspaceSettings
+  } = useWorkspace();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -34,6 +54,10 @@ export function InvoicesPage() {
   const selectedClient = data.clients.find((client) => client.id === forms.invoice.clientId) || null;
   const selectedCreator = data.users.find((item) => item.id === forms.invoice.userId) || user || null;
   const isReceiptTemplate = forms.invoice.templateType === "receipt";
+  const paymentInvoice = editor.kind === "payment" ? data.invoices.find((invoice) => invoice.id === editor.invoiceId) || null : null;
+  const paymentRows = paymentInvoice?.payments || [];
+  const paymentRowsTotal = invoicePaymentTotal(paymentRows);
+  const paymentBalance = Math.max(0, Number(paymentInvoice?.total || 0) - paymentRowsTotal);
 
   const filteredInvoices = data.invoices.filter((invoice) => {
     if (statusFilter !== "all" && invoice.status !== statusFilter) {
@@ -255,6 +279,7 @@ export function InvoicesPage() {
                     invoice={invoice}
                     loading={loading}
                     onEdit={() => beginEditInvoice(invoice)}
+                    onPayments={() => beginManagePayments(invoice)}
                     onDelete={() => removeInvoice(invoice.id)}
                   />
                 ))
@@ -284,8 +309,8 @@ export function InvoicesPage() {
           </>
         }
         >
-        <form className="stack-form" id="invoice-form" onSubmit={(event) => { event.preventDefault(); saveInvoice(); }}>
-          <label>
+        <form className="stack-form invoice-form-grid" id="invoice-form" onSubmit={(event) => { event.preventDefault(); saveInvoice(); }}>
+          <label className="invoice-form-field">
             Modèle
             <select
               value={forms.invoice.templateType}
@@ -309,17 +334,19 @@ export function InvoicesPage() {
               <option value="receipt">Modèle receipt - service direct</option>
             </select>
           </label>
-          <label>
+          <label className="invoice-form-field">
             Numéro
             <input
               value={forms.invoice.number}
+              readOnly={!isEditing}
+              title={!isEditing ? "Numéro attribué automatiquement à la création" : undefined}
               onChange={(event) => setForms((current) => ({
                 ...current,
                 invoice: { ...current.invoice, number: event.target.value }
               }))}
             />
           </label>
-          <label>
+          <label className="invoice-form-field">
             Client
             <select
               value={forms.invoice.clientId}
@@ -336,7 +363,7 @@ export function InvoicesPage() {
               ))}
             </select>
           </label>
-          <label>
+          <label className="invoice-form-field">
             Statut
             <select
               value={forms.invoice.status}
@@ -351,7 +378,7 @@ export function InvoicesPage() {
               <option value="overdue">En retard</option>
             </select>
           </label>
-          <label>
+          <label className="invoice-form-field">
             Devise
             <select
               value={forms.invoice.currency}
@@ -365,7 +392,7 @@ export function InvoicesPage() {
               <option value="CDF">CDF</option>
             </select>
           </label>
-          <label>
+          <label className="invoice-form-field">
             Taux de TVA (%)
             <input
               type="number"
@@ -378,7 +405,7 @@ export function InvoicesPage() {
               }))}
             />
           </label>
-          <label>
+          <label className="invoice-form-field">
             Date d'émission
             <input
               type="date"
@@ -389,7 +416,7 @@ export function InvoicesPage() {
               }))}
             />
           </label>
-          <label>
+          <label className="invoice-form-field">
             Échéance
             <input
               type="date"
@@ -400,7 +427,7 @@ export function InvoicesPage() {
               }))}
             />
           </label>
-          <div className="invoice-lines-editor">
+          <div className="invoice-lines-editor invoice-form-span-2">
             <div className="invoice-lines-head">
               <div>
                 <strong>Lignes de facture</strong>
@@ -473,7 +500,7 @@ export function InvoicesPage() {
               <strong style={{ fontSize: "1.1em", fontWeight: "bold", textAlign: "right" }}>{money(invoiceTotalTTC, selectedCurrency)}</strong>
             </div>
           </div>
-          <label>
+          <label className="invoice-form-field invoice-form-span-2">
             Notes
             <textarea
               rows="3"
@@ -484,12 +511,151 @@ export function InvoicesPage() {
               }))}
             />
           </label>
-          <div className="overlay-hint">
+          <div className="overlay-hint invoice-form-span-2">
+            <span className="overlay-hint-label">Notes</span>
             <strong>{invoiceTemplateLabel(forms.invoice.templateType)}</strong>
             <span>{invoiceTemplateAudience(forms.invoice.templateType)}</span>
             <span>Créée par la session connectée.</span>
           </div>
         </form>
+      </OverlayDialog>
+
+      <OverlayDialog
+        open={editor.kind === "payment"}
+        title={`Paiements${paymentInvoice ? ` · ${paymentInvoice.number}` : ""}`}
+        description="Ajoute, modifie ou supprime un paiement lié à la facture sélectionnée."
+        onClose={closeEditor}
+        footer={
+          <>
+            <button className="secondary-button" type="button" onClick={closeEditor}>
+              Fermer
+            </button>
+            <button className="primary-button" type="submit" form="payment-form" disabled={loading || !paymentInvoice}>
+              {editor.id ? "Enregistrer" : "Ajouter le paiement"}
+            </button>
+          </>
+        }
+      >
+        {paymentInvoice ? (
+          <form className="stack-form invoice-form-grid" id="payment-form" onSubmit={(event) => { event.preventDefault(); savePayment(); }}>
+            <div className="overlay-hint invoice-form-span-2">
+              <span className="overlay-hint-label">Résumé</span>
+              <strong>{paymentInvoice.number}</strong>
+              <span>Total: {money(paymentInvoice.total, paymentInvoice.currency)}</span>
+              <span>Payé: {money(paymentRowsTotal, paymentInvoice.currency)}</span>
+              <span>Reste: {money(paymentBalance, paymentInvoice.currency)}</span>
+            </div>
+
+            <label className="invoice-form-field">
+              Montant
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={forms.payment.amount}
+                onChange={(event) => setForms((current) => ({
+                  ...current,
+                  payment: { ...current.payment, amount: event.target.value }
+                }))}
+              />
+            </label>
+
+            <label className="invoice-form-field">
+              Méthode
+              <select
+                value={forms.payment.method}
+                onChange={(event) => setForms((current) => ({
+                  ...current,
+                  payment: { ...current.payment, method: event.target.value }
+                }))}
+              >
+                <option value="cash">Espèces</option>
+                <option value="card">Carte</option>
+                <option value="bank_transfer">Virement</option>
+                <option value="mobile_money">Mobile money</option>
+                <option value="check">Chèque</option>
+                <option value="other">Autre</option>
+              </select>
+            </label>
+
+            <label className="invoice-form-field">
+              Date de paiement
+              <input
+                type="date"
+                value={forms.payment.paidAt}
+                onChange={(event) => setForms((current) => ({
+                  ...current,
+                  payment: { ...current.payment, paidAt: event.target.value }
+                }))}
+              />
+            </label>
+
+            <label className="invoice-form-field">
+              Référence
+              <input
+                value={forms.payment.reference}
+                onChange={(event) => setForms((current) => ({
+                  ...current,
+                  payment: { ...current.payment, reference: event.target.value }
+                }))}
+              />
+            </label>
+
+            <label className="invoice-form-field invoice-form-span-2">
+              Notes
+              <textarea
+                rows="3"
+                value={forms.payment.notes}
+                onChange={(event) => setForms((current) => ({
+                  ...current,
+                  payment: { ...current.payment, notes: event.target.value }
+                }))}
+              />
+            </label>
+
+            <div className="invoice-form-span-2">
+              <div className="invoice-lines-head">
+                <div>
+                  <strong>Paiements enregistrés</strong>
+                  <p>Chaque paiement met à jour automatiquement le statut de la facture.</p>
+                </div>
+              </div>
+              <div className="quick-list">
+                {paymentRows.length ? (
+                  paymentRows.map((payment) => (
+                    <article key={payment.id}>
+                      <div>
+                        <strong>{money(payment.amount, paymentInvoice.currency)}</strong>
+                        <p>{paymentMethodLabel(payment.method)} · {formatDate(payment.paidAt)}</p>
+                      </div>
+                      <div className="entity-actions">
+                        <button type="button" className="text-button" onClick={() => beginEditPayment(payment, paymentInvoice)}>
+                          Modifier
+                        </button>
+                        <button type="button" className="text-button danger" onClick={() => removePayment(payment.id)}>
+                          Supprimer
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <article>
+                    <div>
+                      <strong>Aucun paiement</strong>
+                      <p>Ajoute le premier règlement pour cette facture.</p>
+                    </div>
+                  </article>
+                )}
+              </div>
+            </div>
+          </form>
+        ) : (
+          <div className="overlay-hint">
+            <span className="overlay-hint-label">Paiements</span>
+            <strong>Facture introuvable</strong>
+            <span>La facture sélectionnée n’est plus disponible.</span>
+          </div>
+        )}
       </OverlayDialog>
     </div>
   );

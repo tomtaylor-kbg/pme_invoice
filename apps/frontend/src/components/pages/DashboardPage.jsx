@@ -11,9 +11,11 @@ export function DashboardPage() {
     { label: "Factures", value: data.metrics?.invoices ?? 0, detail: "Total enregistré", tone: "accent" },
     { label: "Contacts", value: data.metrics?.clients ?? 0, detail: "Personnes suivies", tone: "neutral" },
     { label: "Reçus", value: data.metrics?.receipts ?? 0, detail: "Modèles thermiques", tone: "neutral" },
+    { label: "Encaissements", value: data.metrics?.payments ?? 0, detail: "Paiements enregistrés", tone: "success" },
     { label: "En retard", value: data.metrics?.overdueInvoices ?? 0, detail: "Factures à relancer", tone: "warning" },
     { label: "Utilisateurs", value: data.metrics?.users ?? 0, detail: "Comptes internes", tone: "neutral" },
-    { label: "CA", value: money(data.metrics?.turnover ?? 0), detail: "Somme des factures", tone: "success" }
+    { label: "CA", value: money(data.metrics?.turnover ?? 0), detail: "Somme des factures", tone: "success" },
+    { label: "Reçu", value: money(data.metrics?.collectedAmount ?? 0), detail: "Somme des paiements", tone: "accent" }
   ];
 
   const monthlySeries = buildMonthlyRevenueSeries(data.invoices, 12);

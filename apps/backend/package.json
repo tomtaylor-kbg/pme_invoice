@@ -3,7 +3,9 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "predev": "npm run db:generate",
     "dev": "nodemon src/server.js",
+    "prestart": "npm run db:generate",
     "start": "node src/server.js",
     "build": "node -e \"console.log('Backend build: no transpilation needed')\"",
     "lint": "node --check src/server.js",

@@ -3,6 +3,35 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
+  async function ensureInvoiceCounter(prefix, year, sequence) {
+    const existing = await prisma.invoiceCounter.findUnique({
+      where: {
+        prefix_year: {
+          prefix,
+          year
+        }
+      }
+    });
+
+    const nextSequence = Math.max(existing?.currentSequence || 0, sequence);
+    await prisma.invoiceCounter.upsert({
+      where: {
+        prefix_year: {
+          prefix,
+          year
+        }
+      },
+      update: {
+        currentSequence: nextSequence
+      },
+      create: {
+        prefix,
+        year,
+        currentSequence: sequence
+      }
+    });
+  }
+
   const user = await prisma.user.upsert({
     where: { email: "admin@facturation.local" },
     update: {},
@@ -50,7 +79,8 @@ async function main() {
           company: "Atlas Consulting",
           email: clientEmail,
           phone: "+243 900 000 001",
-          city: "Lubumbashi"
+          city: "Lubumbashi",
+          clientType: "company"
         }
       })
     : await prisma.client.create({
@@ -60,7 +90,8 @@ async function main() {
           company: "Atlas Consulting",
           email: clientEmail,
           phone: "+243 900 000 001",
-          city: "Lubumbashi"
+          city: "Lubumbashi",
+          clientType: "company"
         }
       });
 
@@ -112,6 +143,24 @@ async function main() {
     ]
   });
 
+  await prisma.payment.deleteMany({
+    where: { invoiceId: invoice.id }
+  });
+
+  await prisma.payment.createMany({
+    data: [
+      {
+        invoiceId: invoice.id,
+        userId: user.id,
+        amount: 1450,
+        method: "bank_transfer",
+        paidAt: new Date("2026-06-13T00:00:00.000Z"),
+        reference: "VIR-1450-2026",
+        notes: "Règlement complet"
+      }
+    ]
+  });
+
   const receiptInvoice = await prisma.invoice.upsert({
     where: { number: "REC-2026-0001" },
     update: {
@@ -153,6 +202,27 @@ async function main() {
       }
     ]
   });
+
+  await prisma.payment.deleteMany({
+    where: { invoiceId: receiptInvoice.id }
+  });
+
+  await prisma.payment.createMany({
+    data: [
+      {
+        invoiceId: receiptInvoice.id,
+        userId: user.id,
+        amount: 260,
+        method: "cash",
+        paidAt: new Date("2026-06-18T00:00:00.000Z"),
+        reference: "CAISSE-260-2026",
+        notes: "Paiement reçu au comptoir"
+      }
+    ]
+  });
+
+  await ensureInvoiceCounter("FAC", 2026, 1);
+  await ensureInvoiceCounter("REC", 2026, 1);
 
   await prisma.receipt.upsert({
     where: { name: "Compact 58 mm" },

@@ -1,7 +1,27 @@
+function serializePayment(payment) {
+  return {
+    ...payment,
+    amount: Number(payment.amount),
+    paidAt: payment.paidAt.toISOString(),
+    createdAt: payment.createdAt.toISOString(),
+    updatedAt: payment.updatedAt.toISOString(),
+    recorder: payment.recorder
+      ? {
+          id: payment.recorder.id,
+          name: payment.recorder.name,
+          email: payment.recorder.email
+        }
+      : null
+  };
+}
+
 function serializeInvoice(invoice) {
+  const payments = (invoice.payments || []).map(serializePayment);
+  const amountPaid = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const total = Number(invoice.total);
   return {
     ...invoice,
-    total: Number(invoice.total),
+    total,
     taxRate: Number(invoice.taxRate ?? 20),
     issueDate: invoice.issueDate.toISOString(),
     dueDate: invoice.dueDate.toISOString(),
@@ -13,7 +33,10 @@ function serializeInvoice(invoice) {
       lineTotal: Number(line.unitPrice) * Number(line.quantity || 0),
       createdAt: line.createdAt.toISOString(),
       updatedAt: line.updatedAt.toISOString()
-    }))
+    })),
+    payments,
+    amountPaid,
+    balanceDue: Math.max(0, total - amountPaid)
   };
 }
 
@@ -45,6 +68,7 @@ function serializeReceipt(receipt) {
 
 module.exports = {
   serializeInvoice,
+  serializePayment,
   serializeClient,
   serializeUser,
   serializeReceipt

@@ -1,6 +1,6 @@
 const express = require("express");
 const { validateInvoiceCreate } = require("../validators/invoices");
-const { listInvoices, createInvoice, updateInvoice, deleteInvoice } = require("../services/invoicesService");
+const { listInvoices, previewNextInvoiceNumber, createInvoice, updateInvoice, deleteInvoice } = require("../services/invoicesService");
 
 function createInvoicesRouter({ prisma, requireAuth }) {
   const router = express.Router();
@@ -8,6 +8,16 @@ function createInvoicesRouter({ prisma, requireAuth }) {
   router.get("/", requireAuth, async (_req, res, next) => {
     try {
       res.json(await listInvoices(prisma));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/next-number", requireAuth, async (req, res, next) => {
+    try {
+      res.json({
+        number: await previewNextInvoiceNumber(prisma, req.query || {})
+      });
     } catch (error) {
       next(error);
     }

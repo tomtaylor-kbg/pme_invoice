@@ -78,6 +78,25 @@ export function invoiceLineTotal(line = {}) {
   return toMoneyValue(line.quantity) * toMoneyValue(line.unitPrice);
 }
 
+export function invoicePaymentTotal(payments = []) {
+  return payments.reduce((sum, payment) => sum + toMoneyValue(payment.amount), 0);
+}
+
+export function invoicePaymentStatusLabel(invoice = {}) {
+  const total = toMoneyValue(invoice.total);
+  const paid = toMoneyValue(invoice.amountPaid);
+
+  if (total <= 0 || paid <= 0) {
+    return "Non payée";
+  }
+
+  if (paid >= total) {
+    return "Réglée";
+  }
+
+  return "Partiellement payée";
+}
+
 export function invoiceLinesTotal(lines = []) {
   return lines.reduce((sum, line) => sum + invoiceLineTotal(line), 0);
 }
@@ -99,6 +118,20 @@ export function calculateToolBreakdown({ quantity, unitPrice, discountRate, taxR
 
 export function personLabel(person) {
   return [person?.firstName, person?.lastName].filter(Boolean).join(" ").trim();
+}
+
+export function clientTypeLabel(value) {
+  switch (value) {
+    case "company":
+      return "Personne morale";
+    case "individual":
+    default:
+      return "Personne physique";
+  }
+}
+
+export function clientProfileLabel(client) {
+  return client?.company ? "Société" : "Particulier";
 }
 
 export function receiptWidthLabel(width) {
@@ -189,6 +222,24 @@ export function invoiceTemplateAudience(value) {
   }
 }
 
+export function paymentMethodLabel(value) {
+  switch (value) {
+    case "card":
+      return "Carte";
+    case "bank_transfer":
+      return "Virement";
+    case "mobile_money":
+      return "Mobile money";
+    case "check":
+      return "Chèque";
+    case "cash":
+      return "Espèces";
+    case "other":
+    default:
+      return "Autre";
+  }
+}
+
 export function invoicePrefixForType(value) {
   return value === "receipt" ? "REC" : "FAC";
 }
@@ -237,6 +288,7 @@ export function buildClientsCsv(clients = []) {
     clients.map((client) => [
       client.firstName || "",
       client.lastName || "",
+      clientTypeLabel(client.clientType),
       client.company || "",
       client.email || "",
       client.phone || "",
@@ -244,7 +296,7 @@ export function buildClientsCsv(clients = []) {
       client.status || "active",
       client.invoicesCount ?? 0
     ]),
-    ["Prénom", "Nom", "Société", "Email", "Téléphone", "Ville", "Statut", "Factures liées"]
+    ["Prénom", "Nom", "Type", "Société", "Email", "Téléphone", "Ville", "Statut", "Factures liées"]
   );
 }
 

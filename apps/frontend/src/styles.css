@@ -73,13 +73,26 @@ button {
   padding: 28px;
   border: 1px solid var(--border);
   border-radius: 28px;
-  background: rgba(15, 23, 42, 0.88);
-  box-shadow: 0 30px 60px rgba(2, 6, 23, 0.35);
+  background: var(--panel);
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.24);
+}
+
+.login-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .login-card h1 {
   margin: 20px 0 8px;
   font-size: 2rem;
+}
+
+.login-card > p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .login-form,
@@ -135,9 +148,45 @@ button:disabled {
 .error-banner {
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(220, 38, 38, 0.16);
-  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.18);
   color: #fecaca;
+}
+
+body[data-theme="light"] .login-card {
+  background: var(--panel);
+}
+
+body[data-theme="light"] .login-card > p {
+  color: var(--muted);
+}
+
+body[data-theme="light"] .login-form label {
+  color: var(--text);
+}
+
+body[data-theme="light"] .login-card .brand p {
+  color: var(--muted);
+}
+
+body[data-theme="light"] .login-card input {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(15, 23, 42, 0.14);
+  color: var(--text);
+}
+
+body[data-theme="light"] .login-card input:focus {
+  border-color: rgba(37, 99, 235, 0.5);
+}
+
+body[data-theme="light"] .login-card .primary-button {
+  color: #ffffff;
+}
+
+body[data-theme="light"] .error-banner {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.16);
+  color: #b91c1c;
 }
 
 .sidebar {
@@ -186,7 +235,9 @@ button:disabled {
 }
 
 .nav-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   text-align: left;
   padding: 12px 14px;
   color: var(--text);
@@ -195,6 +246,30 @@ button:disabled {
   border-radius: 14px;
   cursor: pointer;
   text-decoration: none;
+}
+
+.nav-item-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: currentColor;
+}
+
+.nav-item-svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-item-label {
+  min-width: 0;
 }
 
 .nav-item:hover {
@@ -579,11 +654,44 @@ button:disabled {
 }
 
 .entity-card.invoice .entity-note {
-  margin-top: 14px;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+}
+
+.invoice-card-note {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.18);
+}
+
+.invoice-card-note-label {
+  color: var(--muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.invoice-card-note .entity-note {
+  margin-top: 0;
+}
+
+.invoice-card-note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.invoice-card-note-meta strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .entity-card.invoice .entity-actions {
@@ -594,12 +702,12 @@ button:disabled {
   max-width: 112px;
 }
 
-.entity-card.receipt {
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .entity-card.client {
   background: rgba(15, 23, 42, 0.75);
+}
+
+.entity-card.client .entity-badge {
+  max-width: 132px;
 }
 
 .entity-card.compact {
@@ -644,6 +752,20 @@ button:disabled {
   display: block;
 }
 
+.invoice-badge-stack {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  white-space: normal;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.invoice-badge-stack span:last-child {
+  font-size: 0.72rem;
+  line-height: 1.05;
+}
+
 .receipt-badge-stack {
   display: grid;
   gap: 4px;
@@ -656,11 +778,11 @@ button:disabled {
 }
 
 .entity-card.invoice .entity-badge {
-  max-width: 112px;
+  max-width: 138px;
 }
 
 .entity-card.receipt .entity-badge {
-  max-width: 120px;
+  max-width: 132px;
 }
 
 .entity-meta {
@@ -1129,6 +1251,34 @@ tbody tr:hover {
   gap: 12px;
 }
 
+.invoice-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.invoice-form-field {
+  min-width: 0;
+}
+
+.invoice-form-span-2 {
+  grid-column: 1 / -1;
+}
+
+.client-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.client-form-field {
+  min-width: 0;
+}
+
+.client-form-span-2 {
+  grid-column: 1 / -1;
+}
+
 .overlay-footer {
   display: flex;
   justify-content: flex-end;
@@ -1139,21 +1289,29 @@ tbody tr:hover {
 }
 
 .overlay-hint {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(37, 99, 235, 0.12);
-  border: 1px solid rgba(37, 99, 235, 0.22);
-  color: #dbeafe;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  color: var(--text);
   font-size: 0.92rem;
+}
+
+.overlay-hint-label {
+  color: var(--muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .overlay-hint strong {
   display: block;
-  margin-bottom: 4px;
 }
 
 .overlay-hint span {
-  color: #bfdbfe;
+  color: var(--muted);
 }
 
 .invoice-lines-editor {
@@ -1408,6 +1566,18 @@ body[data-theme="light"] .stack-form label {
   color: var(--text);
 }
 
+body[data-theme="light"] .invoice-form-field input,
+body[data-theme="light"] .invoice-form-field select,
+body[data-theme="light"] .invoice-form-field textarea {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+body[data-theme="light"] .client-form-field input,
+body[data-theme="light"] .client-form-field select,
+body[data-theme="light"] .client-form-field textarea {
+  background: rgba(255, 255, 255, 0.96);
+}
+
 body[data-theme="light"] .filters-hint,
 body[data-theme="light"] .quick-list p,
 body[data-theme="light"] .performance-row-head p,
@@ -1442,10 +1612,15 @@ body[data-theme="light"] .entity-card.receipt {
 
 body[data-theme="light"] .invoice-card-summary div,
 body[data-theme="light"] .tool-result,
-body[data-theme="light"] .overlay-hint,
 body[data-theme="light"] .badge,
 body[data-theme="light"] .invoice-line-index {
   background: rgba(37, 99, 235, 0.08);
+}
+
+body[data-theme="light"] .overlay-hint,
+body[data-theme="light"] .invoice-card-note {
+  background: rgba(37, 99, 235, 0.06);
+  border-color: rgba(37, 99, 235, 0.14);
 }
 
 body[data-theme="light"] .badge {
@@ -1487,8 +1662,8 @@ body[data-theme="light"] .entity-card.invoice {
   background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(255, 255, 255, 0.96));
 }
 
-body[data-theme="light"] .entity-card.invoice .entity-note {
-  color: var(--text);
+body[data-theme="light"] .invoice-card-note-meta {
+  color: var(--muted);
 }
 
 @media (max-width: 1100px) {
@@ -1563,6 +1738,22 @@ body[data-theme="light"] .entity-card.invoice .entity-note {
 
   .overlay-head {
     flex-direction: column;
+  }
+
+  .invoice-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-form-span-2 {
+    grid-column: auto;
+  }
+
+  .client-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .client-form-span-2 {
+    grid-column: auto;
   }
 
   .invoice-lines-head {

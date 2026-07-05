@@ -1,5 +1,16 @@
 import { useEffect, useRef } from "react";
-import { slug, money, formatDate, personLabel, receiptWidthLabel, receiptTone, statusToLabel, invoiceTemplateLabel } from "../utils/formatters";
+import {
+  slug,
+  money,
+  personLabel,
+  clientTypeLabel,
+  clientProfileLabel,
+  receiptWidthLabel,
+  receiptTone,
+  statusToLabel,
+  invoiceTemplateLabel,
+  invoicePaymentStatusLabel
+} from "../utils/formatters";
 
 export function Badge({ value }) {
   return <span className={`badge ${slug(value)}`}>{value}</span>;
@@ -124,7 +135,8 @@ export function EntityCard({ title, subtitle, badge, meta, children, actions, to
   );
 }
 
-export function InvoiceCard({ invoice, onEdit, onDelete, loading, tone = "invoice" }) {
+export function InvoiceCard({ invoice, onEdit, onDelete, onPayments, loading, tone = "invoice" }) {
+  const paymentStatus = invoicePaymentStatusLabel(invoice);
   const actions = onEdit || onDelete ? (
     <>
       {onEdit ? (
@@ -148,7 +160,10 @@ export function InvoiceCard({ invoice, onEdit, onDelete, loading, tone = "invoic
           <p>{personLabel(invoice.client) || invoice.client?.displayName || invoice.client?.company || "-"}</p>
           <span>{invoiceTemplateLabel(invoice.templateType)}</span>
         </div>
-        <span className="entity-badge">{statusToLabel(invoice.status)}</span>
+        <span className="entity-badge invoice-badge-stack">
+          <span>{statusToLabel(invoice.status)}</span>
+          <span>{paymentStatus}</span>
+        </span>
       </div>
 
       <div className="invoice-card-summary">
@@ -161,12 +176,31 @@ export function InvoiceCard({ invoice, onEdit, onDelete, loading, tone = "invoic
           <strong>{money(invoice.total, invoice.currency)}</strong>
         </div>
         <div>
-          <span>Échéance</span>
-          <strong>{formatDate(invoice.dueDate)}</strong>
+          <span>Payé</span>
+          <strong>{money(invoice.amountPaid ?? 0, invoice.currency)}</strong>
+        </div>
+        <div>
+          <span>Reste</span>
+          <strong>{money(invoice.balanceDue ?? invoice.total ?? 0, invoice.currency)}</strong>
         </div>
       </div>
 
-      <p className="entity-note">{invoice.notes || "Aucune note."}</p>
+      <div className="invoice-card-note">
+        <span className="invoice-card-note-label">Notes</span>
+        <p className="entity-note">{invoice.notes || "Aucune note."}</p>
+        <div className="invoice-card-note-meta">
+          <strong>{invoiceTemplateLabel(invoice.templateType)}</strong>
+          <span>{invoice.creator?.name || invoice.creator?.email || "session courante"}</span>
+        </div>
+      </div>
+
+      {onPayments ? (
+        <div className="entity-actions">
+          <button type="button" className="text-button" onClick={onPayments}>
+            Paiements
+          </button>
+        </div>
+      ) : null}
 
       {actions ? <div className="entity-actions">{actions}</div> : null}
     </article>
@@ -177,10 +211,11 @@ export function ClientCard({ client, onEdit, onDelete, loading }) {
   return (
     <EntityCard
       title={personLabel(client) || "Client"}
-      subtitle={client.company || "Client particulier"}
-      badge={statusToLabel(client.status)}
+      subtitle={client.company || clientProfileLabel(client)}
+      badge={clientTypeLabel(client.clientType)}
       meta={
         <>
+          <span>{statusToLabel(client.status)}</span>
           <span>{client.email}</span>
           <span>{client.phone || "Téléphone non renseigné"}</span>
           <span>{client.city || "Ville non renseignée"}</span>

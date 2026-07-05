@@ -22,7 +22,8 @@ export function ClientsPage() {
       const emailMatch = String(client.email || "").toLowerCase().includes(query);
       const phoneMatch = String(client.phone || "").toLowerCase().includes(query);
       const cityMatch = String(client.city || "").toLowerCase().includes(query);
-      return nameMatch || companyMatch || emailMatch || phoneMatch || cityMatch;
+      const typeMatch = String(client.clientType || "").toLowerCase().includes(query);
+      return nameMatch || companyMatch || emailMatch || phoneMatch || cityMatch || typeMatch;
     }
     return true;
   });
@@ -114,8 +115,8 @@ export function ClientsPage() {
           </button>
         }
         >
-        <form id="client-form" className="stack-form" onSubmit={(event) => { event.preventDefault(); saveClient(); }}>
-          <label>
+        <form id="client-form" className="stack-form client-form-grid" onSubmit={(event) => { event.preventDefault(); saveClient(); }}>
+          <label className="client-form-field">
             Prénom
             <input
               value={forms.client.firstName}
@@ -125,7 +126,7 @@ export function ClientsPage() {
               }))}
             />
           </label>
-          <label>
+          <label className="client-form-field">
             Nom
             <input
               value={forms.client.lastName}
@@ -135,7 +136,20 @@ export function ClientsPage() {
               }))}
             />
           </label>
-          <label>
+          <label className="client-form-field">
+            Type de client
+            <select
+              value={forms.client.clientType}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                client: { ...current.client, clientType: event.target.value }
+              }))}
+            >
+              <option value="individual">Personne physique</option>
+              <option value="company">Personne morale / société</option>
+            </select>
+          </label>
+          <label className="client-form-field">
             Société
             <input
               value={forms.client.company}
@@ -145,7 +159,7 @@ export function ClientsPage() {
               }))}
             />
           </label>
-          <label>
+          <label className="client-form-field">
             Email
             <input
               type="email"
@@ -156,7 +170,7 @@ export function ClientsPage() {
               }))}
             />
           </label>
-          <label>
+          <label className="client-form-field">
             Ville
             <input
               value={forms.client.city}
@@ -166,7 +180,7 @@ export function ClientsPage() {
               }))}
             />
           </label>
-          <label>
+          <label className="client-form-field">
             Téléphone
             <input
               value={forms.client.phone}
@@ -176,7 +190,7 @@ export function ClientsPage() {
               }))}
             />
           </label>
-          <label>
+          <label className="client-form-field client-form-span-2">
             Statut
             <select
               value={forms.client.status}

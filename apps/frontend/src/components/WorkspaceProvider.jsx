@@ -2,14 +2,17 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   createClient,
   createInvoice,
+  createInvoicePayment,
   createReceipt,
   createUser,
   deleteClient,
   deleteInvoice,
+  deleteInvoicePayment,
   deleteReceipt,
   deleteUser,
   getClients,
   getDashboard,
+  getInvoiceNextNumber,
   getInvoices,
   getMe,
   getReceipts,
@@ -18,6 +21,7 @@ import {
   logout as apiLogout,
   updateClient,
   updateInvoice,
+  updateInvoicePayment,
   updateReceipt,
   updateUser
 } from "../api";
@@ -86,7 +90,7 @@ function readTheme() {
 
 function emptyForms() {
   return {
-    client: { firstName: "", lastName: "", company: "", email: "", phone: "", city: "", status: "active" },
+    client: { firstName: "", lastName: "", company: "", email: "", phone: "", city: "", status: "active", clientType: "individual" },
     user: { name: "", email: "", role: "user", passwordHash: "" },
     invoice: {
       number: "",
@@ -110,6 +114,14 @@ function emptyForms() {
       showTax: true,
       showLogo: false,
       status: "active"
+    },
+    payment: {
+      invoiceId: "",
+      amount: "",
+      method: "cash",
+      paidAt: todayISO(),
+      reference: "",
+      notes: ""
     }
   };
 }
@@ -140,6 +152,23 @@ function createReceiptDraft(overrides = {}) {
     paperWidthMm: Number(overrides.paperWidthMm || 58),
     showTax: overrides.showTax ?? true,
     showLogo: overrides.showLogo ?? false
+  };
+}
+
+function createPaymentDraft(invoice = null, overrides = {}) {
+  return {
+    ...emptyForms().payment,
+    invoiceId: invoice?.id || overrides.invoiceId || "",
+    amount:
+      overrides.amount !== undefined
+        ? String(overrides.amount)
+        : invoice
+          ? String(Math.max(0, Number(invoice.balanceDue ?? invoice.total ?? 0)))
+          : "",
+    method: overrides.method || "cash",
+    paidAt: overrides.paidAt || todayISO(),
+    reference: overrides.reference || "",
+    notes: overrides.notes || ""
   };
 }
 
@@ -185,6 +214,54 @@ export function WorkspaceProvider({ children }) {
       // Ignore persistence errors.
     }
   }, [theme]);
+
+  useEffect(() => {
+    if (!token || editor.kind !== "invoice" || editor.id) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function syncInvoiceNumber() {
+      const issueDate = forms.invoice.issueDate || todayISO();
+      const templateType = forms.invoice.templateType || "professional";
+      const prefix = workspaceSettings.invoicePrefix || invoicePrefixForType(templateType);
+
+      try {
+        const preview = await getInvoiceNextNumber(token, {
+          prefix,
+          templateType,
+          issueDate
+        });
+
+        if (!cancelled && preview?.number) {
+          setForms((current) => ({
+            ...current,
+            invoice: {
+              ...current.invoice,
+              number: preview.number
+            }
+          }));
+        }
+      } catch {
+        if (!cancelled) {
+          setForms((current) => ({
+            ...current,
+            invoice: {
+              ...current.invoice,
+              number: suggestInvoiceNumber(data.invoices, prefix, issueDate)
+            }
+          }));
+        }
+      }
+    }
+
+    syncInvoiceNumber();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data.invoices, editor.id, editor.kind, forms.invoice.issueDate, forms.invoice.templateType, token, workspaceSettings.invoicePrefix]);
 
   async function hydrate(currentToken) {
     setLoading(true);
@@ -270,7 +347,7 @@ export function WorkspaceProvider({ children }) {
       }
     }
 
-    function beginCreateClient() {
+  function beginCreateClient() {
       setEditor({ kind: "client", id: null });
       setForms((current) => ({ ...current, client: emptyForms().client }));
     }
@@ -286,7 +363,8 @@ export function WorkspaceProvider({ children }) {
           email: client.email || "",
           phone: client.phone || "",
           city: client.city || "",
-          status: client.status || "active"
+          status: client.status || "active",
+          clientType: client.clientType || "individual"
         }
       }));
     }
@@ -327,7 +405,8 @@ export function WorkspaceProvider({ children }) {
           ...overrides,
           userId: overrides.userId || user?.id || data.users[0]?.id || "",
           currency: overrides.currency || workspaceSettings.defaultCurrency || emptyForms().invoice.currency,
-          taxRate: overrides.taxRate || workspaceSettings.vatRate || emptyForms().invoice.taxRate
+          taxRate: overrides.taxRate || workspaceSettings.vatRate || emptyForms().invoice.taxRate,
+          prefix: overrides.prefix || workspaceSettings.invoicePrefix || invoicePrefixForType(overrides.templateType || "professional")
         })
       }));
     }
@@ -373,6 +452,32 @@ export function WorkspaceProvider({ children }) {
           taxRate: item.taxRate !== undefined ? String(item.taxRate) : "20",
           notes: item.notes || "",
           lines: (item.lines?.length ? item.lines : [createInvoiceLineDraft()]).map((line) => normalizeInvoiceLine(line))
+        }
+      }));
+    }
+
+    function beginManagePayments(invoice) {
+      setEditor({ kind: "payment", id: null, invoiceId: invoice.id });
+      setForms((current) => ({
+        ...current,
+        payment: createPaymentDraft(invoice, {
+          amount: invoice.balanceDue ?? invoice.total ?? 0,
+          paidAt: todayISO()
+        })
+      }));
+    }
+
+    function beginEditPayment(payment, invoice) {
+      setEditor({ kind: "payment", id: payment.id, invoiceId: invoice.id });
+      setForms((current) => ({
+        ...current,
+        payment: {
+          invoiceId: invoice.id,
+          amount: payment.amount !== undefined ? String(payment.amount) : "",
+          method: payment.method || "cash",
+          paidAt: payment.paidAt ? payment.paidAt.slice(0, 10) : todayISO(),
+          reference: payment.reference || "",
+          notes: payment.notes || ""
         }
       }));
     }
@@ -467,6 +572,7 @@ export function WorkspaceProvider({ children }) {
         const payload = {
           ...forms.invoice,
           userId: forms.invoice.userId || user?.id || "",
+          prefix: workspaceSettings.invoicePrefix || invoicePrefixForType(forms.invoice.templateType),
           total: invoiceLinesTotal(lines) * (1 + Number(forms.invoice.taxRate || 20) / 100),
           taxRate: Number(forms.invoice.taxRate || 20),
           lines
@@ -475,6 +581,37 @@ export function WorkspaceProvider({ children }) {
           await updateInvoice(token, editor.id, payload);
         } else {
           await createInvoice(token, payload);
+        }
+        await refresh();
+        setEditor({ kind: null, id: null });
+      } catch (err) {
+        setError(normalizeError(err));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function savePayment() {
+      setLoading(true);
+      setError("");
+      try {
+        const paymentInvoiceId = editor.invoiceId || forms.payment.invoiceId;
+        if (!paymentInvoiceId) {
+          throw new Error("Invoice not found");
+        }
+
+        const payload = {
+          ...forms.payment,
+          invoiceId: paymentInvoiceId,
+          amount: toMoneyValue(forms.payment.amount),
+          userId: user?.id || "",
+          paidAt: forms.payment.paidAt || todayISO()
+        };
+
+        if (editor.kind === "payment" && editor.id) {
+          await updateInvoicePayment(token, editor.id, payload);
+        } else {
+          await createInvoicePayment(token, paymentInvoiceId, payload);
         }
         await refresh();
         setEditor({ kind: null, id: null });
@@ -524,6 +661,22 @@ export function WorkspaceProvider({ children }) {
       }
     }
 
+    async function removePayment(id) {
+      setLoading(true);
+      setError("");
+      try {
+        await deleteInvoicePayment(token, id);
+        await refresh();
+        if (editor.kind === "payment" && editor.id === id) {
+          setEditor({ kind: null, id: null });
+        }
+      } catch (err) {
+        setError(normalizeError(err));
+      } finally {
+        setLoading(false);
+      }
+    }
+
     async function removeReceipt(id) {
       setLoading(true);
       setError("");
@@ -559,13 +712,17 @@ export function WorkspaceProvider({ children }) {
       beginCreateReceipt,
       beginEditReceipt,
       beginEditInvoice,
+      beginManagePayments,
+      beginEditPayment,
       saveClient,
       saveUser,
       saveInvoice,
+      savePayment,
       saveReceipt,
       removeClient,
       removeUser,
       removeInvoice,
+      removePayment,
       removeReceipt,
       workspaceSettings,
       setWorkspaceSettings,

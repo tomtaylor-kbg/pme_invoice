@@ -19,7 +19,7 @@ function createClientsRouter({ prisma, requireAuth }) {
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
-      const { firstName, lastName, company, email, phone, city, status = "active" } = req.body || {};
+      const { firstName, lastName, company, email, phone, city, status = "active", clientType = "individual" } = req.body || {};
       res.status(201).json(
         await createClient(prisma, {
           firstName,
@@ -28,7 +28,8 @@ function createClientsRouter({ prisma, requireAuth }) {
           email,
           phone: phone || null,
           city: city || null,
-          status
+          status,
+          clientType
         })
       );
     } catch (error) {
@@ -39,7 +40,7 @@ function createClientsRouter({ prisma, requireAuth }) {
   router.patch("/:id", requireAuth, async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { firstName, lastName, company, email, phone, city, status } = req.body || {};
+      const { firstName, lastName, company, email, phone, city, status, clientType } = req.body || {};
       res.json(
         await updateClient(prisma, id, {
           ...(firstName !== undefined ? { firstName } : {}),
@@ -48,7 +49,8 @@ function createClientsRouter({ prisma, requireAuth }) {
           ...(email !== undefined ? { email } : {}),
           ...(phone !== undefined ? { phone: phone || null } : {}),
           ...(city !== undefined ? { city: city || null } : {}),
-          ...(status !== undefined ? { status } : {})
+          ...(status !== undefined ? { status } : {}),
+          ...(clientType !== undefined ? { clientType } : {})
         })
       );
     } catch (error) {

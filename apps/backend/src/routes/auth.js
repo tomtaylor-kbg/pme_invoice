@@ -10,7 +10,7 @@ function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSes
       return res.json(result);
     }
 
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe invalide" });
   });
 
   router.get("/me", requireAuth, (req, res) => {

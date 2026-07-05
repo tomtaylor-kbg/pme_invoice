@@ -19,9 +19,9 @@ function validateInvoiceLine(line, index) {
 }
 
 function validateInvoiceCreate(body = {}) {
-  const { number, clientId, issueDate, dueDate, templateType, lines } = body;
-  if (!number || !clientId || !issueDate || !dueDate) {
-    return "number, clientId, issueDate and dueDate are required";
+  const { clientId, issueDate, dueDate, templateType, lines } = body;
+  if (!clientId || !issueDate || !dueDate) {
+    return "clientId, issueDate and dueDate are required";
   }
   if (templateType && !["professional", "receipt"].includes(templateType)) {
     return "templateType must be professional or receipt";

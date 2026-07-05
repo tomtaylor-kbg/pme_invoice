@@ -16,6 +16,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   invoices     Invoice[] @relation("CreatedBy")
+  payments     Payment[] @relation("RecordedPayments")
 }
 
 model Client {
@@ -25,6 +26,7 @@ model Client {
   email     String
   phone     String?
   company   String?
+  clientType String    @default("individual")
   status    String    @default("active")
   city      String?
   createdAt DateTime  @default(now())
@@ -64,6 +66,18 @@ model Invoice {
   client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   creator     User?         @relation("CreatedBy", fields: [userId], references: [id], onDelete: SetNull)
   lines       InvoiceLine[]
+  payments    Payment[]
+}
+
+model InvoiceCounter {
+  id              String   @id @default(cuid())
+  prefix          String
+  year            Int
+  currentSequence Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([prefix, year])
 }
 
 model InvoiceLine {
@@ -75,4 +89,20 @@ model InvoiceLine {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  userId    String?
+  amount    Decimal
+  method    String   @default("cash")
+  paidAt    DateTime @default(now())
+  reference String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recorder  User?    @relation("RecordedPayments", fields: [userId], references: [id], onDelete: SetNull)
 }

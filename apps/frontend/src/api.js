@@ -90,6 +90,17 @@ export function getInvoices(token) {
   return request("/api/invoices", { token });
 }
 
+export function getInvoiceNextNumber(token, params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      query.set(key, String(value));
+    }
+  });
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return request(`/api/invoices/next-number${suffix}`, { token });
+}
+
 export function createInvoice(token, data) {
   return request("/api/invoices", { token, method: "POST", body: data });
 }
@@ -100,4 +111,20 @@ export function updateInvoice(token, id, data) {
 
 export function deleteInvoice(token, id) {
   return request(`/api/invoices/${id}`, { token, method: "DELETE" });
+}
+
+export function getInvoicePayments(token, invoiceId) {
+  return request(`/api/invoices/${invoiceId}/payments`, { token });
+}
+
+export function createInvoicePayment(token, invoiceId, data) {
+  return request(`/api/invoices/${invoiceId}/payments`, { token, method: "POST", body: data });
+}
+
+export function updateInvoicePayment(token, id, data) {
+  return request(`/api/payments/${id}`, { token, method: "PATCH", body: data });
+}
+
+export function deleteInvoicePayment(token, id) {
+  return request(`/api/payments/${id}`, { token, method: "DELETE" });
 }
