@@ -587,12 +587,23 @@ button:disabled {
   display: block;
 }
 
+.receipt-badge-stack {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+}
+
+.receipt-badge-stack span {
+  display: block;
+  max-width: 100%;
+}
+
 .entity-card.invoice .entity-badge {
   max-width: 112px;
 }
 
 .entity-card.receipt .entity-badge {
-  max-width: 112px;
+  max-width: 120px;
 }
 
 .entity-meta {

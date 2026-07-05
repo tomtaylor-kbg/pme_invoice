@@ -256,10 +256,10 @@ export function ReceiptCard({ receipt, onEdit, onDelete, loading }) {
       title={receipt.name}
       subtitle={receipt.title}
       badge={
-        <>
+        <div className="receipt-badge-stack">
           <span>{receiptWidthLabel(receipt.paperWidthMm)}</span>
           <span>{statusToLabel(receipt.status)}</span>
-        </>
+        </div>
       }
       meta={
         <>
