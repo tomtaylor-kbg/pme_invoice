@@ -1,5 +1,5 @@
 import { useWorkspace } from "../WorkspaceProvider";
-import { ReceiptCard, ReceiptPreview, OverlayDialog, SectionHeader } from "../ui";
+import { ReceiptCard, ReceiptPreview, OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader } from "../ui";
 
 export function ReceiptsPage() {
   const { data, forms, setForms, editor, beginCreateReceipt, beginEditReceipt, saveReceipt, removeReceipt, loading, closeEditor } = useWorkspace();
@@ -12,7 +12,6 @@ export function ReceiptsPage() {
         <div>
           <span className="eyebrow">Thermique</span>
           <h1>Reçus</h1>
-          <p>Modèles compacts pour imprimantes thermiques en 58 mm et 80 mm.</p>
         </div>
         <div className="hero-actions">
           <button className="secondary-button" type="button" onClick={beginCreateReceipt}>
@@ -24,7 +23,7 @@ export function ReceiptsPage() {
       <div className="page-scroll">
         <section className="content-grid receipts-layout">
           <div className="panel">
-            <SectionHeader title="Modèles" action="Cartes de rendu prêtes pour les tickets thermiques." />
+            <SectionHeader title="Modèles" />
             <div className="card-grid receipts-grid">
               {data.receipts.map((receipt) => (
                 <ReceiptCard
@@ -43,12 +42,17 @@ export function ReceiptsPage() {
       <OverlayDialog
         open={editor.kind === "receipt"}
         title={isEditing ? "Modifier modèle" : "Créer modèle"}
-        description="Paramètres imprimables et aperçu du ticket."
         onClose={closeEditor}
-        footer={
-          <button className="primary-button" type="submit" form="receipt-form" disabled={loading}>
+        topbarActions={
+          <OverlayActionButton
+            icon={<OverlaySaveIcon />}
+            className="primary-button overlay-save-button"
+            type="submit"
+            form="receipt-form"
+            disabled={loading}
+          >
             {isEditing ? "Enregistrer" : "Créer modèle"}
-          </button>
+          </OverlayActionButton>
         }
         >
         <form className="stack-form" id="receipt-form" onSubmit={(event) => { event.preventDefault(); saveReceipt(); }}>
@@ -142,7 +146,6 @@ export function ReceiptsPage() {
           </label>
 
           <div className="receipt-live">
-            <SectionHeader title="Aperçu" action="Rendu de travail à partir du formulaire courant." />
             <ReceiptPreview receipt={forms.receipt} />
           </div>
         </form>

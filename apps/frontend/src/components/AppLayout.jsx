@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useWorkspace } from "./WorkspaceProvider";
+import { ToastViewport } from "./ui";
 
 export const navItems = [
   {
@@ -45,10 +46,11 @@ export const navItems = [
 ];
 
 export function AppLayout() {
-  const { user, logout, theme, toggleTheme } = useWorkspace();
+  const { user, logout, theme, toggleTheme, toasts, dismissToast } = useWorkspace();
   const displayName = user?.name?.trim() || user?.email?.trim() || "Utilisateur connecté";
   const displayRole = user?.role || "user";
   const isDark = theme === "dark";
+  const visibleNavItems = navItems.filter((item) => item.key !== "users" || displayRole === "admin");
 
   return (
     <div className="app-shell">
@@ -62,7 +64,7 @@ export function AppLayout() {
         </div>
 
         <nav className="nav">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.key}
               to={item.path}
@@ -125,11 +127,12 @@ export function AppLayout() {
             </div>
           </header>
 
-          <div className="main-content">
-            <Outlet />
-          </div>
+        <div className="main-content">
+          <Outlet />
         </div>
-      </main>
-    </div>
+      </div>
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
+    </main>
+  </div>
   );
 }

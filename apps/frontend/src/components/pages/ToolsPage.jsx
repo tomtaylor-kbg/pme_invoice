@@ -1,12 +1,23 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "../WorkspaceProvider";
-import { SectionHeader } from "../ui";
-import { addDaysToISODate, calculateToolBreakdown, formatISODate, invoicePrefixForType, money, suggestInvoiceNumber, todayISO } from "../../utils/formatters";
+import { OverlayDialog, SectionHeader } from "../ui";
+import {
+  addDaysToISODate,
+  calculateToolBreakdown,
+  formatISODate,
+  invoiceDisplayLabel,
+  invoicePrefixForType,
+  money,
+  suggestInvoiceNumber,
+  todayISO
+} from "../../utils/formatters";
 
 export function ToolsPage() {
   const navigate = useNavigate();
-  const { data, beginCreateInvoiceWithPreset, setForms, workspaceSettings, setWorkspaceSettings } = useWorkspace();
+  const { user, data, beginCreateInvoiceWithPreset, setForms, workspaceSettings, setWorkspaceSettings, resetWorkspaceSettings } = useWorkspace();
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const canResetWorkspaceSettings = user?.role === "admin" || user?.role === "finance";
   const [dueDateTool, setDueDateTool] = useState({
     issueDate: todayISO(),
     termDays: 30
@@ -56,14 +67,23 @@ export function ToolsPage() {
         <div>
           <span className="eyebrow">Productivité</span>
           <h1>Outils</h1>
-          <p>Utilitaires pour préparer les documents de facturation.</p>
         </div>
       </header>
 
       <div className="page-scroll">
         <section className="settings-grid">
           <article className="tool-card settings-card">
-            <SectionHeader title="Établissement" action="Identité et coordonnées utilisées dans l’environnement de travail." />
+            <SectionHeader
+              title="Établissement"
+              buttonLabel={canResetWorkspaceSettings ? "Réinitialiser" : undefined}
+              onButtonClick={
+                canResetWorkspaceSettings
+                  ? () => {
+                      setResetDialogOpen(true);
+                    }
+                  : undefined
+              }
+            />
             <div className="tool-form">
               <label>
                 Nom de l'établissement
@@ -135,7 +155,7 @@ export function ToolsPage() {
           </article>
 
           <article className="tool-card settings-card">
-            <SectionHeader title="Fiscalité" action="Valeurs par défaut appliquées aux nouvelles factures." />
+            <SectionHeader title="Fiscalité" />
             <div className="tool-form">
               <label>
                 TVA par défaut (%)
@@ -183,7 +203,7 @@ export function ToolsPage() {
           </article>
 
           <article className="tool-card settings-card settings-card-wide">
-            <SectionHeader title="Services" action="Liste des services ou prestations à retrouver dans les documents et futurs modules." />
+            <SectionHeader title="Services" />
             <label className="stack-form">
               Services proposés
               <textarea
@@ -203,9 +223,41 @@ export function ToolsPage() {
           </article>
         </section>
 
+        {canResetWorkspaceSettings ? (
+          <OverlayDialog
+            title="Réinitialiser les paramètres système"
+            open={resetDialogOpen}
+            onClose={() => setResetDialogOpen(false)}
+          >
+            <div className="tool-form">
+              <p className="settings-reset-copy">
+                Les valeurs actuelles des outils seront remplacées par les valeurs de départ du seed.
+              </p>
+              <p className="settings-reset-copy">
+                Les modifications enregistrées en base seront conservées après sauvegarde.
+              </p>
+            </div>
+            <div className="hero-actions tool-actions">
+              <button className="secondary-button" type="button" onClick={() => setResetDialogOpen(false)}>
+                Annuler
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => {
+                  resetWorkspaceSettings();
+                  setResetDialogOpen(false);
+                }}
+              >
+                Réinitialiser
+              </button>
+            </div>
+          </OverlayDialog>
+        ) : null}
+
         <section className="tools-grid">
           <article className="tool-card">
-            <SectionHeader title="Calculateur d’échéance" action="Estime la date limite à partir de la date d’émission et du délai de paiement." />
+            <SectionHeader title="Calculateur d’échéance" />
             <div className="tool-form">
               <label>
                 Date d’émission
@@ -233,7 +285,7 @@ export function ToolsPage() {
           </article>
 
           <article className="tool-card">
-            <SectionHeader title="Générateur de numéro" action="Crée le prochain numéro de facture en fonction du préfixe et de l’année." />
+            <SectionHeader title="Générateur de numéro" />
             <div className="tool-form">
               <label>
                 Préfixe
@@ -253,7 +305,7 @@ export function ToolsPage() {
             </div>
             <div className="tool-result">
               <span>Numéro proposé</span>
-              <strong>{nextNumber}</strong>
+              <strong>{invoiceDisplayLabel({ templateType: "professional", number: nextNumber })}</strong>
             </div>
             <div className="hero-actions tool-actions">
               <button
@@ -290,7 +342,7 @@ export function ToolsPage() {
           </article>
 
           <article className="tool-card">
-            <SectionHeader title="Estimateur de facture" action="Calcule le total avec remise et TVA avant saisie dans le formulaire." />
+            <SectionHeader title="Estimateur de facture" />
             <div className="tool-form">
               <label>
                 Quantité

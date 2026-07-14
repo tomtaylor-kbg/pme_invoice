@@ -1,6 +1,24 @@
 const { PrismaClient } = require("@prisma/client");
+const { hashPassword } = require("../src/utils/password");
 
 const prisma = new PrismaClient();
+
+const WORKSPACE_SETTINGS_SEED = {
+  companyName: "Atlas Consulting",
+  vatRate: "20",
+  defaultCurrency: "EUR",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "Lubumbashi",
+  country: "RDC",
+  phone: "+243 900 000 001",
+  email: "",
+  website: "",
+  invoicePrefix: "FAC",
+  paymentTermsDays: "30",
+  services: "Conseil\nDéveloppement\nSupport"
+};
 
 async function main() {
   async function ensureInvoiceCounter(prefix, year, sequence) {
@@ -34,34 +52,40 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: "admin@facturation.local" },
-    update: {},
+    update: {
+      passwordHash: hashPassword("changeme")
+    },
     create: {
       name: "admin",
       email: "admin@facturation.local",
       role: "admin",
-      passwordHash: "changeme"
+      passwordHash: hashPassword("changeme")
     }
   });
 
   await prisma.user.upsert({
     where: { email: "finance@facturation.local" },
-    update: {},
+    update: {
+      passwordHash: hashPassword("changeme")
+    },
     create: {
       name: "finance",
       email: "finance@facturation.local",
       role: "finance",
-      passwordHash: "changeme"
+      passwordHash: hashPassword("changeme")
     }
   });
 
   await prisma.user.upsert({
     where: { email: "sales@facturation.local" },
-    update: {},
+    update: {
+      passwordHash: hashPassword("changeme")
+    },
     create: {
       name: "sales",
       email: "sales@facturation.local",
       role: "sales",
-      passwordHash: "changeme"
+      passwordHash: hashPassword("changeme")
     }
   });
 
@@ -224,13 +248,22 @@ async function main() {
   await ensureInvoiceCounter("FAC", 2026, 1);
   await ensureInvoiceCounter("REC", 2026, 1);
 
+  await prisma.workspaceSetting.upsert({
+    where: { id: "singleton" },
+    update: WORKSPACE_SETTINGS_SEED,
+    create: {
+      id: "singleton",
+      ...WORKSPACE_SETTINGS_SEED
+    }
+  });
+
   await prisma.receipt.upsert({
     where: { name: "Compact 58 mm" },
     update: {
       paperWidthMm: 58,
       title: "Atlas Consulting",
       subtitle: "Ticket compact",
-      footerText: "Merci pour votre visite",
+      footerText: "Merci pour votre confiance",
       showTax: true,
       showLogo: false,
       status: "active"
@@ -240,7 +273,7 @@ async function main() {
       paperWidthMm: 58,
       title: "Atlas Consulting",
       subtitle: "Ticket compact",
-      footerText: "Merci pour votre visite",
+      footerText: "Merci pour votre confiance",
       showTax: true,
       showLogo: false
     }
@@ -276,4 +309,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    console.log("Database seeding completed successfully.");
   });

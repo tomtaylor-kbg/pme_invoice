@@ -8,14 +8,14 @@ export function DashboardPage() {
   const { data, refresh, beginCreateInvoiceWithPreset, beginCreateClient, beginCreateReceipt } = useWorkspace();
 
   const summaryCards = [
-    { label: "Factures", value: data.metrics?.invoices ?? 0, detail: "Total enregistré", tone: "accent" },
-    { label: "Contacts", value: data.metrics?.clients ?? 0, detail: "Personnes suivies", tone: "neutral" },
-    { label: "Reçus", value: data.metrics?.receipts ?? 0, detail: "Modèles thermiques", tone: "neutral" },
-    { label: "Encaissements", value: data.metrics?.payments ?? 0, detail: "Paiements enregistrés", tone: "success" },
-    { label: "En retard", value: data.metrics?.overdueInvoices ?? 0, detail: "Factures à relancer", tone: "warning" },
-    { label: "Utilisateurs", value: data.metrics?.users ?? 0, detail: "Comptes internes", tone: "neutral" },
-    { label: "CA", value: money(data.metrics?.turnover ?? 0), detail: "Somme des factures", tone: "success" },
-    { label: "Reçu", value: money(data.metrics?.collectedAmount ?? 0), detail: "Somme des paiements", tone: "accent" }
+    { label: "Factures", value: data.metrics?.invoices ?? 0, tone: "accent" },
+    { label: "Contacts", value: data.metrics?.clients ?? 0, tone: "neutral" },
+    { label: "Reçus", value: data.metrics?.receipts ?? 0, tone: "neutral" },
+    { label: "Encaissements", value: data.metrics?.payments ?? 0, tone: "success" },
+    { label: "En retard", value: data.metrics?.overdueInvoices ?? 0, tone: "warning" },
+    { label: "Utilisateurs", value: data.metrics?.users ?? 0, tone: "neutral" },
+    { label: "CA", value: money(data.metrics?.turnover ?? 0), tone: "success" },
+    { label: "Reçu", value: money(data.metrics?.collectedAmount ?? 0), tone: "accent" }
   ];
 
   const monthlySeries = buildMonthlyRevenueSeries(data.invoices, 12);
@@ -29,7 +29,6 @@ export function DashboardPage() {
         <div>
           <span className="eyebrow">Pilotage</span>
           <h1>Vue d’ensemble</h1>
-          <p>Activité, contacts, reçus et factures récentes.</p>
         </div>
         <div className="hero-actions">
           <button className="secondary-button" type="button" onClick={refresh}>
@@ -80,7 +79,7 @@ export function DashboardPage() {
 
         <section className="content-grid dashboard-analytics">
           <div className="panel">
-            <SectionHeader title="Revenu mensuel" action="Évolution du chiffre d'affaires sur les 12 derniers mois." />
+            <SectionHeader title="Revenu mensuel" />
             <div className="analytics-chart">
               <div className="analytics-chart-bars">
                 {monthlySeries.map((point) => {
@@ -101,7 +100,7 @@ export function DashboardPage() {
           </div>
 
           <div className="panel">
-            <SectionHeader title="Performance client" action="Les clients qui génèrent le plus de revenus." />
+            <SectionHeader title="Performance client" />
             <div className="performance-list">
               {topClients.length > 0 ? (
                 topClients.map((client, index) => {
@@ -114,7 +113,6 @@ export function DashboardPage() {
                         <span className="performance-rank">{index + 1}</span>
                         <div>
                           <strong>{client.label}</strong>
-                          <p>Revenus cumulés sur les factures enregistrées.</p>
                         </div>
                         <strong>{money(client.value)}</strong>
                       </div>
@@ -133,7 +131,7 @@ export function DashboardPage() {
 
         <section className="content-grid">
           <div className="panel">
-            <SectionHeader title="Factures récentes" action="Derniers documents enregistrés." />
+            <SectionHeader title="Factures récentes" />
             <div className="card-grid invoices-grid">
               {recent.map((invoice) => (
                 <InvoiceCard key={invoice.id} invoice={invoice} tone="compact" />
@@ -142,11 +140,10 @@ export function DashboardPage() {
           </div>
 
           <div className="panel panel-side">
-            <SectionHeader title="Raccourcis" action="Accès direct aux actions les plus utilisées." />
+            <SectionHeader title="Raccourcis" />
             <div className="quick-list">
               <article>
                 <strong>Créer une facture</strong>
-                <p>Ouvrir le formulaire avec le prochain numéro.</p>
                 <button
                   type="button"
                   className="text-button"
@@ -160,7 +157,6 @@ export function DashboardPage() {
               </article>
               <article>
                 <strong>Créer un contact</strong>
-                <p>Ajouter une personne liée à une entreprise ou non.</p>
                 <button
                   type="button"
                   className="text-button"
@@ -174,7 +170,6 @@ export function DashboardPage() {
               </article>
               <article>
                 <strong>Créer un reçu</strong>
-                <p>Préparer un modèle compact pour imprimante thermique.</p>
                 <button
                   type="button"
                   className="text-button"

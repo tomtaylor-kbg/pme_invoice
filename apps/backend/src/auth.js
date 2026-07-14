@@ -1,7 +1,9 @@
 const crypto = require("crypto");
 const { serializeUser } = require("./utils/serializers");
+const { hashPassword, isHashedPassword, verifyPassword } = require("./utils/password");
 
 const sessions = new Map();
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 function createSessionToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -19,16 +21,42 @@ async function authenticateUser(prisma, username, password) {
     }
   });
 
-  if (user && user.passwordHash === password) {
+  if (user && verifyPassword(password, user.passwordHash)) {
+    if (!isHashedPassword(user.passwordHash)) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: hashPassword(password)
+        }
+      });
+    }
+
     return user;
   }
 
   const bootstrapUsername = process.env.USERNAME || "";
   const bootstrapPassword = process.env.PASSWORD || "";
-  if (username === bootstrapUsername && password === bootstrapPassword) {
-    return prisma.user.findFirst({
+  if (bootstrapUsername && bootstrapPassword && username === bootstrapUsername && password === bootstrapPassword) {
+    const bootstrapUser = await prisma.user.findFirst({
       where: {
         OR: [{ email: bootstrapUsername }, { name: bootstrapUsername }]
+      }
+    });
+
+    if (bootstrapUser) {
+      return bootstrapUser;
+    }
+
+    const isEmail = bootstrapUsername.includes("@");
+    const fallbackName = isEmail ? bootstrapUsername.split("@")[0] : bootstrapUsername;
+    const fallbackEmail = isEmail ? bootstrapUsername : `${bootstrapUsername}@facturation.local`;
+
+    return prisma.user.create({
+      data: {
+        name: fallbackName || "admin",
+        email: fallbackEmail,
+        role: "admin",
+        passwordHash: hashPassword(bootstrapPassword)
       }
     });
   }
@@ -43,9 +71,11 @@ async function loginWithCredentials(prisma, username, password) {
   }
 
   const token = createSessionToken();
+  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
   sessions.set(token, {
     userId: user.id,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    expiresAt: expiresAt.toISOString()
   });
 
   return {
@@ -57,6 +87,11 @@ async function loginWithCredentials(prisma, username, password) {
 async function resolveSession(prisma, token) {
   const session = sessions.get(token);
   if (!session) {
+    return null;
+  }
+
+  if (session.expiresAt && Date.now() > Date.parse(session.expiresAt)) {
+    sessions.delete(token);
     return null;
   }
 

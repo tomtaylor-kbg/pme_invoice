@@ -66,10 +66,21 @@ function serializeReceipt(receipt) {
   };
 }
 
+function serializeWorkspaceSetting(setting) {
+  return {
+    ...setting,
+    vatRate: String(setting.vatRate ?? "20"),
+    paymentTermsDays: String(setting.paymentTermsDays ?? "30"),
+    createdAt: setting.createdAt.toISOString(),
+    updatedAt: setting.updatedAt.toISOString()
+  };
+}
+
 module.exports = {
   serializeInvoice,
   serializePayment,
   serializeClient,
   serializeUser,
-  serializeReceipt
+  serializeReceipt,
+  serializeWorkspaceSetting
 };

@@ -1,14 +1,24 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "./WorkspaceProvider";
+import { ToastViewport } from "./ui";
 
 export function LoginPanel({ onSubmit, loading, error }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const { theme, toggleTheme } = useWorkspace();
+  const { theme, toggleTheme, toasts, dismissToast, notifyError } = useWorkspace();
   const isDark = theme === "dark";
+  const prevLoadingRef = useRef(loading);
+
+  useEffect(() => {
+    if (prevLoadingRef.current && !loading && error) {
+      notifyError("Connexion impossible", error);
+    }
+    prevLoadingRef.current = loading;
+  }, [loading, error, notifyError]);
 
   return (
     <div className="login-shell">
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
       <div className="login-card">
         <div className="login-card-head">
           <div className="brand">
@@ -49,13 +59,12 @@ export function LoginPanel({ onSubmit, loading, error }) {
         >
           <label>
             Nom d'utilisateur
-            <input value={username} onChange={(event) => setUsername(event.target.value)} />
+            <input autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} />
           </label>
           <label>
             Mot de passe
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            <input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
           </label>
-          {error ? <div className="error-banner">{error}</div> : null}
           <button className="primary-button" type="submit" disabled={loading}>
             {loading ? "Connexion..." : "Se connecter"}
           </button>

@@ -1,0 +1,40 @@
+const express = require("express");
+const {
+  getWorkspaceSettings,
+  updateWorkspaceSettings
+} = require("../services/workspaceSettingsService");
+
+function canManageWorkspaceSettings(user) {
+  return user?.role === "admin" || user?.role === "finance";
+}
+
+function createWorkspaceSettingsRouter({ prisma, requireAuth }) {
+  const router = express.Router();
+
+  router.get("/", requireAuth, async (_req, res, next) => {
+    try {
+      const payload = await getWorkspaceSettings(prisma);
+      res.json(payload);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch("/", requireAuth, async (req, res, next) => {
+    try {
+      if (!canManageWorkspaceSettings(req.user)) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      res.json({
+        settings: await updateWorkspaceSettings(prisma, req.body || {})
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+module.exports = { createWorkspaceSettingsRouter };

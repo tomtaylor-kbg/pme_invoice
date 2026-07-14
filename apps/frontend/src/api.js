@@ -38,6 +38,14 @@ export function getDashboard(token) {
   return request("/api/dashboard", { token });
 }
 
+export function getWorkspaceSettings(token) {
+  return request("/api/workspace-settings", { token });
+}
+
+export function updateWorkspaceSettings(token, data) {
+  return request("/api/workspace-settings", { token, method: "PATCH", body: data });
+}
+
 export function getClients(token) {
   return request("/api/clients", { token });
 }

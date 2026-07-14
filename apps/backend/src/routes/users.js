@@ -4,6 +4,7 @@ const { listUsers, createUser, updateUser, deleteUser } = require("../services/u
 
 function createUsersRouter({ prisma, requireAuth }) {
   const router = express.Router();
+  const allowedRoles = new Set(["user", "admin", "finance", "sales"]);
 
   router.get("/", requireAuth, async (_req, res, next) => {
     try {
@@ -20,6 +21,9 @@ function createUsersRouter({ prisma, requireAuth }) {
         return res.status(400).json({ message: validationError });
       }
       const { name, email, role = "user", passwordHash = "" } = req.body || {};
+      if (!allowedRoles.has(role)) {
+        return res.status(400).json({ message: "role must be user, admin, finance or sales" });
+      }
       res.status(201).json(
         await createUser(prisma, {
           name,
@@ -37,6 +41,9 @@ function createUsersRouter({ prisma, requireAuth }) {
     try {
       const { id } = req.params;
       const { name, email, role, passwordHash } = req.body || {};
+      if (role !== undefined && !allowedRoles.has(role)) {
+        return res.status(400).json({ message: "role must be user, admin, finance or sales" });
+      }
       res.json(
         await updateUser(prisma, id, {
           ...(name !== undefined ? { name } : {}),

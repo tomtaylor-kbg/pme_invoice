@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   createClient,
   createInvoice,
@@ -16,6 +16,7 @@ import {
   getInvoices,
   getMe,
   getReceipts,
+  getWorkspaceSettings,
   getUsers,
   login,
   logout as apiLogout,
@@ -23,16 +24,20 @@ import {
   updateInvoice,
   updateInvoicePayment,
   updateReceipt,
+  updateWorkspaceSettings,
   updateUser
 } from "../api";
 import {
   todayISO,
   suggestInvoiceNumber,
   invoicePrefixForType,
+  invoiceDisplayLabel,
+  personLabel,
   createInvoiceLineDraft,
   normalizeInvoiceLine,
   invoiceLinesTotal,
-  toMoneyValue
+  toMoneyValue,
+  money
 } from "../utils/formatters";
 
 const STORAGE_KEY = "facturation_token";
@@ -60,19 +65,43 @@ function defaultWorkspaceSettings() {
   };
 }
 
-function readWorkspaceSettings() {
+function normalizeWorkspaceSettings(settings = {}) {
+  return {
+    ...defaultWorkspaceSettings(),
+    ...settings,
+    companyName: String(settings.companyName ?? defaultWorkspaceSettings().companyName),
+    vatRate: String(settings.vatRate ?? defaultWorkspaceSettings().vatRate),
+    defaultCurrency: String(settings.defaultCurrency ?? defaultWorkspaceSettings().defaultCurrency).toUpperCase(),
+    addressLine1: String(settings.addressLine1 ?? defaultWorkspaceSettings().addressLine1),
+    addressLine2: String(settings.addressLine2 ?? defaultWorkspaceSettings().addressLine2),
+    postalCode: String(settings.postalCode ?? defaultWorkspaceSettings().postalCode),
+    city: String(settings.city ?? defaultWorkspaceSettings().city),
+    country: String(settings.country ?? defaultWorkspaceSettings().country),
+    phone: String(settings.phone ?? defaultWorkspaceSettings().phone),
+    email: String(settings.email ?? defaultWorkspaceSettings().email),
+    website: String(settings.website ?? defaultWorkspaceSettings().website),
+    invoicePrefix: String(settings.invoicePrefix ?? defaultWorkspaceSettings().invoicePrefix).toUpperCase(),
+    paymentTermsDays: String(settings.paymentTermsDays ?? defaultWorkspaceSettings().paymentTermsDays),
+    services: String(settings.services ?? defaultWorkspaceSettings().services)
+  };
+}
+
+function readLegacyWorkspaceSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (!raw) {
-      return defaultWorkspaceSettings();
+      return null;
     }
-    return {
-      ...defaultWorkspaceSettings(),
-      ...JSON.parse(raw)
-    };
+    return normalizeWorkspaceSettings(JSON.parse(raw));
   } catch {
-    return defaultWorkspaceSettings();
+    return null;
   }
+}
+
+function workspaceSettingsEqual(left, right) {
+  const normalizedLeft = normalizeWorkspaceSettings(left);
+  const normalizedRight = normalizeWorkspaceSettings(right);
+  return JSON.stringify(normalizedLeft) === JSON.stringify(normalizedRight);
 }
 
 function readTheme() {
@@ -176,11 +205,28 @@ function normalizeError(error) {
   return error instanceof Error ? error.message : "Une erreur est survenue";
 }
 
+function confirmDestructiveAction(message) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.confirm(message);
+}
+
+function createToastId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export function WorkspaceProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [toasts, setToasts] = useState([]);
   const [data, setData] = useState({
     metrics: null,
     recentInvoices: [],
@@ -189,18 +235,76 @@ export function WorkspaceProvider({ children }) {
     users: [],
     receipts: []
   });
-  const [workspaceSettings, setWorkspaceSettings] = useState(() => readWorkspaceSettings());
+  const legacyWorkspaceSettingsRef = useRef(readLegacyWorkspaceSettings());
+  const workspaceSettingsSnapshotRef = useRef(normalizeWorkspaceSettings(legacyWorkspaceSettingsRef.current || defaultWorkspaceSettings()));
+  const workspaceSettingsSaveTimerRef = useRef(null);
+  const workspaceSettingsActionRef = useRef(null);
+  const workspaceSettingsRollbackRef = useRef(null);
+  const [workspaceSettings, setWorkspaceSettings] = useState(() => normalizeWorkspaceSettings(legacyWorkspaceSettingsRef.current || defaultWorkspaceSettings()));
   const [theme, setTheme] = useState(() => readTheme());
   const [forms, setForms] = useState(emptyForms());
   const [editor, setEditor] = useState({ kind: null, id: null });
+  const toastTimersRef = useRef(new Map());
+
+  function resetWorkspaceSettings() {
+    const defaultSettings = defaultWorkspaceSettings();
+    workspaceSettingsRollbackRef.current = workspaceSettingsSnapshotRef.current;
+    workspaceSettingsActionRef.current = "reset";
+    setWorkspaceSettings(defaultSettings);
+  }
 
   useEffect(() => {
-    try {
-      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(workspaceSettings));
-    } catch {
-      // Ignore persistence errors.
+    if (!token) {
+      return undefined;
     }
-  }, [workspaceSettings]);
+
+    const currentSettings = normalizeWorkspaceSettings(workspaceSettings);
+    if (workspaceSettingsEqual(currentSettings, workspaceSettingsSnapshotRef.current)) {
+      return undefined;
+    }
+
+    if (workspaceSettingsSaveTimerRef.current) {
+      window.clearTimeout(workspaceSettingsSaveTimerRef.current);
+    }
+
+    workspaceSettingsSaveTimerRef.current = window.setTimeout(async () => {
+      workspaceSettingsSaveTimerRef.current = null;
+      try {
+        const action = workspaceSettingsActionRef.current;
+        const result = await updateWorkspaceSettings(token, currentSettings);
+        const savedSettings = normalizeWorkspaceSettings(result?.settings || currentSettings);
+        workspaceSettingsSnapshotRef.current = savedSettings;
+        legacyWorkspaceSettingsRef.current = savedSettings;
+        if (action === "reset") {
+          notifySuccess("Paramètres réinitialisés", "Les paramètres système ont été remis aux valeurs de départ.");
+        }
+        workspaceSettingsActionRef.current = null;
+        workspaceSettingsRollbackRef.current = null;
+        try {
+          localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(savedSettings));
+        } catch {
+          // Ignore persistence errors.
+        }
+      } catch {
+        const action = workspaceSettingsActionRef.current;
+        const rollbackSettings = workspaceSettingsRollbackRef.current;
+        workspaceSettingsActionRef.current = null;
+        workspaceSettingsRollbackRef.current = null;
+        if (action === "reset" && rollbackSettings) {
+          setWorkspaceSettings(rollbackSettings);
+          notifyError("Réinitialisation impossible", "Les paramètres système n'ont pas pu être réinitialisés.");
+        }
+        // Keep the in-memory version and retry on the next change.
+      }
+    }, 400);
+
+    return () => {
+      if (workspaceSettingsSaveTimerRef.current) {
+        window.clearTimeout(workspaceSettingsSaveTimerRef.current);
+        workspaceSettingsSaveTimerRef.current = null;
+      }
+    };
+  }, [token, workspaceSettings]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -214,6 +318,49 @@ export function WorkspaceProvider({ children }) {
       // Ignore persistence errors.
     }
   }, [theme]);
+
+  useEffect(() => {
+    return () => {
+      toastTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      toastTimersRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (workspaceSettingsSaveTimerRef.current) {
+        window.clearTimeout(workspaceSettingsSaveTimerRef.current);
+        workspaceSettingsSaveTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  function dismissToast(id) {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+    const timer = toastTimersRef.current.get(id);
+    if (timer) {
+      window.clearTimeout(timer);
+      toastTimersRef.current.delete(id);
+    }
+  }
+
+  function pushToast({ tone = "info", title, message }) {
+    const id = createToastId();
+    setToasts((current) => [...current, { id, tone, title, message }]);
+    const timer = window.setTimeout(() => {
+      dismissToast(id);
+    }, 4000);
+    toastTimersRef.current.set(id, timer);
+    return id;
+  }
+
+  function notifySuccess(title, message) {
+    return pushToast({ tone: "success", title, message });
+  }
+
+  function notifyError(title, message) {
+    return pushToast({ tone: "danger", title, message });
+  }
 
   useEffect(() => {
     if (!token || editor.kind !== "invoice" || editor.id) {
@@ -267,14 +414,19 @@ export function WorkspaceProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const [me, dashboard, clients, users, invoices, receipts] = await Promise.all([
+      const [me, dashboard, clients, invoices, receipts, workspaceSettingsPayload] = await Promise.all([
         getMe(currentToken),
         getDashboard(currentToken),
         getClients(currentToken),
-        getUsers(currentToken),
         getInvoices(currentToken),
-        getReceipts(currentToken)
+        getReceipts(currentToken),
+        getWorkspaceSettings(currentToken).catch(() => null)
       ]);
+      const users = me?.role === "admin" ? await getUsers(currentToken) : [];
+      const serverSettings = normalizeWorkspaceSettings(workspaceSettingsPayload?.settings || workspaceSettingsPayload || defaultWorkspaceSettings());
+      const legacySettings = legacyWorkspaceSettingsRef.current;
+      const shouldRestoreLegacy = Boolean(workspaceSettingsPayload?.created && legacySettings && !workspaceSettingsEqual(legacySettings, defaultWorkspaceSettings()));
+      const nextWorkspaceSettings = shouldRestoreLegacy ? normalizeWorkspaceSettings(legacySettings) : serverSettings;
 
       setUser(me);
       setData({
@@ -285,6 +437,8 @@ export function WorkspaceProvider({ children }) {
         users,
         receipts
       });
+      workspaceSettingsSnapshotRef.current = serverSettings;
+      setWorkspaceSettings(nextWorkspaceSettings);
       setForms((current) => ({
         ...current,
         invoice: {
@@ -296,6 +450,13 @@ export function WorkspaceProvider({ children }) {
           dueDate: current.invoice.dueDate || todayISO()
         }
       }));
+      if (shouldRestoreLegacy) {
+        try {
+          localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(nextWorkspaceSettings));
+        } catch {
+          // Ignore persistence errors.
+        }
+      }
     } catch (err) {
       localStorage.removeItem(STORAGE_KEY);
       setToken("");
@@ -318,13 +479,21 @@ export function WorkspaceProvider({ children }) {
       if (currentToken) {
         apiLogout(currentToken).catch(() => {});
       }
+      if (workspaceSettingsSaveTimerRef.current) {
+        window.clearTimeout(workspaceSettingsSaveTimerRef.current);
+        workspaceSettingsSaveTimerRef.current = null;
+      }
+      workspaceSettingsActionRef.current = null;
+      workspaceSettingsRollbackRef.current = null;
       localStorage.removeItem(STORAGE_KEY);
       setToken("");
       setUser(null);
       setData({ metrics: null, recentInvoices: [], invoices: [], clients: [], users: [], receipts: [] });
       setForms(emptyForms());
       setEditor({ kind: null, id: null });
-      setWorkspaceSettings(defaultWorkspaceSettings());
+      const defaultSettings = defaultWorkspaceSettings();
+      workspaceSettingsSnapshotRef.current = defaultSettings;
+      setWorkspaceSettings(defaultSettings);
     }
 
     function toggleTheme() {
@@ -499,9 +668,13 @@ export function WorkspaceProvider({ children }) {
           await createClient(token, payload);
         }
         await refresh();
+        notifySuccess(
+          editor.kind === "client" && editor.id ? "Client mis à jour" : "Client créé",
+          `${payload.firstName} ${payload.lastName}`.trim() || (editor.kind === "client" && editor.id ? "Les modifications ont été enregistrées." : "Le contact a été enregistré.")
+        );
         setEditor({ kind: null, id: null });
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Client non enregistré", normalizeError(err));
       } finally {
         setLoading(false);
       }
@@ -523,9 +696,10 @@ export function WorkspaceProvider({ children }) {
           await createReceipt(token, payload);
         }
         await refresh();
+        notifySuccess(editor.kind === "receipt" && editor.id ? "Reçu mis à jour" : "Reçu créé", payload.name || "Le modèle a été enregistré.");
         setEditor({ kind: null, id: null });
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Reçu non enregistré", normalizeError(err));
       } finally {
         setLoading(false);
       }
@@ -549,9 +723,10 @@ export function WorkspaceProvider({ children }) {
           });
         }
         await refresh();
+        notifySuccess(editor.kind === "user" && editor.id ? "Utilisateur mis à jour" : "Utilisateur créé", payload.name || payload.email || (editor.kind === "user" && editor.id ? "Les modifications ont été enregistrées." : "Le compte a été enregistré."));
         setEditor({ kind: null, id: null });
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Utilisateur non enregistré", normalizeError(err));
       } finally {
         setLoading(false);
       }
@@ -561,21 +736,27 @@ export function WorkspaceProvider({ children }) {
       setLoading(true);
       setError("");
       try {
-        const lines = (forms.invoice.lines || [])
-          .map((line) => ({
-            description: String(line.description || "").trim(),
-            quantity: toMoneyValue(line.quantity),
-            unitPrice: toMoneyValue(line.unitPrice)
-          }))
-          .filter((line) => line.description);
+        const normalizedLines = (forms.invoice.lines || []).map((line) => ({
+          description: String(line.description || "").trim(),
+          quantity: toMoneyValue(line.quantity),
+          unitPrice: toMoneyValue(line.unitPrice)
+        }));
+
+        while (normalizedLines.length > 0) {
+          const lastLine = normalizedLines[normalizedLines.length - 1];
+          if (lastLine.description || lastLine.quantity || lastLine.unitPrice) {
+            break;
+          }
+          normalizedLines.pop();
+        }
 
         const payload = {
           ...forms.invoice,
           userId: forms.invoice.userId || user?.id || "",
           prefix: workspaceSettings.invoicePrefix || invoicePrefixForType(forms.invoice.templateType),
-          total: invoiceLinesTotal(lines) * (1 + Number(forms.invoice.taxRate || 20) / 100),
+          total: invoiceLinesTotal(normalizedLines) * (1 + Number(forms.invoice.taxRate || 20) / 100),
           taxRate: Number(forms.invoice.taxRate || 20),
-          lines
+          lines: normalizedLines
         };
         if (editor.kind === "invoice" && editor.id) {
           await updateInvoice(token, editor.id, payload);
@@ -583,9 +764,10 @@ export function WorkspaceProvider({ children }) {
           await createInvoice(token, payload);
         }
         await refresh();
+        notifySuccess(editor.kind === "invoice" && editor.id ? "Facture mise à jour" : "Facture créée", invoiceDisplayLabel(payload));
         setEditor({ kind: null, id: null });
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Facture non enregistrée", normalizeError(err));
       } finally {
         setLoading(false);
       }
@@ -607,6 +789,7 @@ export function WorkspaceProvider({ children }) {
           userId: user?.id || "",
           paidAt: forms.payment.paidAt || todayISO()
         };
+        const paymentInvoice = data.invoices.find((invoice) => invoice.id === paymentInvoiceId);
 
         if (editor.kind === "payment" && editor.id) {
           await updateInvoicePayment(token, editor.id, payload);
@@ -614,54 +797,86 @@ export function WorkspaceProvider({ children }) {
           await createInvoicePayment(token, paymentInvoiceId, payload);
         }
         await refresh();
+        notifySuccess(
+          editor.kind === "payment" && editor.id ? "Paiement mis à jour" : "Paiement ajouté",
+          `${money(payload.amount, paymentInvoice?.currency)} · ${invoiceDisplayLabel(paymentInvoice || {})}`
+        );
         setEditor({ kind: null, id: null });
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Paiement non enregistré", normalizeError(err));
       } finally {
         setLoading(false);
       }
     }
 
     async function removeClient(id) {
+      const client = data.clients.find((item) => item.id === id);
+      const label = client ? personLabel(client) || `${client.firstName || ""} ${client.lastName || ""}`.trim() || "ce contact" : "ce contact";
+      if (!confirmDestructiveAction(`Supprimer ${label} ? Cette action est définitive.`)) {
+        return;
+      }
       setLoading(true);
       setError("");
       try {
         await deleteClient(token, id);
         await refresh();
+        notifySuccess("Client supprimé", label);
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Suppression du client impossible", normalizeError(err));
       } finally {
         setLoading(false);
       }
     }
 
     async function removeUser(id) {
+      const userToDelete = data.users.find((item) => item.id === id);
+      const label = userToDelete?.name || userToDelete?.email || "cet utilisateur";
+      if (!confirmDestructiveAction(`Supprimer ${label} ? Cette action est définitive.`)) {
+        return;
+      }
       setLoading(true);
       setError("");
       try {
         await deleteUser(token, id);
         await refresh();
+        notifySuccess("Utilisateur supprimé", label);
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Suppression de l’utilisateur impossible", normalizeError(err));
       } finally {
         setLoading(false);
       }
     }
 
     async function removeInvoice(id) {
+      const invoice = data.invoices.find((item) => item.id === id);
+      const label = invoice ? invoiceDisplayLabel(invoice) : "cette facture";
+      const amountLabel = invoice ? ` (${money(invoice.total, invoice.currency)})` : "";
+      const paymentCount = invoice?.payments?.length || 0;
+      const paymentWarning = paymentCount > 0 ? ` Les ${paymentCount} paiement(s) associés seront aussi supprimés.` : "";
+      if (!confirmDestructiveAction(`Supprimer ${label}${amountLabel} ? Cette action est définitive.${paymentWarning}`)) {
+        return;
+      }
       setLoading(true);
       setError("");
       try {
         await deleteInvoice(token, id);
         await refresh();
+        notifySuccess("Facture supprimée", label);
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Suppression de la facture impossible", normalizeError(err));
       } finally {
         setLoading(false);
       }
     }
 
     async function removePayment(id) {
+      const payment = data.invoices
+        .flatMap((invoice) => (invoice.payments || []).map((item) => ({ ...item, invoice })))
+        .find((item) => item.id === id);
+      const label = payment ? `${money(payment.amount, payment.invoice.currency)} · ${invoiceDisplayLabel(payment.invoice)}` : "ce paiement";
+      if (!confirmDestructiveAction(`Supprimer ${label} ? Cette action est définitive.`)) {
+        return;
+      }
       setLoading(true);
       setError("");
       try {
@@ -670,21 +885,28 @@ export function WorkspaceProvider({ children }) {
         if (editor.kind === "payment" && editor.id === id) {
           setEditor({ kind: null, id: null });
         }
+        notifySuccess("Paiement supprimé", label);
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Suppression du paiement impossible", normalizeError(err));
       } finally {
         setLoading(false);
       }
     }
 
     async function removeReceipt(id) {
+      const receipt = data.receipts.find((item) => item.id === id);
+      const label = receipt?.name || "ce modèle de reçu";
+      if (!confirmDestructiveAction(`Supprimer ${label} ? Cette action est définitive.`)) {
+        return;
+      }
       setLoading(true);
       setError("");
       try {
         await deleteReceipt(token, id);
         await refresh();
+        notifySuccess("Reçu supprimé", label);
       } catch (err) {
-        setError(normalizeError(err));
+        notifyError("Suppression du reçu impossible", normalizeError(err));
       } finally {
         setLoading(false);
       }
@@ -695,12 +917,17 @@ export function WorkspaceProvider({ children }) {
       user,
       loading,
       error,
+      notifySuccess,
+      notifyError,
+      toasts,
       data,
       forms,
       editor,
       setForms,
+      dismissToast,
       authenticate,
       logout,
+      resetWorkspaceSettings,
       closeEditor: () => setEditor({ kind: null, id: null }),
       refresh,
       beginCreateClient,
@@ -730,7 +957,7 @@ export function WorkspaceProvider({ children }) {
       setTheme,
       toggleTheme
     };
-  }, [data.clients, data.invoices, data.receipts, data.users, editor, forms, loading, token, user, error, workspaceSettings, theme]);
+  }, [data.clients, data.invoices, data.receipts, data.users, editor, forms, loading, token, user, error, workspaceSettings, theme, toasts, dismissToast, resetWorkspaceSettings]);
 
   return <WorkspaceContext.Provider value={actions}>{children}</WorkspaceContext.Provider>;
 }

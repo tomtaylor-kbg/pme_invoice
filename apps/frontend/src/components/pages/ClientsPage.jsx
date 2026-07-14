@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
-import { ClientCard, OverlayDialog, SectionHeader } from "../ui";
+import { ClientCard, OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader } from "../ui";
 import { buildClientsCsv, downloadTextFile } from "../../utils/formatters";
 
 export function ClientsPage() {
@@ -39,7 +39,6 @@ export function ClientsPage() {
         <div>
           <span className="eyebrow">CRM</span>
           <h1>Clients</h1>
-          <p>Gestion des personnes, de leurs coordonnées et de leur société éventuelle.</p>
         </div>
         <div className="hero-actions">
           <button className="secondary-button" type="button" onClick={beginCreateClient}>
@@ -54,7 +53,7 @@ export function ClientsPage() {
       <div className="page-scroll">
         <section className="content-grid clients-layout">
           <div className="panel">
-            <SectionHeader title="Contacts" action="Chaque carte met la personne au premier plan." />
+            <SectionHeader title="Contacts" />
             <div className="filters-panel">
               <div className="filters-grid clients">
                 <label className="filter-field search">
@@ -80,7 +79,6 @@ export function ClientsPage() {
                 </select>
                 </label>
               </div>
-              <div className="filters-hint">Filtrer par nom, société, ville, email ou statut.</div>
             </div>
 
             <div className="card-grid">
@@ -107,12 +105,17 @@ export function ClientsPage() {
       <OverlayDialog
         open={editor.kind === "client"}
         title={isEditing ? "Modifier contact" : "Créer contact"}
-        description="Saisie courte et orientée personne."
         onClose={closeEditor}
-        footer={
-          <button className="primary-button" type="submit" form="client-form" disabled={loading}>
+        topbarActions={
+          <OverlayActionButton
+            icon={<OverlaySaveIcon />}
+            className="primary-button overlay-save-button"
+            type="submit"
+            form="client-form"
+            disabled={loading}
+          >
             {isEditing ? "Enregistrer" : "Créer contact"}
-          </button>
+          </OverlayActionButton>
         }
         >
         <form id="client-form" className="stack-form client-form-grid" onSubmit={(event) => { event.preventDefault(); saveClient(); }}>

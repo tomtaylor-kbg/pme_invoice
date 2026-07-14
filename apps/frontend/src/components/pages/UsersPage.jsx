@@ -1,5 +1,5 @@
 import { useWorkspace } from "../WorkspaceProvider";
-import { OverlayDialog, SectionHeader, Table } from "../ui";
+import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader, Table } from "../ui";
 
 export function UsersPage() {
   const { data, forms, setForms, editor, beginCreateUser, beginEditUser, saveUser, removeUser, loading, closeEditor } = useWorkspace();
@@ -26,7 +26,6 @@ export function UsersPage() {
         <div>
           <span className="eyebrow">Administration</span>
           <h1>Utilisateurs</h1>
-          <p>Gestion des comptes internes et des rôles applicatifs.</p>
         </div>
         <div className="hero-actions">
           <button className="secondary-button" type="button" onClick={beginCreateUser}>
@@ -38,7 +37,7 @@ export function UsersPage() {
       <div className="page-scroll">
         <section className="content-grid">
           <div className="panel">
-            <SectionHeader title="Liste utilisateurs" action="Comptes connectés à l’instance interne." />
+            <SectionHeader title="Liste utilisateurs" />
             <Table columns={["Nom", "Email", "Rôle", "Actions"]} rows={rows} />
           </div>
         </section>
@@ -47,12 +46,17 @@ export function UsersPage() {
       <OverlayDialog
         open={editor.kind === "user"}
         title={isEditing ? "Modifier utilisateur" : "Créer utilisateur"}
-        description="Définir l’identité et les droits."
         onClose={closeEditor}
-        footer={
-          <button className="primary-button" type="submit" form="user-form" disabled={loading}>
+        topbarActions={
+          <OverlayActionButton
+            icon={<OverlaySaveIcon />}
+            className="primary-button overlay-save-button"
+            type="submit"
+            form="user-form"
+            disabled={loading}
+          >
             {isEditing ? "Enregistrer" : "Créer utilisateur"}
-          </button>
+          </OverlayActionButton>
         }
         >
         <form id="user-form" className="stack-form" onSubmit={(event) => { event.preventDefault(); saveUser(); }}>
@@ -95,6 +99,8 @@ export function UsersPage() {
           <label>
             Mot de passe
             <input
+              type="password"
+              autoComplete={isEditing ? "new-password" : "new-password"}
               value={forms.user.passwordHash}
               onChange={(event) => setForms((current) => ({
                 ...current,

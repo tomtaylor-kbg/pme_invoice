@@ -10,6 +10,13 @@ const { registerRoutes } = require("./routes");
 const app = express();
 const port = Number(process.env.PORT || 4000);
 const requireAuth = attachUser(prisma);
+const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  return next();
+};
 
 app.use(cors());
 app.use(express.json());
@@ -18,7 +25,7 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "backend" });
 });
 
-registerRoutes(app, { prisma, loginWithCredentials, requireAuth, revokeSession });
+registerRoutes(app, { prisma, loginWithCredentials, requireAuth, requireAdmin, revokeSession });
 
 app.use(errorHandler);
 

@@ -2,7 +2,8 @@
   "name": "facturation-interne",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/backend",
+    "apps/frontend"
   ],
   "scripts": {
     "dev": "concurrently -n backend,frontend -c cyan,magenta \"npm run dev --workspace @facturation/backend\" \"npm run dev --workspace @facturation/frontend\"",

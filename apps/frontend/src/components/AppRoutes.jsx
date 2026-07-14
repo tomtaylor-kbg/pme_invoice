@@ -11,7 +11,7 @@ import { InvoicesPage } from "./pages/InvoicesPage";
 
 function LoginRoute() {
   const navigate = useNavigate();
-  const { token, authenticate, loading, error } = useWorkspace();
+  const { token, authenticate, loading, error, notifySuccess } = useWorkspace();
 
   if (token) {
     return <Navigate to="/dashboard" replace />;
@@ -24,6 +24,7 @@ function LoginRoute() {
       onSubmit={async (username, password) => {
         const success = await authenticate(username, password);
         if (success) {
+          notifySuccess("Connexion réussie", "Bienvenue sur le tableau de bord.");
           navigate("/dashboard", { replace: true });
         }
       }}
@@ -39,6 +40,20 @@ function RequireAuth() {
   return <Outlet />;
 }
 
+function RequireAdmin({ children }) {
+  const { user, token, loading } = useWorkspace();
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  if (loading && !user) {
+    return null;
+  }
+  if (user?.role !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -50,7 +65,7 @@ export function AppRoutes() {
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/receipts" element={<ReceiptsPage />} />
           <Route path="/clients" element={<ClientsPage />} />
-          <Route path="/users" element={<UsersPage />} />
+          <Route path="/users" element={<RequireAdmin><UsersPage /></RequireAdmin>} />
           <Route path="/invoices" element={<InvoicesPage />} />
         </Route>
       </Route>
