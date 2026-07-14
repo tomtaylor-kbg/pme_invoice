@@ -4,7 +4,7 @@ Monorepo pour une application de facturation interne.
 
 ## Structure
 
-- `apps/frontend` : dashboard React + Vite
+- `apps/frontend` : interface React + Vite
 - `apps/backend` : API Express + Prisma
 
 ## Démarrage
@@ -23,13 +23,26 @@ npm run db:migrate
 npm run db:seed
 ```
 
-La base de données est fournie par Docker via PostgreSQL. Lance la stack avant les commandes Prisma si tu travailles en local.
+La base de données peut être fournie par Docker via PostgreSQL ou par une base distante. Lance la stack Docker avant les commandes Prisma si tu travailles en local.
 
 3. Lancer le frontend et le backend :
 
 ```bash
 npm run dev
 ```
+
+## Commandes
+
+- `npm run dev` : lance frontend et backend ensemble
+- `npm run dev:backend` : lance uniquement l’API
+- `npm run dev:frontend` : lance uniquement le frontend
+- `npm run build` : compile les deux workspaces
+- `npm run lint` : lance les vérifications disponibles
+- `npm run db:generate` : génère le client Prisma
+- `npm run db:migrate` : applique les migrations Prisma
+- `npm run db:seed` : charge les données de démo
+- `npm run docker:up` : démarre PostgreSQL, backend et frontend
+- `npm run docker:down` : arrête la stack Docker et supprime les volumes
 
 ## Docker
 
@@ -48,6 +61,24 @@ npm run docker:down
 ## Configuration
 
 Le backend lit les variables d’environnement définies dans `apps/backend/.env`.
+
+Copie d’abord `apps/backend/.env.example` vers `apps/backend/.env`, puis ajuste:
+
+- `DATABASE_URL` : connexion Prisma/PostgreSQL
+- `PORT` : port du backend, par défaut `4000`
+- `USERNAME` et `PASSWORD` : compte bootstrap optionnel si la base est vide
+- `NODE_ENV` : active les messages d’erreur détaillés hors production
+
+Le frontend peut aussi utiliser des variables Vite:
+
+- `VITE_API_URL` : URL de l’API si elle n’est pas servie sur la même origine
+- `VITE_PROXY_TARGET` : cible du proxy de développement Vite
+
+## Données persistées
+
+- Les paramètres système des outils sont stockés en base dans `WorkspaceSetting`
+- Les modèles de reçu, clients, factures, paiements et compteurs de facture sont persistés via Prisma
+- La configuration d’interface reste dans `localStorage` pour le thème et le jeton de session
 
 ## Routes
 
