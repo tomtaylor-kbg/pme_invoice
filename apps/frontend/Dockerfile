@@ -2,13 +2,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY apps/frontend/package.json ./package.json
-
+COPY package*.json ./
 RUN npm install
 
-COPY apps/frontend/index.html ./index.html
-COPY apps/frontend/vite.config.js ./vite.config.js
-COPY apps/frontend/src ./src
+COPY index.html ./index.html
+COPY vite.config.js ./vite.config.js
+COPY src ./src
 
 EXPOSE 5173
 

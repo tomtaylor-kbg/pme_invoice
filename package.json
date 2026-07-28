@@ -1,5 +1,5 @@
 {
-  "name": "facturation-interne",
+  "name": "ozotoo_invoice",
   "private": true,
   "workspaces": [
     "apps/backend",

@@ -6,3 +6,7 @@ dist
 apps/backend/prisma/dev.db
 apps/backend/prisma/dev.db-journal
 
+DEPLOYEMENT.md
+FEATURES.md
+.vercel
+.env*

@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: "facturation"
-      POSTGRES_USER: "facturation"
-      POSTGRES_PASSWORD: "facturation"
+      POSTGRES_DB: facturation
+      POSTGRES_USER: facturation
+      POSTGRES_PASSWORD: facturation
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
@@ -15,5 +15,37 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: "postgresql://facturation:facturation@db:5432/facturation?schema=public"
+      PORT: "4000"
+      NODE_ENV: development
+    depends_on:
+      - db
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./apps/backend:/app
+      - backend-node-modules:/app/node_modules
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_PROXY_TARGET: "http://backend:4000"
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/frontend:/app
+      - frontend-node-modules:/app/node_modules
+
 volumes:
   postgres-data:
+  backend-node-modules:
+  frontend-node-modules:

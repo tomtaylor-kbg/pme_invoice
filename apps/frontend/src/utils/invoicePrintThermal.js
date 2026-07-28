@@ -176,8 +176,8 @@ export function buildThermalReceiptPrintHtml({ invoice, client, creator, setting
           <span>TVA (${taxRate}%)</span>
           <span>${escapeHtml(formatMoney(taxAmount, currency))}</span>
         </div>
-        <div class="totals-row total-grand" style="font-weight: 700; border-top: 1px dashed #cbd5e1; margin-top: 4px; padding-top: 4px;">
-          <span>Total TTC</span>
+        <div class="totals-row total-grand" style="font-weight: 600; border-top: 1px dashed #cbd5e1; margin-top: 4px; padding-top: 4px;">
+          <span>Total facture</span>
           <strong>${escapeHtml(formatMoney(totalTTC, currency))}</strong>
         </div>
       </div>

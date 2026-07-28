@@ -52,6 +52,10 @@ Lancer la stack complète avec PostgreSQL, backend et frontend :
 npm run docker:up
 ```
 
+- PostgreSQL : localhost:5432
+- Backend : localhost:4000
+- Frontend : localhost:5173
+
 Arrêter et supprimer les volumes :
 
 ```bash
