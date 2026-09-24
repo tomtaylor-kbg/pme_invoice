@@ -1,7 +1,7 @@
 function validateUserCreate(body = {}) {
-  const { name, email, passwordHash, role } = body;
-  if (!name || !email) {
-    return "name and email are required";
+  const { username, name, email, passwordHash, role } = body;
+  if (!username || !name || !email) {
+    return "username, name and email are required";
   }
   if (!passwordHash || String(passwordHash).trim() === "") {
     return "passwordHash is required";

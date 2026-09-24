@@ -3,19 +3,16 @@ import {
   createClient,
   createInvoice,
   createInvoicePayment,
-  createReceipt,
   createUser,
   deleteClient,
   deleteInvoice,
   deleteInvoicePayment,
-  deleteReceipt,
   deleteUser,
   getClients,
   getDashboard,
   getInvoiceNextNumber,
   getInvoices,
   getMe,
-  getReceipts,
   getWorkspaceSettings,
   getUsers,
   login,
@@ -23,14 +20,12 @@ import {
   updateClient,
   updateInvoice,
   updateInvoicePayment,
-  updateReceipt,
   updateWorkspaceSettings,
   updateUser
 } from "../api";
 import {
   todayISO,
   suggestInvoiceNumber,
-  invoicePrefixForType,
   invoiceDisplayLabel,
   personLabel,
   createInvoiceLineDraft,
@@ -48,7 +43,9 @@ const WorkspaceContext = createContext(null);
 
 function defaultWorkspaceSettings() {
   return {
-    companyName: "Facturation Interne",
+    companyName: "Mon entreprise",
+    logoDataUrl: "",
+    businessSector: "Imprimerie",
     vatRate: "20",
     defaultCurrency: "EUR",
     addressLine1: "",
@@ -57,11 +54,14 @@ function defaultWorkspaceSettings() {
     city: "",
     country: "",
     phone: "",
+    phone2: "",
     email: "",
     website: "",
+    rccm: "",
+    idNat: "",
+    taxNumber: "",
     invoicePrefix: "FAC",
-    paymentTermsDays: "30",
-    services: ""
+    paymentTermsDays: "30"
   };
 }
 
@@ -70,6 +70,7 @@ function normalizeWorkspaceSettings(settings = {}) {
     ...defaultWorkspaceSettings(),
     ...settings,
     companyName: String(settings.companyName ?? defaultWorkspaceSettings().companyName),
+    logoDataUrl: String(settings.logoDataUrl ?? defaultWorkspaceSettings().logoDataUrl),
     vatRate: String(settings.vatRate ?? defaultWorkspaceSettings().vatRate),
     defaultCurrency: String(settings.defaultCurrency ?? defaultWorkspaceSettings().defaultCurrency).toUpperCase(),
     addressLine1: String(settings.addressLine1 ?? defaultWorkspaceSettings().addressLine1),
@@ -78,11 +79,15 @@ function normalizeWorkspaceSettings(settings = {}) {
     city: String(settings.city ?? defaultWorkspaceSettings().city),
     country: String(settings.country ?? defaultWorkspaceSettings().country),
     phone: String(settings.phone ?? defaultWorkspaceSettings().phone),
+    phone2: String(settings.phone2 ?? defaultWorkspaceSettings().phone2),
     email: String(settings.email ?? defaultWorkspaceSettings().email),
     website: String(settings.website ?? defaultWorkspaceSettings().website),
+    rccm: String(settings.rccm ?? defaultWorkspaceSettings().rccm),
+    idNat: String(settings.idNat ?? defaultWorkspaceSettings().idNat),
+    taxNumber: String(settings.taxNumber ?? defaultWorkspaceSettings().taxNumber),
     invoicePrefix: String(settings.invoicePrefix ?? defaultWorkspaceSettings().invoicePrefix).toUpperCase(),
     paymentTermsDays: String(settings.paymentTermsDays ?? defaultWorkspaceSettings().paymentTermsDays),
-    services: String(settings.services ?? defaultWorkspaceSettings().services)
+    businessSector: String(settings.businessSector ?? defaultWorkspaceSettings().businessSector)
   };
 }
 
@@ -120,12 +125,15 @@ function readTheme() {
 function emptyForms() {
   return {
     client: { firstName: "", lastName: "", company: "", email: "", phone: "", city: "", status: "active", clientType: "individual" },
-    user: { name: "", email: "", role: "user", passwordHash: "" },
+    user: { username: "", name: "", email: "", role: "user", passwordHash: "" },
     invoice: {
       number: "",
       clientId: "",
+      clientMode: "crm",
+      manualClientName: "",
+      manualClientEmail: "",
+      manualClientCompany: "",
       userId: "",
-      templateType: "professional",
       status: "draft",
       currency: "EUR",
       issueDate: todayISO(),
@@ -133,16 +141,6 @@ function emptyForms() {
       taxRate: "20",
       notes: "",
       lines: [createInvoiceLineDraft()]
-    },
-    receipt: {
-      name: "",
-      paperWidthMm: 58,
-      title: "",
-      subtitle: "",
-      footerText: "",
-      showTax: true,
-      showLogo: false,
-      status: "active"
     },
     payment: {
       invoiceId: "",
@@ -157,30 +155,20 @@ function emptyForms() {
 
 function createInvoiceDraft(invoices, clients, users, settings, overrides = {}) {
   const issueDate = overrides.issueDate || todayISO();
-  const templateType = overrides.templateType || "professional";
   return {
     ...emptyForms().invoice,
-    templateType,
     currency: overrides.currency || settings.defaultCurrency || emptyForms().invoice.currency,
-    taxRate: overrides.taxRate || settings.vatRate || emptyForms().invoice.taxRate,
+    taxRate: overrides.taxRate !== undefined
+      ? String(overrides.taxRate)
+      : (settings.vatRate !== undefined ? String(settings.vatRate) : emptyForms().invoice.taxRate),
     number:
       overrides.number ||
-      suggestInvoiceNumber(invoices, overrides.prefix || settings.invoicePrefix || invoicePrefixForType(templateType), issueDate),
+      suggestInvoiceNumber(invoices, overrides.prefix || settings.invoicePrefix, issueDate),
     clientId: overrides.clientId || clients[0]?.id || "",
     userId: overrides.userId || users[0]?.id || "",
     lines: overrides.lines || [createInvoiceLineDraft()],
     issueDate,
     dueDate: overrides.dueDate || issueDate
-  };
-}
-
-function createReceiptDraft(overrides = {}) {
-  return {
-    ...emptyForms().receipt,
-    ...overrides,
-    paperWidthMm: Number(overrides.paperWidthMm || 58),
-    showTax: overrides.showTax ?? true,
-    showLogo: overrides.showLogo ?? false
   };
 }
 
@@ -230,10 +218,10 @@ export function WorkspaceProvider({ children }) {
   const [data, setData] = useState({
     metrics: null,
     recentInvoices: [],
+    cashDisbursements: [],
     invoices: [],
     clients: [],
     users: [],
-    receipts: []
   });
   const legacyWorkspaceSettingsRef = useRef(readLegacyWorkspaceSettings());
   const workspaceSettingsSnapshotRef = useRef(normalizeWorkspaceSettings(legacyWorkspaceSettingsRef.current || defaultWorkspaceSettings()));
@@ -371,13 +359,11 @@ export function WorkspaceProvider({ children }) {
 
     async function syncInvoiceNumber() {
       const issueDate = forms.invoice.issueDate || todayISO();
-      const templateType = forms.invoice.templateType || "professional";
-      const prefix = workspaceSettings.invoicePrefix || invoicePrefixForType(templateType);
+      const prefix = workspaceSettings.invoicePrefix || "FAC";
 
       try {
         const preview = await getInvoiceNextNumber(token, {
           prefix,
-          templateType,
           issueDate
         });
 
@@ -408,18 +394,17 @@ export function WorkspaceProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [data.invoices, editor.id, editor.kind, forms.invoice.issueDate, forms.invoice.templateType, token, workspaceSettings.invoicePrefix]);
+  }, [data.invoices, editor.id, editor.kind, forms.invoice.issueDate, token, workspaceSettings.invoicePrefix]);
 
   async function hydrate(currentToken) {
     setLoading(true);
     setError("");
     try {
-      const [me, dashboard, clients, invoices, receipts, workspaceSettingsPayload] = await Promise.all([
+      const [me, dashboard, clients, invoices, workspaceSettingsPayload] = await Promise.all([
         getMe(currentToken),
         getDashboard(currentToken),
         getClients(currentToken),
         getInvoices(currentToken),
-        getReceipts(currentToken),
         getWorkspaceSettings(currentToken).catch(() => null)
       ]);
       const users = me?.role === "admin" ? await getUsers(currentToken) : [];
@@ -432,10 +417,10 @@ export function WorkspaceProvider({ children }) {
       setData({
         metrics: dashboard.metrics,
         recentInvoices: dashboard.recentInvoices || [],
+        cashDisbursements: dashboard.cashDisbursements || [],
         invoices,
         clients,
-        users,
-        receipts
+        users
       });
       workspaceSettingsSnapshotRef.current = serverSettings;
       setWorkspaceSettings(nextWorkspaceSettings);
@@ -445,7 +430,6 @@ export function WorkspaceProvider({ children }) {
           ...current.invoice,
           clientId: current.invoice.clientId || clients[0]?.id || "",
           userId: current.invoice.userId || me?.id || users[0]?.id || "",
-          templateType: current.invoice.templateType || "professional",
           issueDate: current.invoice.issueDate || todayISO(),
           dueDate: current.invoice.dueDate || todayISO()
         }
@@ -488,12 +472,9 @@ export function WorkspaceProvider({ children }) {
       localStorage.removeItem(STORAGE_KEY);
       setToken("");
       setUser(null);
-      setData({ metrics: null, recentInvoices: [], invoices: [], clients: [], users: [], receipts: [] });
+      setData({ metrics: null, recentInvoices: [], cashDisbursements: [], invoices: [], clients: [], users: [] });
       setForms(emptyForms());
       setEditor({ kind: null, id: null });
-      const defaultSettings = defaultWorkspaceSettings();
-      workspaceSettingsSnapshotRef.current = defaultSettings;
-      setWorkspaceSettings(defaultSettings);
     }
 
     function toggleTheme() {
@@ -548,6 +529,7 @@ export function WorkspaceProvider({ children }) {
       setForms((current) => ({
         ...current,
         user: {
+          username: item.username || "",
           name: item.name || "",
           email: item.email || "",
           role: item.role || "user",
@@ -575,33 +557,8 @@ export function WorkspaceProvider({ children }) {
           userId: overrides.userId || user?.id || data.users[0]?.id || "",
           currency: overrides.currency || workspaceSettings.defaultCurrency || emptyForms().invoice.currency,
           taxRate: overrides.taxRate || workspaceSettings.vatRate || emptyForms().invoice.taxRate,
-          prefix: overrides.prefix || workspaceSettings.invoicePrefix || invoicePrefixForType(overrides.templateType || "professional")
+          prefix: overrides.prefix || workspaceSettings.invoicePrefix || "FAC"
         })
-      }));
-    }
-
-    function beginCreateReceipt() {
-      setEditor({ kind: "receipt", id: null });
-      setForms((current) => ({
-        ...current,
-        receipt: createReceiptDraft()
-      }));
-    }
-
-    function beginEditReceipt(receipt) {
-      setEditor({ kind: "receipt", id: receipt.id });
-      setForms((current) => ({
-        ...current,
-        receipt: {
-          name: receipt.name || "",
-          paperWidthMm: receipt.paperWidthMm || 58,
-          title: receipt.title || "",
-          subtitle: receipt.subtitle || "",
-          footerText: receipt.footerText || "",
-          showTax: receipt.showTax ?? true,
-          showLogo: receipt.showLogo ?? false,
-          status: receipt.status || "active"
-        }
       }));
     }
 
@@ -612,8 +569,11 @@ export function WorkspaceProvider({ children }) {
         invoice: {
           number: item.number || "",
           clientId: item.clientId || item.client?.id || "",
+          clientMode: "crm",
+          manualClientName: "",
+          manualClientEmail: "",
+          manualClientCompany: "",
           userId: item.userId || item.creator?.id || "",
-          templateType: item.templateType || "professional",
           status: item.status || "draft",
           currency: item.currency || "EUR",
           issueDate: item.issueDate ? item.issueDate.slice(0, 10) : todayISO(),
@@ -670,36 +630,11 @@ export function WorkspaceProvider({ children }) {
         await refresh();
         notifySuccess(
           editor.kind === "client" && editor.id ? "Client mis à jour" : "Client créé",
-          `${payload.firstName} ${payload.lastName}`.trim() || (editor.kind === "client" && editor.id ? "Les modifications ont été enregistrées." : "Le contact a été enregistré.")
+          (payload.clientType === "company" ? payload.company : `${payload.firstName} ${payload.lastName}`.trim()) || (editor.kind === "client" && editor.id ? "Les modifications ont été enregistrées." : "Le client a été enregistré.")
         );
         setEditor({ kind: null, id: null });
       } catch (err) {
         notifyError("Client non enregistré", normalizeError(err));
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    async function saveReceipt() {
-      setLoading(true);
-      setError("");
-      try {
-        const payload = {
-          ...forms.receipt,
-          paperWidthMm: Number(forms.receipt.paperWidthMm || 58),
-          showTax: Boolean(forms.receipt.showTax),
-          showLogo: Boolean(forms.receipt.showLogo)
-        };
-        if (editor.kind === "receipt" && editor.id) {
-          await updateReceipt(token, editor.id, payload);
-        } else {
-          await createReceipt(token, payload);
-        }
-        await refresh();
-        notifySuccess(editor.kind === "receipt" && editor.id ? "Reçu mis à jour" : "Reçu créé", payload.name || "Le modèle a été enregistré.");
-        setEditor({ kind: null, id: null });
-      } catch (err) {
-        notifyError("Reçu non enregistré", normalizeError(err));
       } finally {
         setLoading(false);
       }
@@ -710,6 +645,7 @@ export function WorkspaceProvider({ children }) {
       setError("");
       try {
         const payload = {
+          username: forms.user.username,
           name: forms.user.name,
           email: forms.user.email,
           role: forms.user.role
@@ -750,12 +686,19 @@ export function WorkspaceProvider({ children }) {
           normalizedLines.pop();
         }
 
+        const invoiceTaxRate = forms.invoice.taxRate !== undefined && forms.invoice.taxRate !== "" ? Number(forms.invoice.taxRate) : 0;
         const payload = {
           ...forms.invoice,
+          ...(forms.invoice.clientMode === "manual" ? {
+            clientId: "",
+            manualClientName: forms.invoice.manualClientName,
+            manualClientEmail: forms.invoice.manualClientEmail,
+            manualClientCompany: forms.invoice.manualClientCompany
+          } : {}),
           userId: forms.invoice.userId || user?.id || "",
-          prefix: workspaceSettings.invoicePrefix || invoicePrefixForType(forms.invoice.templateType),
-          total: invoiceLinesTotal(normalizedLines) * (1 + Number(forms.invoice.taxRate || 20) / 100),
-          taxRate: Number(forms.invoice.taxRate || 20),
+          prefix: workspaceSettings.invoicePrefix || "FAC",
+          total: invoiceLinesTotal(normalizedLines) * (1 + invoiceTaxRate / 100),
+          taxRate: invoiceTaxRate,
           lines: normalizedLines
         };
         if (editor.kind === "invoice" && editor.id) {
@@ -893,25 +836,6 @@ export function WorkspaceProvider({ children }) {
       }
     }
 
-    async function removeReceipt(id) {
-      const receipt = data.receipts.find((item) => item.id === id);
-      const label = receipt?.name || "ce modèle de reçu";
-      if (!confirmDestructiveAction(`Supprimer ${label} ? Cette action est définitive.`)) {
-        return;
-      }
-      setLoading(true);
-      setError("");
-      try {
-        await deleteReceipt(token, id);
-        await refresh();
-        notifySuccess("Reçu supprimé", label);
-      } catch (err) {
-        notifyError("Suppression du reçu impossible", normalizeError(err));
-      } finally {
-        setLoading(false);
-      }
-    }
-
     return {
       token,
       user,
@@ -936,8 +860,6 @@ export function WorkspaceProvider({ children }) {
       beginEditUser,
       beginCreateInvoice,
       beginCreateInvoiceWithPreset,
-      beginCreateReceipt,
-      beginEditReceipt,
       beginEditInvoice,
       beginManagePayments,
       beginEditPayment,
@@ -945,19 +867,17 @@ export function WorkspaceProvider({ children }) {
       saveUser,
       saveInvoice,
       savePayment,
-      saveReceipt,
       removeClient,
       removeUser,
       removeInvoice,
       removePayment,
-      removeReceipt,
       workspaceSettings,
       setWorkspaceSettings,
       theme,
       setTheme,
       toggleTheme
     };
-  }, [data.clients, data.invoices, data.receipts, data.users, editor, forms, loading, token, user, error, workspaceSettings, theme, toasts, dismissToast, resetWorkspaceSettings]);
+  }, [data.clients, data.invoices, data.users, editor, forms, loading, token, user, error, workspaceSettings, theme, toasts, dismissToast, resetWorkspaceSettings]);
 
   return <WorkspaceContext.Provider value={actions}>{children}</WorkspaceContext.Provider>;
 }

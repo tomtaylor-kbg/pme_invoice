@@ -19,12 +19,12 @@ function validateInvoiceLine(line, index) {
 }
 
 function validateInvoiceCreate(body = {}) {
-  const { clientId, issueDate, dueDate, templateType, lines } = body;
-  if (!clientId || !issueDate || !dueDate) {
-    return "clientId, issueDate and dueDate are required";
+  const { clientId, manualClientName, manualClientEmail, issueDate, dueDate, lines } = body;
+  if ((!clientId && !String(manualClientName || "").trim()) || !issueDate || !dueDate) {
+    return "A client name, issueDate and dueDate are required";
   }
-  if (templateType && !["professional", "receipt"].includes(templateType)) {
-    return "templateType must be professional or receipt";
+  if (manualClientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(manualClientEmail).trim())) {
+    return "manualClientEmail must be a valid email address";
   }
   if (lines !== undefined) {
     if (!Array.isArray(lines)) {

@@ -4,15 +4,14 @@ function isMissingPaymentTableError(error) {
   return error?.code === "P2021" || String(error?.message || "").includes("public.Payment");
 }
 
-async function getDashboardData(prisma) {
+async function getDashboardData(prisma, user) {
   await syncOverdueInvoices(prisma);
 
   const paymentModel = prisma.payment;
-  const [users, clients, invoices, receipts, paidInvoices, overdueInvoices, totalAmount] = await Promise.all([
+  const [users, clients, invoices, paidInvoices, overdueInvoices, totalAmount] = await Promise.all([
     prisma.user.count(),
     prisma.client.count(),
     prisma.invoice.count(),
-    prisma.receipt.count(),
     prisma.invoice.count({ where: { status: "paid" } }),
     prisma.invoice.count({ where: { status: "overdue" } }),
     prisma.invoice.aggregate({ _sum: { total: true } })
@@ -62,19 +61,39 @@ async function getDashboardData(prisma) {
     });
   }
 
+  const canViewAllDisbursements = user?.role === "admin" || user?.role === "finance";
+  const cashDisbursements = await prisma.cashDisbursement.findMany({
+    where: canViewAllDisbursements ? {} : { userId: user?.id || "" },
+    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      number: true,
+      amount: true,
+      currency: true,
+      beneficiary: true,
+      paidAt: true,
+      createdAt: true
+    }
+  });
+
   return {
     metrics: {
       users,
       clients,
       invoices,
-      receipts,
       payments,
       paidInvoices,
       overdueInvoices,
       turnover: Number(totalAmount._sum.total || 0),
       collectedAmount: Number(collectedAmount._sum.amount || 0)
     },
-    recentInvoices
+    recentInvoices,
+    cashDisbursements: cashDisbursements.map((record) => ({
+      ...record,
+      amount: Number(record.amount),
+      paidAt: record.paidAt.toISOString(),
+      createdAt: record.createdAt.toISOString()
+    }))
   };
 }
 

@@ -20,12 +20,13 @@ function createUsersRouter({ prisma, requireAuth }) {
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
-      const { name, email, role = "user", passwordHash = "" } = req.body || {};
+      const { username, name, email, role = "user", passwordHash = "" } = req.body || {};
       if (!allowedRoles.has(role)) {
         return res.status(400).json({ message: "role must be user, admin, finance or sales" });
       }
       res.status(201).json(
         await createUser(prisma, {
+          username,
           name,
           email,
           role,
@@ -40,12 +41,13 @@ function createUsersRouter({ prisma, requireAuth }) {
   router.patch("/:id", requireAuth, async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { name, email, role, passwordHash } = req.body || {};
+      const { username, name, email, role, passwordHash } = req.body || {};
       if (role !== undefined && !allowedRoles.has(role)) {
         return res.status(400).json({ message: "role must be user, admin, finance or sales" });
       }
       res.json(
         await updateUser(prisma, id, {
+          ...(username !== undefined ? { username } : {}),
           ...(name !== undefined ? { name } : {}),
           ...(email !== undefined ? { email } : {}),
           ...(role !== undefined ? { role } : {}),

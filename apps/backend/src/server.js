@@ -5,6 +5,7 @@ const express = require("express");
 const { prisma } = require("./prisma");
 const { loginWithCredentials, attachUser, revokeSession } = require("./auth");
 const { errorHandler } = require("./middleware/errorHandler");
+const { auditLogMiddleware } = require("./middleware/auditLog");
 const { registerRoutes } = require("./routes");
 
 const app = express();
@@ -19,7 +20,8 @@ const requireAdmin = (req, res, next) => {
 };
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
+app.use(auditLogMiddleware(prisma));
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "backend" });

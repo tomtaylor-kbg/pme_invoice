@@ -9,6 +9,7 @@ datasource db {
 
 model User {
   id           String    @id @default(cuid())
+  username     String    @unique
   name         String
   email        String    @unique
   role         String    @default("user")
@@ -17,6 +18,8 @@ model User {
   updatedAt    DateTime  @updatedAt
   invoices     Invoice[] @relation("CreatedBy")
   payments     Payment[] @relation("RecordedPayments")
+  cashDisbursements CashDisbursement[] @relation("RecordedCashDisbursements")
+  auditLogs     AuditLog[] @relation("AuditLogActor")
 }
 
 model Client {
@@ -34,23 +37,11 @@ model Client {
   invoices  Invoice[]
 }
 
-model Receipt {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  paperWidthMm Int      @default(58)
-  title        String
-  subtitle     String?
-  footerText   String?
-  showTax      Boolean  @default(true)
-  showLogo     Boolean  @default(false)
-  status       String   @default("active")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
 model WorkspaceSetting {
   id                String   @id @default("singleton")
-  companyName       String   @default("Facturation Interne")
+  companyName       String   @default("Mon entreprise")
+  logoDataUrl       String   @default("")
+  businessSector    String   @default("Imprimerie")
   vatRate           String   @default("20")
   defaultCurrency   String   @default("EUR")
   addressLine1      String   @default("")
@@ -59,11 +50,14 @@ model WorkspaceSetting {
   city              String   @default("")
   country           String   @default("")
   phone             String   @default("")
+  phone2            String   @default("")
   email             String   @default("")
   website           String   @default("")
+  rccm              String   @default("")
+  idNat             String   @default("")
+  taxNumber         String   @default("")
   invoicePrefix     String   @default("FAC")
   paymentTermsDays  String   @default("30")
-  services          String   @default("")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -73,7 +67,6 @@ model Invoice {
   number      String        @unique
   clientId    String
   userId      String?
-  templateType String       @default("professional")
   status      String        @default("draft")
   currency    String        @default("EUR")
   issueDate   DateTime
@@ -125,4 +118,41 @@ model Payment {
 
   invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   recorder  User?    @relation("RecordedPayments", fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model CashDisbursement {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  userId      String?
+  amount      Decimal
+  currency    String   @default("EUR")
+  category    String
+  beneficiary String
+  reason      String
+  paidAt      DateTime @default(now())
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  recorder    User?    @relation("RecordedCashDisbursements", fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model CashDisbursementCounter {
+  year            Int      @id
+  currentSequence Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  actorName   String
+  actorEmail  String
+  action      String
+  entity      String
+  description String
+  createdAt   DateTime @default(now())
+  actor       User?    @relation("AuditLogActor", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }

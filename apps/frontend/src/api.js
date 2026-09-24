@@ -38,6 +38,10 @@ export function getDashboard(token) {
   return request("/api/dashboard", { token });
 }
 
+export function getAuditLogs(token) {
+  return request("/api/audit-logs", { token });
+}
+
 export function getWorkspaceSettings(token) {
   return request("/api/workspace-settings", { token });
 }
@@ -78,22 +82,6 @@ export function deleteUser(token, id) {
   return request(`/api/users/${id}`, { token, method: "DELETE" });
 }
 
-export function getReceipts(token) {
-  return request("/api/receipts", { token });
-}
-
-export function createReceipt(token, data) {
-  return request("/api/receipts", { token, method: "POST", body: data });
-}
-
-export function updateReceipt(token, id, data) {
-  return request(`/api/receipts/${id}`, { token, method: "PATCH", body: data });
-}
-
-export function deleteReceipt(token, id) {
-  return request(`/api/receipts/${id}`, { token, method: "DELETE" });
-}
-
 export function getInvoices(token) {
   return request("/api/invoices", { token });
 }
@@ -119,6 +107,22 @@ export function updateInvoice(token, id, data) {
 
 export function deleteInvoice(token, id) {
   return request(`/api/invoices/${id}`, { token, method: "DELETE" });
+}
+
+export function getCashDisbursements(token) {
+  return request("/api/cash-disbursements", { token });
+}
+
+export function createCashDisbursement(token, data) {
+  return request("/api/cash-disbursements", { token, method: "POST", body: data });
+}
+
+export function updateCashDisbursement(token, id, data) {
+  return request(`/api/cash-disbursements/${id}`, { token, method: "PATCH", body: data });
+}
+
+export function deleteCashDisbursement(token, id) {
+  return request(`/api/cash-disbursements/${id}`, { token, method: "DELETE" });
 }
 
 export function getInvoicePayments(token, invoiceId) {

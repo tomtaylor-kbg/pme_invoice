@@ -4,10 +4,7 @@ import {
   money,
   personLabel,
   clientTypeLabel,
-  receiptWidthLabel,
-  receiptTone,
   statusToLabel,
-  invoiceTemplateLabel,
   invoicePaymentStatusLabel,
   invoiceDisplayLabel
 } from "../utils/formatters";
@@ -111,6 +108,8 @@ export function OverlayActionButton({ icon, children, className = "", ...props }
 
 export function OverlayDialog({ title, open, onClose, children, topbarActions, className = "" }) {
   const bodyRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -119,12 +118,14 @@ export function OverlayDialog({ title, open, onClose, children, topbarActions, c
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose?.();
+        onCloseRef.current?.();
       }
     };
     document.addEventListener("keydown", onKeyDown);
     const frame = window.requestAnimationFrame(() => {
-      const focusable = bodyRef.current?.querySelector("input, select, textarea, button");
+      const focusable = bodyRef.current?.querySelector(
+        'input:not([type="hidden"]):not([readonly]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+      );
       if (focusable && typeof focusable.focus === "function") {
         focusable.focus();
       }
@@ -134,7 +135,7 @@ export function OverlayDialog({ title, open, onClose, children, topbarActions, c
       window.cancelAnimationFrame(frame);
       document.body.style.overflow = previous;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -168,9 +169,9 @@ export function OverlayDialog({ title, open, onClose, children, topbarActions, c
   );
 }
 
-export function Table({ columns, rows }) {
+export function Table({ columns, rows, className = "" }) {
   return (
-    <div className="table-shell">
+    <div className={`table-shell ${className}`.trim()}>
       <table>
         <thead>
           <tr>
@@ -210,7 +211,7 @@ export function EntityCard({ title, subtitle, badge, meta, children, actions, to
   );
 }
 
-export function InvoiceCard({ invoice, onEdit, onDelete, onPayments, loading, tone = "invoice" }) {
+export function InvoiceCard({ invoice, onEdit, onDelete, onPayments, onPrint, loading, tone = "invoice" }) {
   const paymentStatus = invoicePaymentStatusLabel(invoice);
   const actions = onEdit || onDelete ? (
     <>
@@ -233,7 +234,6 @@ export function InvoiceCard({ invoice, onEdit, onDelete, onPayments, loading, to
         <div className="invoice-card-title">
           <h3>{invoiceDisplayLabel(invoice)}</h3>
           <p>{personLabel(invoice.client) || invoice.client?.displayName || invoice.client?.company || "-"}</p>
-          <span>{invoiceTemplateLabel(invoice.templateType)}</span>
         </div>
         <span className="entity-badge invoice-badge-stack">
           <span>{statusToLabel(invoice.status)}</span>
@@ -260,11 +260,10 @@ export function InvoiceCard({ invoice, onEdit, onDelete, onPayments, loading, to
         </div>
       </div>
 
-      {onPayments ? (
+      {onPayments || onPrint ? (
         <div className="entity-actions">
-          <button type="button" className="text-button" onClick={onPayments}>
-            Paiements
-          </button>
+          {onPayments && <button type="button" className="text-button" onClick={onPayments}>Paiements</button>}
+          {onPrint && <button type="button" className="text-button" onClick={onPrint}>Imprimer ticket</button>}
         </div>
       ) : null}
 
@@ -276,7 +275,7 @@ export function InvoiceCard({ invoice, onEdit, onDelete, onPayments, loading, to
 export function ClientCard({ client, onEdit, onDelete, loading }) {
   return (
     <EntityCard
-      title={personLabel(client) || "Client"}
+      title={client.clientType === "company" ? client.company || "Entité" : personLabel(client) || "Client"}
       badge={clientTypeLabel(client.clientType)}
       actions={
         <>
@@ -290,80 +289,6 @@ export function ClientCard({ client, onEdit, onDelete, loading }) {
       }
       tone="client"
     >
-    </EntityCard>
-  );
-}
-
-export function ReceiptPreview({ receipt }) {
-  const width = Number(receipt.paperWidthMm || 58);
-  const sampleItems = [
-    { label: "Article A", total: 12.0 },
-    { label: "Article B", total: 8.5 },
-    { label: "Article C", total: 4.5 }
-  ];
-  const subtotal = sampleItems.reduce((sum, item) => sum + item.total, 0);
-  const tax = receipt.showTax ? subtotal * 0.18 : 0;
-  const total = subtotal + tax;
-
-  return (
-    <div className={`receipt-preview ${receiptTone(width)}`}>
-      <div className="receipt-preview-top">
-        <strong>{receipt.title}</strong>
-        {receipt.subtitle ? <span>{receipt.subtitle}</span> : null}
-        <span>{receiptWidthLabel(width)}</span>
-      </div>
-      <div className="receipt-lines">
-        {sampleItems.map((item) => (
-          <div key={item.label} className="receipt-line">
-            <span>{item.label}</span>
-            <strong>{money(item.total)}</strong>
-          </div>
-        ))}
-      </div>
-      <div className="receipt-totals">
-        <div>
-          <span>Sous-total</span>
-          <strong>{money(subtotal)}</strong>
-        </div>
-        {receipt.showTax ? (
-          <div>
-            <span>TVA</span>
-            <strong>{money(tax)}</strong>
-          </div>
-        ) : null}
-        <div className="receipt-grand-total">
-          <span>Total</span>
-          <strong>{money(total)}</strong>
-        </div>
-      </div>
-      {receipt.footerText ? <p className="receipt-footer">{receipt.footerText}</p> : null}
-    </div>
-  );
-}
-
-export function ReceiptCard({ receipt, onEdit, onDelete, loading }) {
-  return (
-    <EntityCard
-      title={receipt.name}
-      badge={
-        <div className="receipt-badge-stack">
-          <span>{receiptWidthLabel(receipt.paperWidthMm)}</span>
-          <span>{statusToLabel(receipt.status)}</span>
-        </div>
-      }
-      actions={
-        <>
-          <button type="button" className="text-button" onClick={onEdit}>
-            Modifier
-          </button>
-          <button type="button" className="text-button danger" onClick={onDelete} disabled={loading}>
-            Supprimer
-          </button>
-        </>
-      }
-      tone="receipt"
-    >
-      <ReceiptPreview receipt={receipt} />
     </EntityCard>
   );
 }

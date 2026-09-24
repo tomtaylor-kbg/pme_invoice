@@ -4,20 +4,20 @@ const { hashPassword } = require("../src/utils/password");
 const prisma = new PrismaClient();
 
 const WORKSPACE_SETTINGS_SEED = {
-  companyName: "Atlas Consulting",
+  companyName: "Imprimerie Exemple",
+  businessSector: "Imprimerie",
   vatRate: "20",
   defaultCurrency: "EUR",
   addressLine1: "",
   addressLine2: "",
   postalCode: "",
-  city: "Lubumbashi",
-  country: "RDC",
-  phone: "+243 900 000 001",
+  city: "",
+  country: "",
+  phone: "",
   email: "",
   website: "",
   invoicePrefix: "FAC",
   paymentTermsDays: "30",
-  services: "Conseil\nDéveloppement\nSupport"
 };
 
 async function main() {
@@ -53,10 +53,12 @@ async function main() {
   const user = await prisma.user.upsert({
     where: { email: "admin@facturation.local" },
     update: {
+      username: "admin",
       passwordHash: hashPassword("changeme")
     },
     create: {
-      name: "admin",
+      username: "admin",
+      name: "Administrateur",
       email: "admin@facturation.local",
       role: "admin",
       passwordHash: hashPassword("changeme")
@@ -66,10 +68,12 @@ async function main() {
   await prisma.user.upsert({
     where: { email: "finance@facturation.local" },
     update: {
+      username: "finance",
       passwordHash: hashPassword("changeme")
     },
     create: {
-      name: "finance",
+      username: "finance",
+      name: "Équipe Finance",
       email: "finance@facturation.local",
       role: "finance",
       passwordHash: hashPassword("changeme")
@@ -79,17 +83,19 @@ async function main() {
   await prisma.user.upsert({
     where: { email: "sales@facturation.local" },
     update: {
+      username: "sales",
       passwordHash: hashPassword("changeme")
     },
     create: {
-      name: "sales",
+      username: "sales",
+      name: "Équipe Ventes",
       email: "sales@facturation.local",
       role: "sales",
       passwordHash: hashPassword("changeme")
     }
   });
 
-  const clientEmail = "nadia.m@atlas-consulting.local";
+  const clientEmail = "contact@papeterie-exemple.local";
   const existingClient = await prisma.client.findFirst({
     where: { email: clientEmail }
   });
@@ -100,10 +106,10 @@ async function main() {
         data: {
           firstName: "Nadia",
           lastName: "Mbuya",
-          company: "Atlas Consulting",
+          company: "Papeterie Exemple",
           email: clientEmail,
-          phone: "+243 900 000 001",
-          city: "Lubumbashi",
+          phone: "",
+          city: "",
           clientType: "company"
         }
       })
@@ -111,10 +117,10 @@ async function main() {
         data: {
           firstName: "Nadia",
           lastName: "Mbuya",
-          company: "Atlas Consulting",
+          company: "Papeterie Exemple",
           email: clientEmail,
-          phone: "+243 900 000 001",
-          city: "Lubumbashi",
+          phone: "",
+          city: "",
           clientType: "company"
         }
       });
@@ -124,25 +130,23 @@ async function main() {
     update: {
       clientId: client.id,
       userId: user.id,
-      templateType: "professional",
       status: "paid",
       currency: "EUR",
       issueDate: new Date("2026-06-12T00:00:00.000Z"),
       dueDate: new Date("2026-06-27T00:00:00.000Z"),
-      total: 1450,
-      notes: "Abonnement mensuel et support"
+      total: 1740,
+      notes: "Commande d’impression de brochures"
     },
     create: {
       number: "FAC-2026-0001",
       clientId: client.id,
       userId: user.id,
-      templateType: "professional",
       status: "paid",
       currency: "EUR",
       issueDate: new Date("2026-06-12T00:00:00.000Z"),
       dueDate: new Date("2026-06-27T00:00:00.000Z"),
-      total: 1450,
-      notes: "Abonnement mensuel et support"
+      total: 1740,
+      notes: "Commande d’impression de brochures"
     }
   });
 
@@ -154,13 +158,13 @@ async function main() {
     data: [
       {
         invoiceId: invoice.id,
-        description: "Forfait maintenance",
-        quantity: 1,
-        unitPrice: 900
+        description: "Impression de brochures A4",
+        quantity: 500,
+        unitPrice: 1.8
       },
       {
         invoiceId: invoice.id,
-        description: "Support prioritaire",
+        description: "Préparation des fichiers et façonnage",
         quantity: 1,
         unitPrice: 550
       }
@@ -176,77 +180,16 @@ async function main() {
       {
         invoiceId: invoice.id,
         userId: user.id,
-        amount: 1450,
+        amount: 1740,
         method: "bank_transfer",
         paidAt: new Date("2026-06-13T00:00:00.000Z"),
-        reference: "VIR-1450-2026",
+        reference: "VIR-1740-2026",
         notes: "Règlement complet"
       }
     ]
   });
 
-  const receiptInvoice = await prisma.invoice.upsert({
-    where: { number: "REC-2026-0001" },
-    update: {
-      clientId: client.id,
-      userId: user.id,
-      templateType: "receipt",
-      status: "sent",
-      currency: "EUR",
-      issueDate: new Date("2026-06-18T00:00:00.000Z"),
-      dueDate: new Date("2026-06-18T00:00:00.000Z"),
-      total: 260,
-      notes: "Reçu destiné au service direct"
-    },
-    create: {
-      number: "REC-2026-0001",
-      clientId: client.id,
-      userId: user.id,
-      templateType: "receipt",
-      status: "sent",
-      currency: "EUR",
-      issueDate: new Date("2026-06-18T00:00:00.000Z"),
-      dueDate: new Date("2026-06-18T00:00:00.000Z"),
-      total: 260,
-      notes: "Reçu destiné au service direct"
-    }
-  });
-
-  await prisma.invoiceLine.deleteMany({
-    where: { invoiceId: receiptInvoice.id }
-  });
-
-  await prisma.invoiceLine.createMany({
-    data: [
-      {
-        invoiceId: receiptInvoice.id,
-        description: "Paiement service direct",
-        quantity: 1,
-        unitPrice: 260
-      }
-    ]
-  });
-
-  await prisma.payment.deleteMany({
-    where: { invoiceId: receiptInvoice.id }
-  });
-
-  await prisma.payment.createMany({
-    data: [
-      {
-        invoiceId: receiptInvoice.id,
-        userId: user.id,
-        amount: 260,
-        method: "cash",
-        paidAt: new Date("2026-06-18T00:00:00.000Z"),
-        reference: "CAISSE-260-2026",
-        notes: "Paiement reçu au comptoir"
-      }
-    ]
-  });
-
   await ensureInvoiceCounter("FAC", 2026, 1);
-  await ensureInvoiceCounter("REC", 2026, 1);
 
   await prisma.workspaceSetting.upsert({
     where: { id: "singleton" },
@@ -254,50 +197,6 @@ async function main() {
     create: {
       id: "singleton",
       ...WORKSPACE_SETTINGS_SEED
-    }
-  });
-
-  await prisma.receipt.upsert({
-    where: { name: "Compact 58 mm" },
-    update: {
-      paperWidthMm: 58,
-      title: "Atlas Consulting",
-      subtitle: "Ticket compact",
-      footerText: "Merci pour votre confiance",
-      showTax: true,
-      showLogo: false,
-      status: "active"
-    },
-    create: {
-      name: "Compact 58 mm",
-      paperWidthMm: 58,
-      title: "Atlas Consulting",
-      subtitle: "Ticket compact",
-      footerText: "Merci pour votre confiance",
-      showTax: true,
-      showLogo: false
-    }
-  });
-
-  await prisma.receipt.upsert({
-    where: { name: "Standard 80 mm" },
-    update: {
-      paperWidthMm: 80,
-      title: "Atlas Consulting",
-      subtitle: "Ticket détaillé",
-      footerText: "Support client: +243 900 000 001",
-      showTax: true,
-      showLogo: true,
-      status: "active"
-    },
-    create: {
-      name: "Standard 80 mm",
-      paperWidthMm: 80,
-      title: "Atlas Consulting",
-      subtitle: "Ticket détaillé",
-      footerText: "Support client: +243 900 000 001",
-      showTax: true,
-      showLogo: true
     }
   });
 }

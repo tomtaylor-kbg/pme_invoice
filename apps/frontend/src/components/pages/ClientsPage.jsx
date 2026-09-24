@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
-import { ClientCard, OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader } from "../ui";
-import { buildClientsCsv, downloadTextFile } from "../../utils/formatters";
+import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table } from "../ui";
+import { buildClientsCsv, clientTypeLabel, downloadTextFile } from "../../utils/formatters";
 
 export function ClientsPage() {
   const { data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor } = useWorkspace();
@@ -10,6 +10,7 @@ export function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const isEditing = editor.kind === "client" && Boolean(editor.id);
+  const isCompany = forms.client.clientType === "company";
 
   const filteredClients = data.clients.filter((client) => {
     if (statusFilter !== "all" && client.status !== statusFilter) {
@@ -35,14 +36,14 @@ export function ClientsPage() {
 
   return (
     <div className="page-shell clients-page">
-      <header className="hero">
+      <header className="hero list-page-header">
         <div>
           <span className="eyebrow">CRM</span>
           <h1>Clients</h1>
         </div>
         <div className="hero-actions">
           <button className="secondary-button" type="button" onClick={beginCreateClient}>
-            Nouveau contact
+            Nouveau client
           </button>
           <button className="secondary-button" type="button" onClick={exportClientsCsv}>
             Export CSV
@@ -51,10 +52,8 @@ export function ClientsPage() {
       </header>
 
       <div className="page-scroll">
-        <section className="content-grid clients-layout">
-          <div className="panel">
-            <SectionHeader title="Contacts" />
-            <div className="filters-panel">
+        <section className="list-view-content">
+            <div className="filters-panel list-filters">
               <div className="filters-grid clients">
                 <label className="filter-field search">
                 Rechercher client
@@ -81,30 +80,21 @@ export function ClientsPage() {
               </div>
             </div>
 
-            <div className="card-grid">
-              {filteredClients.length > 0 ? (
-                filteredClients.map((client) => (
-                  <ClientCard
-                    key={client.id}
-                    client={client}
-                    loading={loading}
-                    onEdit={() => beginEditClient(client)}
-                    onDelete={() => removeClient(client.id)}
-                  />
-                ))
-              ) : (
-                <div className="empty-card-state">
-                  Aucun contact ne correspond à vos critères.
-                </div>
-              )}
-            </div>
-          </div>
+            {filteredClients.length > 0 ? <Table className="entity-list-table clients-table" columns={["Client", "Type", "Email", "Téléphone", "Ville", "Statut", "Actions"]} rows={filteredClients.map((client) => [
+              <div className="table-primary-cell"><strong>{client.clientType === "company" ? client.company || "Entité" : `${client.firstName} ${client.lastName}`.trim() || "Client"}</strong>{client.clientType === "company" && (client.firstName || client.lastName) ? <small>Contact : {[client.firstName, client.lastName].filter(Boolean).join(" ")}</small> : null}</div>,
+              clientTypeLabel(client.clientType),
+              client.email || "—",
+              client.phone || "—",
+              client.city || "—",
+              <span className={`badge ${client.status === "active" ? "actif" : "inactif"}`}>{client.status === "active" ? "Actif" : "Inactif"}</span>,
+              <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditClient(client)}>Modifier</button><button type="button" className="text-button danger" onClick={() => removeClient(client.id)} disabled={loading}>Supprimer</button></div>
+            ])} /> : <div className="empty-card-state">Aucun client ne correspond à vos critères.</div>}
         </section>
       </div>
 
       <OverlayDialog
         open={editor.kind === "client"}
-        title={isEditing ? "Modifier contact" : "Créer contact"}
+        title={isEditing ? "Modifier client" : "Créer un client"}
         onClose={closeEditor}
         topbarActions={
           <OverlayActionButton
@@ -114,58 +104,47 @@ export function ClientsPage() {
             form="client-form"
             disabled={loading}
           >
-            {isEditing ? "Enregistrer" : "Créer contact"}
+            {isEditing ? "Enregistrer" : "Créer le client"}
           </OverlayActionButton>
         }
         >
         <form id="client-form" className="stack-form client-form-grid" onSubmit={(event) => { event.preventDefault(); saveClient(); }}>
+          <fieldset className="client-type-field client-form-span-2">
+            <legend>Type de client</legend>
+            <div className="client-type-switch" role="group" aria-label="Type de client">
+              <button type="button" className={!isCompany ? "active" : ""} aria-pressed={!isCompany} onClick={() => setForms((current) => ({ ...current, client: { ...current.client, clientType: "individual" } }))}>Personne</button>
+              <button type="button" className={isCompany ? "active" : ""} aria-pressed={isCompany} onClick={() => setForms((current) => ({ ...current, client: { ...current.client, clientType: "company" } }))}>Entité</button>
+            </div>
+          </fieldset>
+          {isCompany ? <>
+            <label className="client-form-field client-form-span-2">
+              Nom de l’entité
+              <input required value={forms.client.company} onChange={(event) => setForms((current) => ({ ...current, client: { ...current.client, company: event.target.value } }))} />
+            </label>
+            <div className="client-form-section client-form-span-2">Contact de l’entité <span>Facultatif</span></div>
+            <label className="client-form-field">
+              Prénom du contact
+              <input value={forms.client.firstName} onChange={(event) => setForms((current) => ({ ...current, client: { ...current.client, firstName: event.target.value } }))} />
+            </label>
+            <label className="client-form-field">
+              Nom du contact
+              <input value={forms.client.lastName} onChange={(event) => setForms((current) => ({ ...current, client: { ...current.client, lastName: event.target.value } }))} />
+            </label>
+          </> : <>
+            <label className="client-form-field">
+              Prénom
+              <input required value={forms.client.firstName} onChange={(event) => setForms((current) => ({ ...current, client: { ...current.client, firstName: event.target.value } }))} />
+            </label>
+            <label className="client-form-field">
+              Nom
+              <input required value={forms.client.lastName} onChange={(event) => setForms((current) => ({ ...current, client: { ...current.client, lastName: event.target.value } }))} />
+            </label>
+          </>}
           <label className="client-form-field">
-            Prénom
-            <input
-              value={forms.client.firstName}
-              onChange={(event) => setForms((current) => ({
-                ...current,
-                client: { ...current.client, firstName: event.target.value }
-              }))}
-            />
-          </label>
-          <label className="client-form-field">
-            Nom
-            <input
-              value={forms.client.lastName}
-              onChange={(event) => setForms((current) => ({
-                ...current,
-                client: { ...current.client, lastName: event.target.value }
-              }))}
-            />
-          </label>
-          <label className="client-form-field">
-            Type de client
-            <select
-              value={forms.client.clientType}
-              onChange={(event) => setForms((current) => ({
-                ...current,
-                client: { ...current.client, clientType: event.target.value }
-              }))}
-            >
-              <option value="individual">Personne physique</option>
-              <option value="company">Personne morale / société</option>
-            </select>
-          </label>
-          <label className="client-form-field">
-            Société
-            <input
-              value={forms.client.company}
-              onChange={(event) => setForms((current) => ({
-                ...current,
-                client: { ...current.client, company: event.target.value }
-              }))}
-            />
-          </label>
-          <label className="client-form-field">
-            Email
+            {isCompany ? "Email du contact" : "Email"}
             <input
               type="email"
+              required={!isCompany}
               value={forms.client.email}
               onChange={(event) => setForms((current) => ({
                 ...current,

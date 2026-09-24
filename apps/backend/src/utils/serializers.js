@@ -58,14 +58,6 @@ function serializeUser(user) {
   };
 }
 
-function serializeReceipt(receipt) {
-  return {
-    ...receipt,
-    createdAt: receipt.createdAt.toISOString(),
-    updatedAt: receipt.updatedAt.toISOString()
-  };
-}
-
 function serializeWorkspaceSetting(setting) {
   return {
     ...setting,
@@ -76,11 +68,24 @@ function serializeWorkspaceSetting(setting) {
   };
 }
 
+function serializeCashDisbursement(record) {
+  return {
+    ...record,
+    amount: Number(record.amount),
+    paidAt: record.paidAt.toISOString(),
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    recorder: record.recorder
+      ? { id: record.recorder.id, name: record.recorder.name, email: record.recorder.email }
+      : null
+  };
+}
+
 module.exports = {
   serializeInvoice,
   serializePayment,
   serializeClient,
   serializeUser,
-  serializeReceipt,
-  serializeWorkspaceSetting
+  serializeWorkspaceSetting,
+  serializeCashDisbursement
 };

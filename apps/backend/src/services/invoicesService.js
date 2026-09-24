@@ -17,10 +17,6 @@ function normalizeInvoicePrefix(value, fallback = "FAC") {
   return normalized || fallback;
 }
 
-function invoicePrefixForTemplate(templateType) {
-  return templateType === "receipt" ? "REC" : "FAC";
-}
-
 function hasPaymentModel(prisma) {
   return Boolean(prisma?.payment?.findMany);
 }
@@ -33,10 +29,10 @@ function resolveInvoicePrefix(data = {}) {
   const requestedNumber = String(data.number || "").trim().toUpperCase();
   const match = requestedNumber.match(INVOICE_NUMBER_PATTERN);
   if (match) {
-    return normalizeInvoicePrefix(match[1], invoicePrefixForTemplate(data.templateType));
+    return normalizeInvoicePrefix(match[1]);
   }
 
-  return normalizeInvoicePrefix(data.prefix, invoicePrefixForTemplate(data.templateType));
+  return normalizeInvoicePrefix(data.prefix);
 }
 
 function buildInvoiceNumber(prefix, year, sequence) {
@@ -191,7 +187,8 @@ async function listInvoices(prisma) {
       lastName: invoice.client.lastName,
       displayName: [invoice.client.firstName, invoice.client.lastName].filter(Boolean).join(" ").trim(),
       company: invoice.client.company,
-      email: invoice.client.email
+      email: invoice.client.email,
+      phone: invoice.client.phone
     },
     creator: invoice.creator
       ? {
@@ -301,12 +298,29 @@ async function createInvoice(prisma, data) {
       }
     }
 
+    let clientId = data.clientId;
+    if (!clientId && data.manualClientName) {
+      const nameParts = String(data.manualClientName).trim().replace(/\s+/g, " ").split(" ");
+      const firstName = nameParts.shift() || "Client";
+      const lastName = nameParts.join(" ") || "Ponctuel";
+      const email = String(data.manualClientEmail || "").trim() || `ponctuel-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@local.invalid`;
+      const client = await tx.client.create({
+        data: {
+          firstName,
+          lastName,
+          email,
+          company: String(data.manualClientCompany || "").trim() || null,
+          clientType: String(data.manualClientCompany || "").trim() ? "company" : "individual"
+        }
+      });
+      clientId = client.id;
+    }
+
     return tx.invoice.create({
       data: {
         number: buildInvoiceNumber(prefix, year, nextSequence),
-        clientId: data.clientId,
+        clientId,
         userId: data.userId || null,
-        templateType: data.templateType || "professional",
         status: data.status || "draft",
         currency: data.currency || "EUR",
         issueDate,
@@ -346,7 +360,6 @@ async function updateInvoice(prisma, id, data) {
     ...(data.number !== undefined ? { number: data.number } : {}),
     ...(data.clientId !== undefined ? { clientId: data.clientId } : {}),
     ...(data.userId !== undefined ? { userId: data.userId || null } : {}),
-    ...(data.templateType !== undefined ? { templateType: data.templateType } : {}),
     ...(data.status !== undefined ? { status: data.status } : {}),
     ...(data.currency !== undefined ? { currency: data.currency } : {}),
     ...(data.issueDate !== undefined ? { issueDate: new Date(data.issueDate) } : {}),

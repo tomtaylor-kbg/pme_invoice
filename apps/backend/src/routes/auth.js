@@ -62,6 +62,16 @@ function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSes
     const result = await loginWithCredentials(prisma, username, password);
     if (result) {
       clearLoginAttempts(loginKey);
+      prisma.auditLog.create({
+        data: {
+          userId: result.user.id,
+          actorName: result.user.name || result.user.email || "Utilisateur",
+          actorEmail: result.user.email || "",
+          action: "Connexion",
+          entity: "Session",
+          description: "Connexion réussie"
+        }
+      }).catch((error) => console.error("Unable to write audit log", error));
       return res.json(result);
     }
 

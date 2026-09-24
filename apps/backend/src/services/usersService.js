@@ -12,6 +12,7 @@ async function listUsers(prisma) {
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
+      username: true,
       name: true,
       email: true,
       role: true,

@@ -56,11 +56,13 @@ npm run docker:up
 - Backend : localhost:4000
 - Frontend : localhost:5173
 
-Arrêter et supprimer les volumes :
+Arrêter les services en conservant la base de données :
 
 ```bash
 npm run docker:down
 ```
+
+Les ports publiés et les identifiants initiaux peuvent être configurés avec `DB_PORT`, `API_PORT`, `FRONTEND_PORT`, `POSTGRES_PASSWORD`, `APP_USERNAME` et `APP_PASSWORD`. Les valeurs par défaut sont réservées au développement local.
 
 ## Configuration
 
@@ -80,15 +82,14 @@ Le frontend peut aussi utiliser des variables Vite:
 
 ## Données persistées
 
-- Les paramètres système des outils sont stockés en base dans `WorkspaceSetting`
-- Les modèles de reçu, clients, factures, paiements et compteurs de facture sont persistés via Prisma
+- Les paramètres de l’entreprise, dont son secteur d’activité, sont stockés dans `WorkspaceSetting`
+- Les clients, factures, paiements et compteurs de facture sont persistés via Prisma
 - La configuration d’interface reste dans `localStorage` pour le thème et le jeton de session
 
 ## Routes
 
 - `/dashboard`
 - `/tools`
-- `/receipts`
 - `/invoices`
 - `/clients`
 - `/users`

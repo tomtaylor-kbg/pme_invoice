@@ -26,6 +26,11 @@ function createWorkspaceSettingsRouter({ prisma, requireAuth }) {
         return res.status(403).json({ message: "Forbidden" });
       }
 
+      const logoDataUrl = String(req.body?.logoDataUrl || "");
+      if (logoDataUrl && (logoDataUrl.length > 550000 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(logoDataUrl))) {
+        return res.status(400).json({ message: "Logo must be a PNG, JPEG or WebP image smaller than 400 KB" });
+      }
+
       res.json({
         settings: await updateWorkspaceSettings(prisma, req.body || {})
       });

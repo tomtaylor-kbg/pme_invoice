@@ -17,7 +17,7 @@ function resolveAuthHeader(req) {
 async function authenticateUser(prisma, username, password) {
   const user = await prisma.user.findFirst({
     where: {
-      OR: [{ email: username }, { name: username }]
+      OR: [{ username }, { email: username }]
     }
   });
 
@@ -37,9 +37,12 @@ async function authenticateUser(prisma, username, password) {
   const bootstrapUsername = process.env.USERNAME || "";
   const bootstrapPassword = process.env.PASSWORD || "";
   if (bootstrapUsername && bootstrapPassword && username === bootstrapUsername && password === bootstrapPassword) {
+    const isEmail = bootstrapUsername.includes("@");
+    const fallbackName = isEmail ? bootstrapUsername.split("@")[0] : bootstrapUsername;
+    const fallbackEmail = isEmail ? bootstrapUsername : `${bootstrapUsername}@facturation.local`;
     const bootstrapUser = await prisma.user.findFirst({
       where: {
-        OR: [{ email: bootstrapUsername }, { name: bootstrapUsername }]
+        OR: [{ username: bootstrapUsername }, { email: bootstrapUsername }, { email: fallbackEmail }]
       }
     });
 
@@ -47,12 +50,9 @@ async function authenticateUser(prisma, username, password) {
       return bootstrapUser;
     }
 
-    const isEmail = bootstrapUsername.includes("@");
-    const fallbackName = isEmail ? bootstrapUsername.split("@")[0] : bootstrapUsername;
-    const fallbackEmail = isEmail ? bootstrapUsername : `${bootstrapUsername}@facturation.local`;
-
     return prisma.user.create({
       data: {
+        username: bootstrapUsername,
         name: fallbackName || "admin",
         email: fallbackEmail,
         role: "admin",
@@ -101,6 +101,7 @@ async function resolveSession(prisma, token) {
       id: true,
       name: true,
       email: true,
+      username: true,
       role: true,
       createdAt: true,
       updatedAt: true

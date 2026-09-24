@@ -5,11 +5,10 @@ import {
   formatMoney,
   invoiceDisplayLabel,
   invoiceLineTotal,
-  invoiceTemplateLabel,
   statusToLabel,
   invoiceLinesTotal
 } from "../formatters";
-import { formatWorkspaceAddress, formatWorkspaceContact, formatWorkspaceServices } from "./invoicePrintShared";
+import { formatWorkspaceAddress, formatWorkspaceContact, formatWorkspaceLegalInfo } from "./invoicePrintShared";
 
 export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} }) {
   const currency = invoice?.currency || "EUR";
@@ -17,18 +16,21 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
     (line) => String(line?.description || "").trim() || Number(line?.quantity || 0) > 0 || Number(line?.unitPrice || 0) > 0
   );
   const taxRate = Number(invoice?.taxRate ?? 20);
+  const isVatActive = taxRate > 0;
   const totalHT = invoiceLinesTotal(lines);
-  const taxAmount = totalHT * (taxRate / 100);
+  const taxAmount = isVatActive ? totalHT * (taxRate / 100) : 0;
   const totalTTC = totalHT + taxAmount;
   const createdBy = creator?.name || creator?.email || "Session courante";
   const clientLabel = [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim() || client?.company || "Client";
   const clientCompany = client?.company || "";
   const clientEmail = client?.email || "";
   const clientPhone = client?.phone || "";
-  const companyName = settings.companyName || "Facturation Interne";
+  const companyName = settings.companyName || "Mon entreprise";
+  const logoDataUrl = String(settings.logoDataUrl || "");
   const addressLine = formatWorkspaceAddress(settings);
   const contactLine = formatWorkspaceContact(settings);
-  const servicesLine = formatWorkspaceServices(settings);
+  const legalLine = formatWorkspaceLegalInfo(settings);
+  const businessSector = String(settings.businessSector || "").trim();
   const documentLabel = invoiceDisplayLabel(invoice);
 
   return `<!doctype html>
@@ -54,29 +56,58 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
         margin: 0 auto;
         padding: 0;
       }
+      .preview-toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        justify-content: flex-end;
+        max-width: 210mm;
+        margin: 0 auto 12px;
+        padding: 10px 0;
+        background: #fff;
+      }
+      .preview-toolbar button {
+        padding: 9px 14px;
+        border: 0;
+        border-radius: 5px;
+        color: #fff;
+        background: #1d4ed8;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
       .sheet {
+        display: flex;
+        flex-direction: column;
+        min-height: 265mm;
         border: 1px solid #e2e8f0;
         border-radius: 18px;
         padding: 20px;
       }
       .top {
-        display: flex;
-        justify-content: space-between;
-        gap: 24px;
-        align-items: start;
+        display: grid;
+        justify-items: center;
+        gap: 18px;
         margin-bottom: 24px;
-        padding-bottom: 18px;
-        border-bottom: 1px solid #e2e8f0;
+        padding: 8px 0 20px;
+        border-bottom: 2px solid #0f172a;
+        text-align: center;
       }
       .brand {
         display: grid;
-        gap: 6px;
-        max-width: 52%;
+        justify-items: center;
+        gap: 5px;
+        width: 100%;
       }
       .brand strong {
-        font-size: 20px;
-        letter-spacing: 0.02em;
+        margin-top: 5px;
+        font-size: 24px;
+        font-weight: 750;
+        line-height: 1.2;
       }
+      .company-logo { display: block; max-width: 150px; max-height: 72px; object-fit: contain; margin-bottom: 4px; }
       .brand span, .meta, .client-block, .footer-note {
         color: #475569;
         font-size: 12px;
@@ -86,16 +117,14 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
         color: #0f172a;
         font-weight: 600;
       }
-      .brand .services {
+      .brand .sector {
         color: #1d4ed8;
       }
-      .title-block {
-        text-align: right;
-        max-width: 42%;
-      }
+      .title-block { text-align: center; }
       .title-block h1 {
         margin: 0;
-        font-size: 26px;
+        font-size: 22px;
+        text-transform: uppercase;
       }
       .title-block p {
         margin: 6px 0 0;
@@ -189,15 +218,19 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
         white-space: pre-wrap;
       }
       .footer-note {
-        margin-top: 20px;
+        margin-top: auto;
+        padding-top: 14px;
+        border-top: 1px solid #cbd5e1;
         text-align: center;
       }
+      .footer-note span { display: block; }
+      .footer-note .legal { margin-top: 3px; font-size: 10px; }
       .badge {
-        display: inline-flex;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: #dbeafe;
-        color: #1d4ed8;
+        display: inline-block;
+        padding: 4px 11px;
+        border: 1px solid #cbd5e1;
+        border-radius: 3px;
+        color: #334155;
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.08em;
@@ -206,19 +239,23 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
       @media print {
         body { margin: 0; }
         .sheet { border: 0; border-radius: 0; }
+        .preview-toolbar { display: none; }
       }
     </style>
   </head>
   <body>
+    <div class="preview-toolbar">
+      <button type="button" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+    </div>
     <div class="page">
       <div class="sheet">
         <div class="top">
           <div class="brand">
-            <span class="badge">${escapeHtml(invoice?.templateType === "receipt" ? "Receipt" : "Facture professionnelle")}</span>
+            ${logoDataUrl ? `<img class="company-logo" src="${escapeHtml(logoDataUrl)}" alt="Logo ${escapeHtml(companyName)}" />` : ""}
             <strong>${escapeHtml(companyName)}</strong>
             ${addressLine ? `<span class="highlight">${escapeHtml(addressLine)}</span>` : ""}
             ${contactLine ? `<span>${escapeHtml(contactLine)}</span>` : ""}
-            ${servicesLine ? `<span class="services">Services: ${escapeHtml(servicesLine)}</span>` : ""}
+            ${businessSector ? `<span class="sector">${escapeHtml(businessSector)}</span>` : ""}
           </div>
           <div class="title-block">
             <h1>${escapeHtml(documentLabel)}</h1>
@@ -240,7 +277,6 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
           <div class="card">
             <h2>Informations</h2>
             <div class="invoice-meta">
-              <div><span>Modèle</span><strong>${escapeHtml(invoiceTemplateLabel(invoice?.templateType))}</strong></div>
               <div><span>Devise</span><strong>${escapeHtml(currency)}</strong></div>
               ${settings.vatRate ? `<div><span>TVA par défaut</span><strong>${escapeHtml(settings.vatRate)}%</strong></div>` : ""}
               <div><span>Créée par</span><strong>${escapeHtml(createdBy)}</strong></div>
@@ -281,6 +317,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
 
         <div class="summary">
           <div class="summary-box">
+            ${isVatActive ? `
             <div class="summary-row">
               <span>Total HT</span>
               <span>${escapeHtml(formatMoney(totalHT, currency))}</span>
@@ -294,11 +331,17 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
               <strong>${escapeHtml(formatMoney(totalTTC, currency))}</strong>
             </div>
             <div class="meta" style="font-size: 10px; color: #64748b; margin-top: 6px;">Total calculé avec TVA.</div>
+            ` : `
+            <div class="summary-row divider-row" style="margin-top: 4px;">
+              <span>Total net à payer</span>
+              <strong>${escapeHtml(formatMoney(totalHT, currency))}</strong>
+            </div>
+            `}
           </div>
         </div>
 
         ${invoice?.notes ? `<div class="notes">${escapeHtml(invoice.notes)}</div>` : ""}
-        <div class="footer-note">Document généré par Facturation Interne</div>
+        <footer class="footer-note"><span>${escapeHtml(companyName)}</span>${legalLine ? `<span class="legal">${escapeHtml(legalLine)}</span>` : ""}</footer>
       </div>
     </div>
   </body>

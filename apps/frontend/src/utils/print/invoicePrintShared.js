@@ -5,13 +5,13 @@ export function formatWorkspaceAddress(settings = {}) {
 }
 
 export function formatWorkspaceContact(settings = {}) {
-  return [settings.phone, settings.email, settings.website].filter(Boolean).join(" · ");
+  return [settings.phone, settings.phone2, settings.email, settings.website].filter(Boolean).join(" · ");
 }
 
-export function formatWorkspaceServices(settings = {}) {
-  return String(settings.services || "")
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .join(" · ");
+export function formatWorkspaceLegalInfo(settings = {}) {
+  return [
+    settings.rccm && `RCCM : ${settings.rccm}`,
+    settings.idNat && `Id.Nat : ${settings.idNat}`,
+    settings.taxNumber && `N° impôt : ${settings.taxNumber}`
+  ].filter(Boolean).join(" · ");
 }

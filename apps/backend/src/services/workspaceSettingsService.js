@@ -3,7 +3,9 @@ const { serializeWorkspaceSetting } = require("../utils/serializers");
 const WORKSPACE_SETTINGS_ID = "singleton";
 
 const DEFAULT_WORKSPACE_SETTINGS = {
-  companyName: "Facturation Interne",
+  companyName: "Mon entreprise",
+  logoDataUrl: "",
+  businessSector: "Imprimerie",
   vatRate: "20",
   defaultCurrency: "EUR",
   addressLine1: "",
@@ -12,16 +14,21 @@ const DEFAULT_WORKSPACE_SETTINGS = {
   city: "",
   country: "",
   phone: "",
+  phone2: "",
   email: "",
   website: "",
+  rccm: "",
+  idNat: "",
+  taxNumber: "",
   invoicePrefix: "FAC",
-  paymentTermsDays: "30",
-  services: ""
+  paymentTermsDays: "30"
 };
 
 function normalizeWorkspaceSettings(data = {}) {
   return {
     companyName: String(data.companyName ?? DEFAULT_WORKSPACE_SETTINGS.companyName),
+    logoDataUrl: String(data.logoDataUrl ?? DEFAULT_WORKSPACE_SETTINGS.logoDataUrl),
+    businessSector: String(data.businessSector ?? DEFAULT_WORKSPACE_SETTINGS.businessSector),
     vatRate: String(data.vatRate ?? DEFAULT_WORKSPACE_SETTINGS.vatRate),
     defaultCurrency: String(data.defaultCurrency ?? DEFAULT_WORKSPACE_SETTINGS.defaultCurrency),
     addressLine1: String(data.addressLine1 ?? DEFAULT_WORKSPACE_SETTINGS.addressLine1),
@@ -30,11 +37,14 @@ function normalizeWorkspaceSettings(data = {}) {
     city: String(data.city ?? DEFAULT_WORKSPACE_SETTINGS.city),
     country: String(data.country ?? DEFAULT_WORKSPACE_SETTINGS.country),
     phone: String(data.phone ?? DEFAULT_WORKSPACE_SETTINGS.phone),
+    phone2: String(data.phone2 ?? DEFAULT_WORKSPACE_SETTINGS.phone2),
     email: String(data.email ?? DEFAULT_WORKSPACE_SETTINGS.email),
     website: String(data.website ?? DEFAULT_WORKSPACE_SETTINGS.website),
+    rccm: String(data.rccm ?? DEFAULT_WORKSPACE_SETTINGS.rccm),
+    idNat: String(data.idNat ?? DEFAULT_WORKSPACE_SETTINGS.idNat),
+    taxNumber: String(data.taxNumber ?? DEFAULT_WORKSPACE_SETTINGS.taxNumber),
     invoicePrefix: String(data.invoicePrefix ?? DEFAULT_WORKSPACE_SETTINGS.invoicePrefix).toUpperCase(),
-    paymentTermsDays: String(data.paymentTermsDays ?? DEFAULT_WORKSPACE_SETTINGS.paymentTermsDays),
-    services: String(data.services ?? DEFAULT_WORKSPACE_SETTINGS.services)
+    paymentTermsDays: String(data.paymentTermsDays ?? DEFAULT_WORKSPACE_SETTINGS.paymentTermsDays)
   };
 }
 

@@ -5,7 +5,7 @@ import { ToastViewport } from "./ui";
 export function LoginPanel({ onSubmit, loading, error }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const { theme, toggleTheme, toasts, dismissToast, notifyError } = useWorkspace();
+  const { theme, toggleTheme, toasts, dismissToast, notifyError, workspaceSettings } = useWorkspace();
   const isDark = theme === "dark";
   const prevLoadingRef = useRef(loading);
 
@@ -20,6 +20,9 @@ export function LoginPanel({ onSubmit, loading, error }) {
     <div className="login-shell">
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
       <div className="login-card">
+        {workspaceSettings.logoDataUrl && <div className="login-logo-wrap">
+          <img className="login-logo" src={workspaceSettings.logoDataUrl} alt={`Logo ${workspaceSettings.companyName || "de l’entreprise"}`} />
+        </div>}
         <div className="login-card-head">
           <div className="brand">
             <span className="brand-mark" />
@@ -48,7 +51,7 @@ export function LoginPanel({ onSubmit, loading, error }) {
         </div>
 
         <h1>Connexion</h1>
-        <p>Connectez-vous avec le nom ou l’email du compte utilisateur.</p>
+        <p>Connectez-vous avec votre identifiant et votre mot de passe.</p>
 
         <form
           className="login-form"
@@ -58,8 +61,8 @@ export function LoginPanel({ onSubmit, loading, error }) {
           }}
         >
           <label>
-            Nom d'utilisateur
-            <input autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} />
+            Nom d’utilisateur
+            <input autoComplete="username" placeholder="" value={username} onChange={(event) => setUsername(event.target.value)} />
           </label>
           <label>
             Mot de passe

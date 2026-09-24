@@ -1,22 +1,10 @@
 import { useWorkspace } from "../WorkspaceProvider";
-import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader, Table } from "../ui";
+import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader } from "../ui";
+
+const roleLabels = { admin: "Administrateur", finance: "Finance", sales: "Ventes", user: "Collaborateur" };
 
 export function UsersPage() {
   const { data, forms, setForms, editor, beginCreateUser, beginEditUser, saveUser, removeUser, loading, closeEditor } = useWorkspace();
-
-  const rows = data.users.map((item) => [
-    item.name,
-    item.email,
-    item.role,
-    <div key={`${item.id}-actions`} className="row-actions">
-      <button type="button" className="text-button" onClick={() => beginEditUser(item)}>
-        Modifier
-      </button>
-      <button type="button" className="text-button danger" onClick={() => removeUser(item.id)} disabled={loading}>
-        Supprimer
-      </button>
-    </div>
-  ]);
 
   const isEditing = editor.kind === "user" && Boolean(editor.id);
 
@@ -35,10 +23,26 @@ export function UsersPage() {
       </header>
 
       <div className="page-scroll">
-        <section className="content-grid">
-          <div className="panel">
-            <SectionHeader title="Liste utilisateurs" />
-            <Table columns={["Nom", "Email", "Rôle", "Actions"]} rows={rows} />
+        <section className="panel users-panel">
+          <SectionHeader title="Utilisateurs de l’espace" />
+          <div className="users-grid">
+            {data.users.length ? data.users.map((item) => (
+              <article className="user-card" key={item.id}>
+                <div className="user-card-head">
+                  <span className="user-avatar" aria-hidden="true">{String(item.name || item.email || "U").trim().slice(0, 1).toUpperCase()}</span>
+                  <div className="user-card-copy">
+                    <strong>{item.name || "Utilisateur"}</strong>
+                    <span>Identifiant : {item.username}</span>
+                    <span>{item.email}</span>
+                  </div>
+                </div>
+                <span className={`user-role role-${item.role}`}>{roleLabels[item.role] || roleLabels.user}</span>
+                <div className="user-card-actions">
+                  <button type="button" className="text-button" onClick={() => beginEditUser(item)}>Modifier</button>
+                  <button type="button" className="text-button danger" onClick={() => removeUser(item.id)} disabled={loading}>Supprimer</button>
+                </div>
+              </article>
+            )) : <div className="empty-state">Aucun utilisateur enregistré.</div>}
           </div>
         </section>
       </div>
@@ -61,7 +65,18 @@ export function UsersPage() {
         >
         <form id="user-form" className="stack-form" onSubmit={(event) => { event.preventDefault(); saveUser(); }}>
           <label>
-            Nom
+            Nom d’utilisateur (identifiant de connexion)
+            <input
+              autoComplete="username"
+              value={forms.user.username}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                user: { ...current.user, username: event.target.value }
+              }))}
+            />
+          </label>
+          <label>
+            Nom et prénom
             <input
               value={forms.user.name}
               onChange={(event) => setForms((current) => ({

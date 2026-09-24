@@ -4,10 +4,11 @@ import { AppLayout } from "./AppLayout";
 import { WorkspaceProvider, useWorkspace } from "./WorkspaceProvider";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ToolsPage } from "./pages/ToolsPage";
-import { ReceiptsPage } from "./pages/ReceiptsPage";
 import { ClientsPage } from "./pages/ClientsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { InvoicesPage } from "./pages/InvoicesPage";
+import { CashDisbursementsPage } from "./pages/CashDisbursementsPage";
+import { AuditLogPage } from "./pages/AuditLogPage";
 
 function LoginRoute() {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ function RequireAuth() {
   return <Outlet />;
 }
 
-function RequireAdmin({ children }) {
+function RequireRoles({ allowedRoles, children }) {
   const { user, token, loading } = useWorkspace();
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -48,7 +49,7 @@ function RequireAdmin({ children }) {
   if (loading && !user) {
     return null;
   }
-  if (user?.role !== "admin") {
+  if (!allowedRoles.includes(user?.role)) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -62,11 +63,12 @@ export function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/tools" element={<ToolsPage />} />
-          <Route path="/receipts" element={<ReceiptsPage />} />
+          <Route path="/tools" element={<RequireRoles allowedRoles={["admin", "finance"]}><ToolsPage /></RequireRoles>} />
           <Route path="/clients" element={<ClientsPage />} />
-          <Route path="/users" element={<RequireAdmin><UsersPage /></RequireAdmin>} />
+          <Route path="/logs" element={<AuditLogPage />} />
+          <Route path="/users" element={<RequireRoles allowedRoles={["admin"]}><UsersPage /></RequireRoles>} />
           <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "finance"]}><CashDisbursementsPage /></RequireRoles>} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
