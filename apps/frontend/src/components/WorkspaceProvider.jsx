@@ -45,6 +45,7 @@ function defaultWorkspaceSettings() {
   return {
     setupCompleted: false,
     companyName: "Mon entreprise",
+    companyAcronym: "",
     logoDataUrl: "",
     businessSector: "Imprimerie",
     vatRate: "20",
@@ -72,6 +73,7 @@ function normalizeWorkspaceSettings(settings = {}) {
     ...settings,
     setupCompleted: Boolean(settings.setupCompleted ?? defaultWorkspaceSettings().setupCompleted),
     companyName: String(settings.companyName ?? defaultWorkspaceSettings().companyName),
+    companyAcronym: String(settings.companyAcronym ?? defaultWorkspaceSettings().companyAcronym).trim().toUpperCase(),
     logoDataUrl: String(settings.logoDataUrl ?? defaultWorkspaceSettings().logoDataUrl),
     vatRate: String(settings.vatRate ?? defaultWorkspaceSettings().vatRate),
     defaultCurrency: String(settings.defaultCurrency ?? defaultWorkspaceSettings().defaultCurrency).toUpperCase(),
@@ -327,6 +329,10 @@ export function WorkspaceProvider({ children }) {
       // Ignore persistence errors.
     }
   }, [theme]);
+
+  useEffect(() => {
+    document.title = workspaceSettings.companyAcronym || workspaceSettings.companyName || "Facturation Interne";
+  }, [workspaceSettings.companyAcronym, workspaceSettings.companyName]);
 
   useEffect(() => {
     return () => {

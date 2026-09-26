@@ -15,7 +15,16 @@
     "docker:down": "docker compose down",
     "db:generate": "npm run db:generate --workspace @facturation/backend",
     "db:migrate": "npm run db:migrate --workspace @facturation/backend",
-    "db:seed": "npm run db:seed --workspace @facturation/backend"
+    "db:seed": "npm run db:seed --workspace @facturation/backend",
+    "db:seed:demo": "npm run db:seed:demo --workspace @facturation/backend",
+    "docker:seed": "docker compose exec backend npm run db:seed",
+    "docker:seed:demo": "docker compose exec backend npm run db:seed:demo",
+    "docker:prod:up": "docker compose -f docker-compose.production.yml up --build -d",
+    "docker:prod:down": "docker compose -f docker-compose.production.yml down",
+    "docker:prod:ps": "docker compose -f docker-compose.production.yml ps",
+    "docker:prod:logs": "docker compose -f docker-compose.production.yml logs -f",
+    "docker:prod:migrate": "docker compose -f docker-compose.production.yml exec backend npm run db:migrate",
+    "docker:prod:seed": "docker compose -f docker-compose.production.yml exec backend npm run db:seed"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

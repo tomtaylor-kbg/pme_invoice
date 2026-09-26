@@ -5,6 +5,7 @@ const WORKSPACE_SETTINGS_ID = "singleton";
 const DEFAULT_WORKSPACE_SETTINGS = {
   setupCompleted: false,
   companyName: "Mon entreprise",
+  companyAcronym: "",
   logoDataUrl: "",
   businessSector: "Imprimerie",
   vatRate: "20",
@@ -29,6 +30,7 @@ function normalizeWorkspaceSettings(data = {}) {
   return {
     setupCompleted: Boolean(data.setupCompleted ?? DEFAULT_WORKSPACE_SETTINGS.setupCompleted),
     companyName: String(data.companyName ?? DEFAULT_WORKSPACE_SETTINGS.companyName),
+    companyAcronym: String(data.companyAcronym ?? DEFAULT_WORKSPACE_SETTINGS.companyAcronym).trim().toUpperCase(),
     logoDataUrl: String(data.logoDataUrl ?? DEFAULT_WORKSPACE_SETTINGS.logoDataUrl),
     businessSector: String(data.businessSector ?? DEFAULT_WORKSPACE_SETTINGS.businessSector),
     vatRate: String(data.vatRate ?? DEFAULT_WORKSPACE_SETTINGS.vatRate),

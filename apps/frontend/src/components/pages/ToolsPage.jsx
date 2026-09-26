@@ -275,14 +275,27 @@ export function ToolsPage() {
 
                   <div className="tools-form-grid">
                     <label>
-                      Nom de l’entreprise <span className="required">*</span>
+                      <span>Nom de l’entreprise <span className="required">*</span></span>
                       <input
                         type="text"
                         value={workspaceSettings.companyName}
                         onChange={(e) => updateSetting("companyName", e.target.value)}
-                        placeholder="Ex. Josprint Imprimerie"
+                        placeholder=""
                         autoComplete="organization"
                       />
+                    </label>
+
+                    <label>
+                      Sigle de l’entreprise
+                      <input
+                        type="text"
+                        value={workspaceSettings.companyAcronym}
+                        onChange={(e) => updateSetting("companyAcronym", e.target.value.toUpperCase())}
+                        placeholder=""
+                        maxLength={24}
+                        autoComplete="organization-title"
+                      />
+                      <small>Utilisé comme nom de l’application dans l’onglet du navigateur.</small>
                     </label>
 
                     <label>

@@ -40,9 +40,14 @@ npm run dev
 - `npm run lint` : lance les vérifications disponibles
 - `npm run db:generate` : génère le client Prisma
 - `npm run db:migrate` : applique les migrations Prisma
-- `npm run db:seed` : charge les données de démo
+- `npm run db:seed` : initialise les paramètres manquants et crée l’administrateur défini par `USERNAME` et `PASSWORD` uniquement si la base ne contient aucun utilisateur
+- `npm run db:seed:demo` : ajoute des données de démonstration (développement uniquement)
 - `npm run docker:up` : démarre PostgreSQL, backend et frontend
-- `npm run docker:down` : arrête la stack Docker et supprime les volumes
+- `npm run docker:down` : arrête et retire les conteneurs sans supprimer les données du volume PostgreSQL
+- `npm run docker:seed` / `npm run docker:seed:demo` : lance le seed sûr ou le seed de démonstration dans la stack de développement
+- `npm run docker:prod:up`, `docker:prod:ps`, `docker:prod:logs`, `docker:prod:down` : commandes de gestion de la stack de production
+- `npm run docker:prod:migrate` : applique manuellement les migrations (elles sont aussi appliquées au démarrage)
+- `npm run docker:prod:seed` : initialise les paramètres manquants et l’administrateur initial si aucun utilisateur n’existe
 
 ## Docker
 
@@ -62,6 +67,8 @@ Arrêter les services en conservant la base de données :
 npm run docker:down
 ```
 
+Le seed standard est idempotent et ne réinitialise aucun compte ni aucune donnée déjà présente. Il crée l’administrateur initial uniquement si la base ne contient encore aucun utilisateur et que `USERNAME` et `PASSWORD` sont définis. Pour ajouter des exemples en développement, lance explicitement `npm run db:seed:demo` ou `npm run docker:seed:demo`. Le seed de démonstration refuse de fonctionner quand `NODE_ENV=production`.
+
 ## Déploiement interne en production
 
 La stack de développement utilise Vite. Pour servir l’application en production, utilisez plutôt `docker-compose.production.yml` : le frontend est compilé puis servi par Nginx, qui transmet les requêtes `/api` au backend. PostgreSQL et l’API ne publient aucun port sur l’hôte.
@@ -80,7 +87,7 @@ Dans PowerShell, depuis le dépôt :
 
 ```powershell
 git pull origin master
-docker compose -f docker-compose.production.yml up --build -d
+npm run docker:prod:up
 ```
 
 L’application sera disponible localement sur `http://localhost:8080`. Pour la rendre accessible au réseau interne, définissez `FRONTEND_BIND_ADDRESS` dans `.env` sur l’adresse IP LAN fixe ou réservée du PC Windows, puis créez une règle Windows Firewall autorisant le port `FRONTEND_PORT` depuis le sous-réseau interne. Les postes clients accèdent alors à `http://<IP-LAN-DU-SERVEUR>:8080`.
@@ -88,6 +95,8 @@ L’application sera disponible localement sur `http://localhost:8080`. Pour la 
 Pour un déploiement pérenne, placez cette adresse derrière un proxy HTTPS avec un certificat de l’entreprise et limitez l’accès au réseau interne. Sauvegardez régulièrement le volume Docker `postgres-data`. Les mots de passe PostgreSQL doivent rester alphanumériques pour éviter les problèmes d’encodage dans l’URL de connexion.
 
 Les ports publiés et les identifiants initiaux peuvent être configurés avec `DB_PORT`, `API_PORT`, `FRONTEND_PORT`, `POSTGRES_PASSWORD`, `APP_USERNAME` et `APP_PASSWORD`. Les valeurs par défaut sont réservées au développement local.
+
+La stack de production applique automatiquement les migrations Prisma avant de démarrer l’API. Les scripts `docker:prod:*` utilisent le fichier Compose de production. Pour arrêter la stack, utilise `npm run docker:prod:down` ; cette commande conserve aussi le volume PostgreSQL. Ne lance pas le seed de démonstration en production.
 
 ## Configuration
 

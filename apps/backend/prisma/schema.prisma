@@ -43,6 +43,7 @@ model WorkspaceSetting {
   id                String   @id @default("singleton")
   setupCompleted    Boolean  @default(false)
   companyName       String   @default("Mon entreprise")
+  companyAcronym    String   @default("")
   logoDataUrl       String   @default("")
   businessSector    String   @default("Imprimerie")
   vatRate           String   @default("20")

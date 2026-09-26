@@ -67,8 +67,9 @@ export function SetupPage() {
         <section className="setup-section">
           <h2>Identité</h2>
           <div className="tools-form-grid">
-            <label>Nom de l’établissement <span className="required">*</span><input autoFocus required maxLength="160" autoComplete="organization" value={formSettings.companyName} onChange={(event) => update("companyName", event.target.value)} placeholder="Ex. Josprint Imprimerie" /></label>
-            <label>Secteur d’activité<input maxLength="120" value={formSettings.businessSector} onChange={(event) => update("businessSector", event.target.value)} placeholder="Ex. Imprimerie et sérigraphie" /></label>
+            <label><span>Nom de l’établissement <span className="required">*</span></span><input autoFocus required maxLength="160" autoComplete="organization" value={formSettings.companyName} onChange={(event) => update("companyName", event.target.value)} placeholder="" /></label>
+            <label>Sigle de l’entreprise<input maxLength="24" autoComplete="organization-title" value={formSettings.companyAcronym} onChange={(event) => update("companyAcronym", event.target.value.toUpperCase())} placeholder="" /><small>Nom affiché dans l’onglet du navigateur.</small></label>
+            <label>Secteur d’activité<input maxLength="120" value={formSettings.businessSector} onChange={(event) => update("businessSector", event.target.value)} placeholder="" /></label>
             <label className="setup-form-wide">Logo<input type="file" accept="image/png,image/jpeg,image/webp" onChange={loadLogo} /><small>PNG, JPEG ou WebP, 400 Ko maximum.</small>{formSettings.logoDataUrl && <div className="setup-logo-preview"><img src={formSettings.logoDataUrl} alt="Logo de l’établissement" /><button type="button" className="text-button danger" onClick={() => update("logoDataUrl", "")}>Retirer le logo</button></div>}</label>
           </div>
         </section>
