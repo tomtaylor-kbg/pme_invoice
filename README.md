@@ -40,7 +40,7 @@ npm run dev
 - `npm run lint` : lance les vérifications disponibles
 - `npm run db:generate` : génère le client Prisma
 - `npm run db:migrate` : applique les migrations Prisma
-- `npm run db:seed` : initialise les paramètres manquants et crée l’administrateur défini par `USERNAME` et `PASSWORD` uniquement si la base ne contient aucun utilisateur
+- `npm run db:seed` : initialise les paramètres manquants et crée l’administrateur défini par `apps/backend/.env` (`USERNAME` et `PASSWORD`) uniquement si la base ne contient aucun utilisateur. Les variables explicites `SEED_ADMIN_USERNAME` et `SEED_ADMIN_PASSWORD` peuvent aussi être utilisées.
 - `npm run db:seed:demo` : ajoute des données de démonstration (développement uniquement)
 - `npm run docker:up` : démarre PostgreSQL, backend et frontend
 - `npm run docker:down` : arrête et retire les conteneurs sans supprimer les données du volume PostgreSQL
@@ -67,7 +67,7 @@ Arrêter les services en conservant la base de données :
 npm run docker:down
 ```
 
-Le seed standard est idempotent et ne réinitialise aucun compte ni aucune donnée déjà présente. Il crée l’administrateur initial uniquement si la base ne contient encore aucun utilisateur et que `USERNAME` et `PASSWORD` sont définis. Pour ajouter des exemples en développement, lance explicitement `npm run db:seed:demo` ou `npm run docker:seed:demo`. Le seed de démonstration refuse de fonctionner quand `NODE_ENV=production`.
+Le seed standard charge `apps/backend/.env` quel que soit le répertoire depuis lequel il est lancé. Il est idempotent et ne réinitialise aucun compte ni aucune donnée déjà présente. Il crée l’administrateur initial uniquement si la base ne contient encore aucun utilisateur et que `USERNAME` et `PASSWORD` sont définis. Pour ajouter des exemples en développement, lance explicitement `npm run db:seed:demo` ou `npm run docker:seed:demo`. Le seed de démonstration refuse de fonctionner quand `NODE_ENV=production`.
 
 ## Déploiement interne en production
 

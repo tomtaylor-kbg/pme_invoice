@@ -1,4 +1,14 @@
-require("dotenv").config();
+const path = require("node:path");
+const fs = require("node:fs");
+const dotenv = require("dotenv");
+
+// Resolve the backend configuration from this script's location so seeding
+// works the same way from the repository root and from apps/backend.
+const backendEnvPath = path.resolve(__dirname, "../.env");
+const backendEnv = fs.existsSync(backendEnvPath)
+  ? dotenv.parse(fs.readFileSync(backendEnvPath, "utf8"))
+  : {};
+dotenv.config({ path: backendEnvPath });
 
 const { PrismaClient } = require("@prisma/client");
 const { hashPassword } = require("../src/utils/password");
@@ -39,8 +49,10 @@ async function ensureWorkspaceSettings() {
 }
 
 async function ensureInitialAdmin() {
-  const username = process.env.SEED_ADMIN_USERNAME || process.env.USERNAME || "";
-  const password = process.env.SEED_ADMIN_PASSWORD || process.env.PASSWORD || "";
+  // Explicit SEED_ADMIN_* environment variables take precedence. Otherwise,
+  // prefer the backend .env values over generic shell variables like USERNAME.
+  const username = process.env.SEED_ADMIN_USERNAME || backendEnv.SEED_ADMIN_USERNAME || backendEnv.USERNAME || process.env.USERNAME || "";
+  const password = process.env.SEED_ADMIN_PASSWORD || backendEnv.SEED_ADMIN_PASSWORD || backendEnv.PASSWORD || process.env.PASSWORD || "";
 
   if (!username || !password) {
     console.log("No initial admin created: set SEED_ADMIN_USERNAME and SEED_ADMIN_PASSWORD to provision one.");
@@ -56,7 +68,7 @@ async function ensureInitialAdmin() {
   const user = await prisma.user.create({
     data: {
       username,
-      name: process.env.SEED_ADMIN_NAME || (username.includes("@") ? username.split("@")[0] : username),
+      name: process.env.SEED_ADMIN_NAME || backendEnv.SEED_ADMIN_NAME || (username.includes("@") ? username.split("@")[0] : username),
       email,
       role: "admin",
       passwordHash: hashPassword(password)
