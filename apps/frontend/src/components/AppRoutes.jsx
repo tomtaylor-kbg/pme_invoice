@@ -9,6 +9,8 @@ import { UsersPage } from "./pages/UsersPage";
 import { InvoicesPage } from "./pages/InvoicesPage";
 import { CashDisbursementsPage } from "./pages/CashDisbursementsPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
+import { ProformasPage } from "./pages/ProformasPage";
+import { SetupPage } from "./pages/SetupPage";
 
 function LoginRoute() {
   const navigate = useNavigate();
@@ -55,20 +57,31 @@ function RequireRoles({ allowedRoles, children }) {
   return children;
 }
 
+function RequireSetupComplete() {
+  const { user, workspaceSettings, loading } = useWorkspace();
+  if (loading || !user) return null;
+  if (!workspaceSettings.setupCompleted) return <Navigate to="/setup" replace />;
+  return <Outlet />;
+}
+
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route element={<RequireAuth />}>
-        <Route element={<AppLayout />}>
+        <Route path="/setup" element={<SetupPage />} />
+        <Route element={<RequireSetupComplete />}>
+          <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/tools" element={<RequireRoles allowedRoles={["admin", "finance"]}><ToolsPage /></RequireRoles>} />
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/logs" element={<AuditLogPage />} />
           <Route path="/users" element={<RequireRoles allowedRoles={["admin"]}><UsersPage /></RequireRoles>} />
           <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/proformas" element={<ProformasPage />} />
           <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "finance"]}><CashDisbursementsPage /></RequireRoles>} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

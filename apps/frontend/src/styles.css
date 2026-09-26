@@ -494,6 +494,22 @@ body[data-theme="light"] .hero.list-page-header {
   flex-wrap: wrap;
 }
 
+.list-page-header .hero-actions .list-action-button {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 0.94rem;
+  font-weight: 650;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.list-page-header .hero-actions .list-action-button:hover {
+  border-color: var(--accent-color);
+  background: var(--accent-soft);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-color) 12%, transparent);
+  transform: translateY(-1px);
+}
+
 .primary-button,
 .secondary-button,
 .ghost-button {
@@ -1762,7 +1778,7 @@ body[data-theme="light"] .hero.list-page-header {
 
 .activity-priorities {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   border-block: 1px solid var(--border);
 }
 
@@ -1788,6 +1804,34 @@ body[data-theme="light"] .hero.list-page-header {
 .audit-log-table td:first-child { white-space: nowrap; }
 .audit-log-table td:last-child { min-width: 210px; }
 .audit-log-table td:nth-child(2) { white-space: nowrap; }
+.audit-detail-content { display: grid; gap: 20px; }
+.audit-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.audit-detail-field { min-width: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-strong); }
+.audit-detail-field dt { margin-bottom: 5px; color: var(--muted); font-size: 0.76rem; }
+.audit-detail-field dd { margin: 0; overflow-wrap: anywhere; color: var(--text); font-size: 0.9rem; font-weight: 600; }
+.proforma-lines { grid-column: 1 / -1; display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; }
+.proforma-lines h3 { margin: 0; }
+.proforma-line { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(90px, .6fr) minmax(130px, 1fr) auto; align-items: end; gap: 10px; }
+.proforma-line label { display: grid; gap: 6px; color: var(--muted); font-size: .82rem; }
+.proforma-line input { width: 100%; }
+.proforma-total { justify-self: end; padding-top: 8px; }
+.setup-page { min-height: 100vh; display: grid; place-items: start center; padding: clamp(20px, 5vh, 56px) 20px; background: var(--app-background); overflow: auto; }
+.setup-card { width: min(100%, 920px); padding: clamp(22px, 4vw, 40px); border: 1px solid var(--border); border-radius: 22px; background: var(--panel); box-shadow: 0 20px 60px rgba(0, 0, 0, .16); }
+.setup-heading { margin-bottom: 28px; }
+.setup-heading h1 { margin: 6px 0 8px; font-size: clamp(1.8rem, 4vw, 2.5rem); }
+.setup-heading p { margin: 0; color: var(--muted); }
+.setup-form { display: grid; gap: 22px; }
+.setup-section { padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel-strong); }
+.setup-section h2 { margin: 0 0 16px; font-size: 1.05rem; }
+.setup-form-wide { grid-column: 1 / -1; }
+.setup-section .tools-form-grid input, .setup-section .tools-form-grid select { width: 100%; }
+.setup-logo-preview { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.setup-logo-preview img { max-width: 150px; max-height: 70px; object-fit: contain; }
+.setup-actions { display: flex; justify-content: flex-end; }
+.setup-actions .primary-button { min-height: 46px; padding: 0 22px; border-radius: 12px; font-weight: 650; }
+.audit-lines-wrap { display: grid; gap: 10px; }
+.audit-lines-wrap h3 { margin: 0; font-size: 0.96rem; }
+.audit-lines-table td, .audit-lines-table th { white-space: nowrap; }
 .text-danger { color: var(--danger); }
 
 .activity-charts { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr); gap: 16px; margin-top: 20px; }
@@ -2844,6 +2888,9 @@ body[data-theme="light"] .entity-card.invoice {
 }
 
 @media (max-width: 720px) {
+  .setup-section .tools-form-grid { grid-template-columns: 1fr; }
+  .setup-form-wide { grid-column: auto; }
+  .setup-logo-preview { align-items: flex-start; flex-direction: column; }
   .tools-vat-toggle-head { align-items: flex-start; flex-direction: column; gap: 12px; }
   .tools-toggle-buttons { width: 100%; }
   .tools-toggle-btn { flex: 1; }
@@ -2852,6 +2899,8 @@ body[data-theme="light"] .entity-card.invoice {
   .cash-form-grid { grid-template-columns: minmax(0, 1fr); }
   .cash-form-wide { grid-column: auto; }
   .settings-form-grid { grid-template-columns: 1fr; }
+  .audit-detail-grid { grid-template-columns: 1fr; }
+  .proforma-line { grid-template-columns: 1fr 1fr; }
   .settings-form-wide { grid-column: auto; }
   .settings-logo-field { grid-column: auto; }
   .settings-logo-control { align-items: flex-start; flex-direction: column; }

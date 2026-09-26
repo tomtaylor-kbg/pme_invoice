@@ -31,14 +31,24 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
   const contactLine = formatWorkspaceContact(settings);
   const legalLine = formatWorkspaceLegalInfo(settings);
   const businessSector = String(settings.businessSector || "").trim();
-  const documentLabel = invoiceDisplayLabel(invoice);
+  const documentLabel = invoice?.documentType === "proforma"
+    ? `Facture pro forma n° ${String(invoice.number || "").replace(/^[A-Z0-9]+-/, "")}`
+    : invoiceDisplayLabel(invoice);
+  const documentFilename = invoice?.documentType === "proforma"
+    ? `Pro forma ${String(invoice.number || "proforma").replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")}.pdf`
+    : buildInvoicePdfFilename({ invoice, client });
+  const dateQualifier = invoice?.documentType === "proforma" ? "Valable jusqu’au" : "Échéance";
+  const endDate = invoice?.documentType === "proforma" ? invoice?.validUntil : invoice?.dueDate;
+  const printStatus = invoice?.documentType === "proforma"
+    ? ({ draft: "Brouillon", sent: "Envoyée au client", accepted: "Acceptée", rejected: "Refusée", converted: "Convertie en facture" })[invoice?.status] || "Pro forma"
+    : statusToLabel(invoice?.status || "draft");
 
   return `<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(buildInvoicePdfFilename({ invoice, client }).replace(/\.pdf$/i, ""))}</title>
+    <title>${escapeHtml(documentFilename.replace(/\.pdf$/i, ""))}</title>
     <style>
       @page { size: A4; margin: 16mm; }
       * { box-sizing: border-box; }
@@ -61,7 +71,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
         top: 0;
         z-index: 1;
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         max-width: 210mm;
         margin: 0 auto 12px;
         padding: 10px 0;
@@ -78,6 +88,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
         font-weight: 600;
         cursor: pointer;
       }
+      .preview-toolbar .return-button { border: 1px solid #cbd5e1; color: #334155; background: #f1f5f9; }
       .sheet {
         display: flex;
         flex-direction: column;
@@ -245,6 +256,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
   </head>
   <body>
     <div class="preview-toolbar">
+      <button class="return-button" type="button" onclick="if (window.opener) { window.close(); } else { window.history.back(); }">Retour</button>
       <button type="button" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
     </div>
     <div class="page">
@@ -259,8 +271,8 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
           </div>
           <div class="title-block">
             <h1>${escapeHtml(documentLabel)}</h1>
-            <p>${escapeHtml(formatISODate(invoice?.issueDate))} · Échéance ${escapeHtml(formatISODate(invoice?.dueDate))}</p>
-            <p>${escapeHtml(statusToLabel(invoice?.status || "draft"))}</p>
+            <p>${escapeHtml(formatISODate(invoice?.issueDate))} · ${dateQualifier} ${escapeHtml(formatISODate(endDate))}</p>
+            <p>${escapeHtml(printStatus)}</p>
           </div>
         </div>
 
@@ -333,7 +345,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
             <div class="meta" style="font-size: 10px; color: #64748b; margin-top: 6px;">Total calculé avec TVA.</div>
             ` : `
             <div class="summary-row divider-row" style="margin-top: 4px;">
-              <span>Total net à payer</span>
+              <span>Total : </span>
               <strong>${escapeHtml(formatMoney(totalHT, currency))}</strong>
             </div>
             `}

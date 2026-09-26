@@ -48,6 +48,7 @@ function createCashDisbursementsRouter({ prisma, requireAuth }) {
 
   router.delete("/:id", async (req, res, next) => {
     try {
+      res.locals.auditSource = await prisma.cashDisbursement.findUnique({ where: { id: req.params.id } });
       await deleteCashDisbursement(prisma, req.params.id);
       res.status(204).send();
     } catch (error) { next(error); }

@@ -22,14 +22,24 @@ export function money(value, currency = "EUR") {
 
 export function formatDate(value) {
   if (!value) return "-";
+  if (/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(String(value))) return formatISODate(value);
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
 }
 
 export function formatISODate(value) {
   if (!value) return "-";
-  const [year, month, day] = value.split("-").map(Number);
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return String(value);
+    return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(parsed);
+  }
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
   if (!year || !month || !day) {
-    return value;
+    return String(value);
   }
 
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(
@@ -198,40 +208,57 @@ export function paymentMethodLabel(value) {
 }
 
 export function csvCell(value) {
-  const text = String(value ?? "");
-  if (/[",\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value).replace(".", ",");
   }
-  return text;
+  let text = String(value ?? "");
+  if (typeof value === "string" && /^[\u0000-\u0020]*[=+\-@]/.test(text)) {
+    text = `'${text}`;
+  }
+  return /[";\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function buildCsv(rows = [], headers = []) {
   const lines = [];
   if (headers.length) {
-    lines.push(headers.map(csvCell).join(","));
+    lines.push(headers.map(csvCell).join(";"));
   }
   rows.forEach((row) => {
-    lines.push(row.map(csvCell).join(","));
+    lines.push(row.map(csvCell).join(";"));
   });
-  return lines.join("\n");
+  return `\uFEFF${lines.join("\r\n")}`;
 }
 
 export function buildInvoicesCsv(invoices = []) {
   return buildCsv(
-    invoices.map((invoice) => [
-      invoice.number,
-      [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ").trim() || invoice.client?.company || "",
-      invoice.client?.company || "",
-      invoice.creator?.name || invoice.creator?.email || "",
-      invoice.status || "",
-      invoice.currency || "EUR",
-      formatISODate(invoice.issueDate),
-      formatISODate(invoice.dueDate),
-      invoice.total ?? 0,
-      invoice.taxRate ?? 20,
-      invoice.notes || ""
-    ]),
-    ["Numéro", "Client", "Société", "Créée par", "Statut", "Devise", "Date d'émission", "Échéance", "Total TTC", "TVA %", "Notes"]
+    invoices.map((invoice) => {
+      const currency = invoice.currency || "EUR";
+      const totalTTC = Number(invoice.total || 0);
+      const taxRate = Number(invoice.taxRate ?? 20);
+      const totalHT = Array.isArray(invoice.lines) && invoice.lines.length
+        ? invoice.lines.reduce((sum, line) => sum + Number(line.lineTotal ?? Number(line.unitPrice || 0) * Number(line.quantity || 0)), 0)
+        : (taxRate > 0 ? totalTTC / (1 + taxRate / 100) : totalTTC);
+      const paid = Number(invoice.amountPaid || 0);
+      return [
+        invoice.number,
+        [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ").trim() || invoice.client?.company || "",
+        invoice.client?.company || "",
+        invoice.creator?.name || invoice.creator?.email || "",
+        statusToLabel(invoice.status || "draft"),
+        currency,
+        formatISODate(invoice.issueDate),
+        formatISODate(invoice.dueDate),
+        totalHT,
+        totalTTC - totalHT,
+        totalTTC,
+        paid,
+        invoice.balanceDue ?? Math.max(0, totalTTC - paid),
+        taxRate,
+        (invoice.lines || []).map((line) => `${line.description} × ${line.quantity}`).join(" | "),
+        invoice.notes || ""
+      ];
+    }),
+    ["Numéro", "Client", "Société", "Créée par", "Statut", "Devise", "Date d'émission", "Échéance", "Total HT", "TVA montant", "Total TTC", "Encaissé", "Reste dû", "TVA %", "Articles / prestations", "Notes"]
   );
 }
 
@@ -250,6 +277,42 @@ export function buildClientsCsv(clients = []) {
     ]),
     ["Prénom", "Nom", "Type", "Société", "Email", "Téléphone", "Ville", "Statut", "Factures liées"]
   );
+}
+
+export function buildProformasCsv(proformas = []) {
+  return buildCsv(proformas.map((proforma) => [
+    proforma.number,
+    proforma.client?.company || [proforma.client?.firstName, proforma.client?.lastName].filter(Boolean).join(" "),
+    proforma.client?.email || "",
+    proforma.status || "",
+    proforma.currency || "CDF",
+    formatISODate(proforma.issueDate),
+    formatISODate(proforma.validUntil),
+    proforma.total ?? 0,
+    proforma.taxRate ?? 0,
+    (proforma.lines || []).map((line) => `${line.description} × ${line.quantity}`).join(" | "),
+    proforma.convertedInvoice?.number || "",
+    proforma.notes || ""
+  ]), ["Numéro pro forma", "Client", "Email", "Statut", "Devise", "Date", "Valide jusqu'au", "Total TTC", "TVA %", "Articles / prestations", "Facture créée", "Notes"]);
+}
+
+export function buildCashDisbursementsCsv(records = []) {
+  const categoryLabels = { achats: "Achats et fournitures", transport: "Transport", salaires: "Salaires et avances", loyer: "Loyer et charges", entretien: "Entretien", autre: "Autre" };
+  return buildCsv(records.map((record) => [
+    record.number,
+    formatISODate(String(record.paidAt || "").slice(0, 10)),
+    record.beneficiary,
+    categoryLabels[record.category] || record.category,
+    record.reason,
+    record.amount,
+    record.currency || "CDF",
+    record.recorder?.name || record.recorder?.email || "",
+    record.notes || ""
+  ]), ["Numéro du bon", "Date", "Bénéficiaire", "Catégorie", "Motif", "Montant", "Devise", "Saisi par", "Notes"]);
+}
+
+export function localDateStamp(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 export function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {

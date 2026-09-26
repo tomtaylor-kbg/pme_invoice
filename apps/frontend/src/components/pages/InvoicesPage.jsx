@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useWorkspace } from "../WorkspaceProvider";
 import {
   OverlayActionButton,
@@ -16,6 +17,7 @@ import {
   invoicePaymentStatusLabel,
   paymentMethodLabel,
   downloadTextFile,
+  localDateStamp,
   formatDate,
   money,
   suggestInvoiceNumber,
@@ -26,6 +28,9 @@ import { buildInvoicePrintHtml } from "../../utils/print/invoicePrintA4";
 import { buildThermalInvoiceHtml } from "../../utils/print/invoicePrintThermal";
 
 export function InvoicesPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     data,
     forms,
@@ -47,7 +52,7 @@ export function InvoicesPage() {
   } = useWorkspace();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");
   const [clientFilter, setClientFilter] = useState("all");
 
   const isEditing = editor.kind === "invoice" && Boolean(editor.id);
@@ -79,8 +84,24 @@ export function InvoicesPage() {
   const paymentRowsTotal = invoicePaymentTotal(paymentRows);
   const paymentBalance = Math.max(0, Number(paymentInvoice?.total || 0) - paymentRowsTotal);
 
+  useEffect(() => {
+    const requested = location.state?.invoiceAction;
+    if (!requested?.id) return;
+    const invoice = data.invoices.find((item) => item.id === requested.id);
+    if (!invoice) return;
+    if (requested.mode === "payments") beginManagePayments(invoice);
+    else beginEditInvoice(invoice);
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [data.invoices, location.key, location.pathname, location.search, location.state, navigate, beginEditInvoice, beginManagePayments]);
+
+  useEffect(() => {
+    setStatusFilter(searchParams.get("status") || "all");
+  }, [searchParams]);
+
   const filteredInvoices = data.invoices.filter((invoice) => {
-    if (statusFilter !== "all" && invoice.status !== statusFilter) {
+    const isOpen = invoice.status !== "draft" && invoice.status !== "paid" && Number(invoice.balanceDue ?? invoice.total ?? 0) > 0;
+    if (statusFilter === "open" && !isOpen) return false;
+    if (statusFilter !== "all" && statusFilter !== "open" && invoice.status !== statusFilter) {
       return false;
     }
     if (clientFilter !== "all" && invoice.clientId !== clientFilter) {
@@ -99,7 +120,7 @@ export function InvoicesPage() {
   });
 
   function exportInvoicesCsv() {
-    const filename = `factures-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `factures-${localDateStamp()}.csv`;
     downloadTextFile(filename, buildInvoicesCsv(filteredInvoices), "text/csv;charset=utf-8");
   }
 
@@ -190,7 +211,7 @@ export function InvoicesPage() {
           <h1>Factures</h1>
         </div>
         <div className="hero-actions">
-          <button className="secondary-button" type="button" onClick={() => beginCreateInvoiceWithPreset()}>
+          <button className="secondary-button list-action-button" type="button" onClick={() => beginCreateInvoiceWithPreset()}>
             Nouvelle facture
           </button>
           <button className="secondary-button" type="button" onClick={exportInvoicesCsv}>
@@ -218,9 +239,16 @@ export function InvoicesPage() {
                 <select
                   className="filter-select"
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={(e) => {
+                    const next = new URLSearchParams(searchParams);
+                    if (e.target.value === "all") next.delete("status");
+                    else next.set("status", e.target.value);
+                    setSearchParams(next, { replace: true });
+                    setStatusFilter(e.target.value);
+                  }}
                 >
                   <option value="all">Tous les statuts</option>
+                  <option value="open">Factures ouvertes</option>
                   <option value="draft">Brouillon</option>
                   <option value="sent">Envoyée</option>
                   <option value="paid">Payée</option>

@@ -21,6 +21,12 @@ export const navItems = [
     )
   },
   {
+    key: "proformas",
+    label: "Pro forma",
+    path: "/proformas",
+    icon: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7" />
+  },
+  {
     key: "clients",
     label: "Clients",
     path: "/clients",
@@ -68,7 +74,7 @@ export function AppLayout() {
   const visibleNavItems = navItems.filter((item) => (item.key !== "users" || displayRole === "admin") && (item.key !== "cash" || canManageSettings));
   const navGroups = [
     { label: "Espace de travail", keys: ["dashboard"] },
-    { label: "Commercial", keys: ["invoices", "clients"] },
+    { label: "Commercial", keys: ["invoices", "proformas", "clients"] },
     { label: "Suivi", keys: ["logs"] },
     { label: "Caisse", keys: ["cash"] },
     { label: "Administration", keys: ["users"] }

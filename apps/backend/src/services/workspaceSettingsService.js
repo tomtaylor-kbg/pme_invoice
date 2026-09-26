@@ -3,6 +3,7 @@ const { serializeWorkspaceSetting } = require("../utils/serializers");
 const WORKSPACE_SETTINGS_ID = "singleton";
 
 const DEFAULT_WORKSPACE_SETTINGS = {
+  setupCompleted: false,
   companyName: "Mon entreprise",
   logoDataUrl: "",
   businessSector: "Imprimerie",
@@ -26,6 +27,7 @@ const DEFAULT_WORKSPACE_SETTINGS = {
 
 function normalizeWorkspaceSettings(data = {}) {
   return {
+    setupCompleted: Boolean(data.setupCompleted ?? DEFAULT_WORKSPACE_SETTINGS.setupCompleted),
     companyName: String(data.companyName ?? DEFAULT_WORKSPACE_SETTINGS.companyName),
     logoDataUrl: String(data.logoDataUrl ?? DEFAULT_WORKSPACE_SETTINGS.logoDataUrl),
     businessSector: String(data.businessSector ?? DEFAULT_WORKSPACE_SETTINGS.businessSector),

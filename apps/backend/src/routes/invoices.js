@@ -52,6 +52,10 @@ function createInvoicesRouter({ prisma, requireAuth }) {
   router.delete("/:id", requireAuth, async (req, res, next) => {
     try {
       const { id } = req.params;
+      res.locals.auditSource = await prisma.invoice.findUnique({
+        where: { id },
+        include: { lines: true, client: true }
+      });
       await deleteInvoice(prisma, id);
       res.status(204).send();
     } catch (error) {

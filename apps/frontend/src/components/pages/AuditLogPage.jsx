@@ -1,12 +1,70 @@
 import { useEffect, useState } from "react";
 import { getAuditLogs } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
-import { SectionHeader, Table } from "../ui";
+import { OverlayDialog, SectionHeader, Table } from "../ui";
+import { money } from "../../utils/formatters";
 
 function formatTimestamp(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "medium" }).format(date);
+}
+
+function DetailField({ label, children }) {
+  if (children === undefined || children === null || children === "") return null;
+  return <div className="audit-detail-field"><dt>{label}</dt><dd>{children}</dd></div>;
+}
+
+function LogDetails({ record }) {
+  const details = record.details || {};
+  const currency = details.currency || "EUR";
+
+  if (!Object.keys(details).length) {
+    return <div className="empty-card-state">Les détails de cette ancienne entrée n’étaient pas conservés.{record.entityId ? ` Identifiant : ${record.entityId}` : ""}</div>;
+  }
+
+  if (record.entity === "Facture" || record.entity === "Pro forma") {
+    return <>
+      <dl className="audit-detail-grid">
+        <DetailField label={record.entity === "Pro forma" ? "N° de pro forma" : "N° de facture"}>{details.number}</DetailField>
+        <DetailField label="Client">{details.client}</DetailField>
+        <DetailField label="Statut">{details.status}</DetailField>
+        <DetailField label="Émise le">{details.issueDate ? formatTimestamp(details.issueDate) : null}</DetailField>
+        <DetailField label="Échéance">{details.dueDate ? formatTimestamp(details.dueDate) : null}</DetailField>
+        <DetailField label="Valide jusqu’au">{details.validUntil ? formatTimestamp(details.validUntil) : null}</DetailField>
+        <DetailField label="Taux de TVA">{details.taxRate ? `${details.taxRate}%` : null}</DetailField>
+        <DetailField label="Total">{money(details.total, currency)}</DetailField>
+        <DetailField label="Notes">{details.notes}</DetailField>
+      </dl>
+      {details.lines?.length > 0 && <div className="audit-lines-wrap">
+      <h3>{record.entity === "Pro forma" ? "Lignes de la pro forma" : "Lignes de facture"}</h3>
+        <Table className="audit-lines-table" columns={["Description", "Qté", "Prix unitaire", "Total"]} rows={details.lines.map((line) => [
+          line.description,
+          line.quantity,
+          money(line.unitPrice, currency),
+          money(line.lineTotal, currency)
+        ])} />
+      </div>}
+    </>;
+  }
+
+  if (record.entity === "Sortie de caisse") {
+    return <dl className="audit-detail-grid">
+      <DetailField label="N° de bon">{details.number}</DetailField>
+      <DetailField label="Bénéficiaire">{details.beneficiary}</DetailField>
+      <DetailField label="Catégorie">{details.category}</DetailField>
+      <DetailField label="Date de sortie">{details.paidAt ? formatTimestamp(details.paidAt) : null}</DetailField>
+      <DetailField label="Montant">{money(details.amount, currency)}</DetailField>
+      <DetailField label="Motif">{details.reason}</DetailField>
+      <DetailField label="Notes">{details.notes}</DetailField>
+    </dl>;
+  }
+
+  return <dl className="audit-detail-grid">
+    {Object.entries(details).map(([key, value]) => <DetailField key={key} label={key}>
+      {typeof value === "object" ? JSON.stringify(value) : String(value)}
+    </DetailField>)}
+  </dl>;
 }
 
 export function AuditLogPage() {
@@ -14,6 +72,7 @@ export function AuditLogPage() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedRecord, setSelectedRecord] = useState(null);
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
@@ -27,11 +86,11 @@ export function AuditLogPage() {
     return () => { active = false; };
   }, [token]);
 
-  const columns = isAdmin ? ["Date et heure", "Utilisateur", "Action", "Élément", "Détail"] : ["Date et heure", "Action", "Élément", "Détail"];
+  const columns = isAdmin ? ["Horodatage", "Utilisateur", "Action", "Élément", "Détail", ""] : ["Horodatage", "Action", "Élément", "Détail", ""];
   const rows = records.map((record) => {
     const row = [formatTimestamp(record.createdAt)];
     if (isAdmin) row.push(<span title={record.actorEmail}>{record.actorName || record.actorEmail || "Compte supprimé"}</span>);
-    row.push(record.action, record.entity, record.description);
+    row.push(record.action, record.entity, record.description, <button type="button" className="text-button" onClick={() => setSelectedRecord(record)}>Voir</button>);
     return row;
   });
 
@@ -53,6 +112,17 @@ export function AuditLogPage() {
                 : <div className="empty-card-state">Aucune activité enregistrée pour le moment.</div>}
         </section>
       </div>
+      <OverlayDialog open={Boolean(selectedRecord)} title={selectedRecord ? `${selectedRecord.entity} · ${selectedRecord.description}` : "Détails du journal"} onClose={() => setSelectedRecord(null)}>
+        {selectedRecord && <div className="audit-detail-content">
+          <dl className="audit-detail-grid">
+            <DetailField label="Horodatage">{formatTimestamp(selectedRecord.createdAt)}</DetailField>
+            <DetailField label="Action">{selectedRecord.action}</DetailField>
+            <DetailField label="Élément">{selectedRecord.entityId || "—"}</DetailField>
+            {isAdmin && <DetailField label="Utilisateur">{selectedRecord.actorName} · {selectedRecord.actorEmail}</DetailField>}
+          </dl>
+          <LogDetails record={selectedRecord} />
+        </div>}
+      </OverlayDialog>
     </div>
   );
 }

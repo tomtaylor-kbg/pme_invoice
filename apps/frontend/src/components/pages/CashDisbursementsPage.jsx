@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createCashDisbursement, deleteCashDisbursement, getCashDisbursements, updateCashDisbursement } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
 import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table } from "../ui";
-import { formatISODate, money, todayISO } from "../../utils/formatters";
+import { buildCashDisbursementsCsv, downloadTextFile, formatISODate, localDateStamp, money, todayISO } from "../../utils/formatters";
 import { buildCashDisbursementPrintHtml } from "../../utils/print/cashDisbursementPrint";
 
 const categories = [
@@ -104,6 +104,10 @@ export function CashDisbursementsPage() {
     }
   }
 
+  function exportCsv() {
+    downloadTextFile(`sorties-caisse-${localDateStamp()}.csv`, buildCashDisbursementsCsv(filteredRecords), "text/csv;charset=utf-8");
+  }
+
   function print(record) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
@@ -121,7 +125,8 @@ export function CashDisbursementsPage() {
       <header className="hero list-page-header">
         <div><span className="eyebrow">Caisse</span><h1>Sorties de caisse</h1></div>
         <div className="hero-actions">
-          <button className="secondary-button" type="button" onClick={beginCreate}>Nouveau bon de sortie</button>
+          <button className="secondary-button list-action-button" type="button" onClick={beginCreate}>Nouveau bon de sortie</button>
+          <button className="secondary-button" type="button" onClick={exportCsv}>Export CSV</button>
         </div>
       </header>
       <div className="page-scroll">

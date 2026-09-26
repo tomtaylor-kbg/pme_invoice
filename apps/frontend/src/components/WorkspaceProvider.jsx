@@ -43,6 +43,7 @@ const WorkspaceContext = createContext(null);
 
 function defaultWorkspaceSettings() {
   return {
+    setupCompleted: false,
     companyName: "Mon entreprise",
     logoDataUrl: "",
     businessSector: "Imprimerie",
@@ -69,6 +70,7 @@ function normalizeWorkspaceSettings(settings = {}) {
   return {
     ...defaultWorkspaceSettings(),
     ...settings,
+    setupCompleted: Boolean(settings.setupCompleted ?? defaultWorkspaceSettings().setupCompleted),
     companyName: String(settings.companyName ?? defaultWorkspaceSettings().companyName),
     logoDataUrl: String(settings.logoDataUrl ?? defaultWorkspaceSettings().logoDataUrl),
     vatRate: String(settings.vatRate ?? defaultWorkspaceSettings().vatRate),
@@ -239,6 +241,25 @@ export function WorkspaceProvider({ children }) {
     workspaceSettingsRollbackRef.current = workspaceSettingsSnapshotRef.current;
     workspaceSettingsActionRef.current = "reset";
     setWorkspaceSettings(defaultSettings);
+  }
+
+  async function saveWorkspaceSettingsNow(settings) {
+    if (workspaceSettingsSaveTimerRef.current) {
+      window.clearTimeout(workspaceSettingsSaveTimerRef.current);
+      workspaceSettingsSaveTimerRef.current = null;
+    }
+    const normalized = normalizeWorkspaceSettings(settings);
+    const result = await updateWorkspaceSettings(token, normalized);
+    const savedSettings = normalizeWorkspaceSettings(result?.settings || normalized);
+    workspaceSettingsSnapshotRef.current = savedSettings;
+    legacyWorkspaceSettingsRef.current = savedSettings;
+    setWorkspaceSettings(savedSettings);
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(savedSettings));
+    } catch {
+      // Ignore persistence errors.
+    }
+    return savedSettings;
   }
 
   useEffect(() => {
@@ -852,6 +873,7 @@ export function WorkspaceProvider({ children }) {
       authenticate,
       logout,
       resetWorkspaceSettings,
+      saveWorkspaceSettingsNow,
       closeEditor: () => setEditor({ kind: null, id: null }),
       refresh,
       beginCreateClient,

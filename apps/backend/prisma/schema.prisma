@@ -17,6 +17,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   invoices     Invoice[] @relation("CreatedBy")
+  proformas    Proforma[] @relation("CreatedProformas")
   payments     Payment[] @relation("RecordedPayments")
   cashDisbursements CashDisbursement[] @relation("RecordedCashDisbursements")
   auditLogs     AuditLog[] @relation("AuditLogActor")
@@ -35,10 +36,12 @@ model Client {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   invoices  Invoice[]
+  proformas Proforma[]
 }
 
 model WorkspaceSetting {
   id                String   @id @default("singleton")
+  setupCompleted    Boolean  @default(false)
   companyName       String   @default("Mon entreprise")
   logoDataUrl       String   @default("")
   businessSector    String   @default("Imprimerie")
@@ -80,6 +83,7 @@ model Invoice {
   creator     User?         @relation("CreatedBy", fields: [userId], references: [id], onDelete: SetNull)
   lines       InvoiceLine[]
   payments    Payment[]
+  proformasFrom Proforma[] @relation("ConvertedProforma")
 }
 
 model InvoiceCounter {
@@ -91,6 +95,44 @@ model InvoiceCounter {
   updatedAt       DateTime @updatedAt
 
   @@unique([prefix, year])
+}
+
+model Proforma {
+  id        String         @id @default(cuid())
+  number    String         @unique
+  clientId  String
+  userId    String?
+  status    String         @default("draft")
+  currency  String         @default("EUR")
+  issueDate DateTime
+  validUntil DateTime
+  total     Decimal        @default(0)
+  taxRate   Decimal        @default(20)
+  notes     String?
+  convertedInvoiceId String? @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  creator   User?          @relation("CreatedProformas", fields: [userId], references: [id], onDelete: SetNull)
+  lines     ProformaLine[]
+  convertedInvoice Invoice? @relation("ConvertedProforma", fields: [convertedInvoiceId], references: [id], onDelete: SetNull)
+}
+
+model ProformaLine {
+  id          String   @id @default(cuid())
+  proformaId  String
+  description String
+  quantity    Int
+  unitPrice   Decimal
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  proforma    Proforma @relation(fields: [proformaId], references: [id], onDelete: Cascade)
+}
+
+model ProformaCounter {
+  year            Int      @id
+  currentSequence Int      @default(0)
+  updatedAt       DateTime @updatedAt
 }
 
 model InvoiceLine {
@@ -149,7 +191,9 @@ model AuditLog {
   actorEmail  String
   action      String
   entity      String
+  entityId    String?
   description String
+  details     Json?
   createdAt   DateTime @default(now())
   actor       User?    @relation("AuditLogActor", fields: [userId], references: [id], onDelete: SetNull)
 

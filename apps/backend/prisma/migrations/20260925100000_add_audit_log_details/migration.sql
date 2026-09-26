@@ -1,0 +1,2 @@
+ALTER TABLE "AuditLog" ADD COLUMN "entityId" TEXT;
+ALTER TABLE "AuditLog" ADD COLUMN "details" JSONB;

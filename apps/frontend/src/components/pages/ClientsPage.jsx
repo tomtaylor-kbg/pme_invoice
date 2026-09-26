@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
 import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table } from "../ui";
-import { buildClientsCsv, clientTypeLabel, downloadTextFile } from "../../utils/formatters";
+import { buildClientsCsv, clientTypeLabel, downloadTextFile, localDateStamp } from "../../utils/formatters";
 
 export function ClientsPage() {
   const { data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor } = useWorkspace();
@@ -30,7 +30,7 @@ export function ClientsPage() {
   });
 
   function exportClientsCsv() {
-    const filename = `clients-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `clients-${localDateStamp()}.csv`;
     downloadTextFile(filename, buildClientsCsv(filteredClients), "text/csv;charset=utf-8");
   }
 
@@ -42,7 +42,7 @@ export function ClientsPage() {
           <h1>Clients</h1>
         </div>
         <div className="hero-actions">
-          <button className="secondary-button" type="button" onClick={beginCreateClient}>
+          <button className="secondary-button list-action-button" type="button" onClick={beginCreateClient}>
             Nouveau client
           </button>
           <button className="secondary-button" type="button" onClick={exportClientsCsv}>

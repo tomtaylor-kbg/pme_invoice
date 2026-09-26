@@ -11,7 +11,8 @@ function clientName(invoice) {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { data, refresh, beginCreateInvoiceWithPreset, beginManagePayments, beginEditInvoice, workspaceSettings } = useWorkspace();
+  const { data, refresh, beginCreateInvoiceWithPreset, workspaceSettings, user } = useWorkspace();
+  const canManageCash = user?.role === "admin" || user?.role === "finance";
   const invoices = data.invoices || [];
   const currencies = [...new Set([workspaceSettings.defaultCurrency, "USD", "CDF", ...invoices.map((invoice) => invoice.currency)].filter(Boolean))];
   const [currency, setCurrency] = useState(workspaceSettings.defaultCurrency || currencies[0] || "EUR");
@@ -56,7 +57,7 @@ export function DashboardPage() {
       amount: payment.amount,
       invoice
     })));
-  }).concat(disbursements.map((record) => ({
+  }).concat((canManageCash ? disbursements : []).map((record) => ({
     key: `disbursement-${record.id}`,
     type: "disbursement",
     date: record.paidAt || record.createdAt,
@@ -65,7 +66,7 @@ export function DashboardPage() {
     amount: record.amount,
     currency: record.currency || "EUR"
   }))).filter((event) => (event.invoice?.currency || event.currency || "EUR") === currency)
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 8), [invoices, disbursements, currency]);
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 8), [invoices, disbursements, currency, canManageCash]);
 
   return (
     <div className="page-shell dashboard-page">
@@ -88,18 +89,18 @@ export function DashboardPage() {
 
       <div className="page-scroll">
         <section className="activity-priorities" aria-label="Priorités financières">
-          <button type="button" className="activity-priority" onClick={() => navigate("/invoices")}>
+          <button type="button" className="activity-priority" onClick={() => navigate("/invoices?status=open")}>
             <span>À encaisser</span><strong>{money(receivable, currency)}</strong><small>{openInvoices.length} facture{openInvoices.length > 1 ? "s" : ""} ouverte{openInvoices.length > 1 ? "s" : ""}</small>
           </button>
-          <button type="button" className="activity-priority" onClick={() => navigate("/invoices")}>
+          <button type="button" className="activity-priority" onClick={() => navigate("/invoices?status=open")}>
             <span>Factures ouvertes</span><strong>{openInvoices.length}</strong><small>À suivre</small>
           </button>
-          <button type="button" className="activity-priority" onClick={() => navigate("/invoices")}>
+          <button type="button" className="activity-priority" onClick={() => navigate("/invoices?status=overdue")}>
             <span>En retard</span><strong className={overdueInvoices.length ? "text-danger" : ""}>{overdueInvoices.length}</strong><small>{overdueInvoices.length ? "Action requise" : "Aucune échéance dépassée"}</small>
           </button>
-          <button type="button" className="activity-priority" onClick={() => navigate("/cash")}>
+          {canManageCash && <button type="button" className="activity-priority" onClick={() => navigate("/cash")}>
             <span>Sorties / décaissements</span><strong>{money(disbursedAmount, currency)}</strong><small>{matchingDisbursements.length} sortie{matchingDisbursements.length > 1 ? "s" : ""} en {currency}</small>
-          </button>
+          </button>}
         </section>
 
         <section className="activity-charts" aria-label="Analyse financière">
@@ -138,13 +139,13 @@ export function DashboardPage() {
 
         {overdueInvoices.length > 0 && <section className="activity-alert">
           <div><strong>{overdueInvoices.length} facture{overdueInvoices.length > 1 ? "s" : ""} en retard</strong><span>Montant restant : {money(overdueInvoices.reduce((sum, invoice) => sum + Number(invoice.balanceDue ?? invoice.total ?? 0), 0), currency)}</span></div>
-          <button className="text-button" type="button" onClick={() => beginManagePayments(overdueInvoices[0])}>Voir la première facture</button>
+          <button className="text-button" type="button" onClick={() => navigate("/invoices?status=overdue", { state: { invoiceAction: { id: overdueInvoices[0].id, mode: "payments" } } })}>Ouvrir une facture en retard</button>
         </section>}
 
         <section className="panel activity-feed-panel">
           <SectionHeader title="Activité récente" />
           <div className="activity-feed">
-            {activity.length ? activity.map((event) => <button className="activity-event" type="button" key={event.key} onClick={() => event.type === "payment" ? beginManagePayments(event.invoice) : event.type === "disbursement" ? navigate("/cash") : beginEditInvoice(event.invoice)}>
+            {activity.length ? activity.map((event) => <button className="activity-event" type="button" key={event.key} onClick={() => event.type === "disbursement" ? navigate("/cash") : navigate("/invoices", { state: { invoiceAction: { id: event.invoice.id, mode: event.type === "payment" ? "payments" : "edit" } } })}>
               <span className={`activity-event-dot ${event.type}`} />
               <span className="activity-event-copy"><strong>{event.title}</strong><small>{event.detail}</small></span>
               <span className="activity-event-date">{formatDate(event.date)}</span>

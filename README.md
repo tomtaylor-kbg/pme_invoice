@@ -62,6 +62,31 @@ Arrêter les services en conservant la base de données :
 npm run docker:down
 ```
 
+## Déploiement interne en production
+
+La stack de développement utilise Vite. Pour servir l’application en production, utilisez plutôt `docker-compose.production.yml` : le frontend est compilé puis servi par Nginx, qui transmet les requêtes `/api` au backend. PostgreSQL et l’API ne publient aucun port sur l’hôte.
+
+Sur le PC Windows hôte, créez un fichier `.env` à la racine du dépôt (ne le commitez pas) :
+
+```dotenv
+POSTGRES_PASSWORD=mot_de_passe_long_alphanumerique
+APP_USERNAME=admin
+APP_PASSWORD=mot_de_passe_admin_long_et_unique
+FRONTEND_BIND_ADDRESS=127.0.0.1
+FRONTEND_PORT=8080
+```
+
+Dans PowerShell, depuis le dépôt :
+
+```powershell
+git pull origin master
+docker compose -f docker-compose.production.yml up --build -d
+```
+
+L’application sera disponible localement sur `http://localhost:8080`. Pour la rendre accessible au réseau interne, définissez `FRONTEND_BIND_ADDRESS` dans `.env` sur l’adresse IP LAN fixe ou réservée du PC Windows, puis créez une règle Windows Firewall autorisant le port `FRONTEND_PORT` depuis le sous-réseau interne. Les postes clients accèdent alors à `http://<IP-LAN-DU-SERVEUR>:8080`.
+
+Pour un déploiement pérenne, placez cette adresse derrière un proxy HTTPS avec un certificat de l’entreprise et limitez l’accès au réseau interne. Sauvegardez régulièrement le volume Docker `postgres-data`. Les mots de passe PostgreSQL doivent rester alphanumériques pour éviter les problèmes d’encodage dans l’URL de connexion.
+
 Les ports publiés et les identifiants initiaux peuvent être configurés avec `DB_PORT`, `API_PORT`, `FRONTEND_PORT`, `POSTGRES_PASSWORD`, `APP_USERNAME` et `APP_PASSWORD`. Les valeurs par défaut sont réservées au développement local.
 
 ## Configuration

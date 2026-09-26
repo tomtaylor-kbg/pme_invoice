@@ -109,6 +109,26 @@ export function deleteInvoice(token, id) {
   return request(`/api/invoices/${id}`, { token, method: "DELETE" });
 }
 
+export function getProformas(token) {
+  return request("/api/proformas", { token });
+}
+
+export function createProforma(token, data) {
+  return request("/api/proformas", { token, method: "POST", body: data });
+}
+
+export function updateProforma(token, id, data) {
+  return request(`/api/proformas/${id}`, { token, method: "PATCH", body: data });
+}
+
+export function deleteProforma(token, id) {
+  return request(`/api/proformas/${id}`, { token, method: "DELETE" });
+}
+
+export function convertProforma(token, id) {
+  return request(`/api/proformas/${id}/convert`, { token, method: "POST" });
+}
+
 export function getCashDisbursements(token) {
   return request("/api/cash-disbursements", { token });
 }
