@@ -17,7 +17,8 @@ function invoiceFinancialTone(invoice) {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { data, refresh, beginCreateInvoiceWithPreset, workspaceSettings } = useWorkspace();
+  const { data, refresh, beginCreateInvoiceWithPreset, workspaceSettings, user } = useWorkspace();
+  const canManageCash = user?.role === "admin" || user?.role === "finance";
   const invoices = data.invoices || [];
   const currencies = [...new Set([workspaceSettings.defaultCurrency, "USD", "CDF", ...invoices.map((invoice) => invoice.currency)].filter(Boolean))];
   const [currency, setCurrency] = useState(workspaceSettings.defaultCurrency || currencies[0] || "EUR");
@@ -103,9 +104,9 @@ export function DashboardPage() {
           <button type="button" className="activity-priority overdue" onClick={() => navigate("/invoices?status=overdue")}>
             <span>Impayées en retard</span><strong className={overdueInvoices.length ? "financial-overdue" : ""}>{overdueInvoices.length}</strong><small>{overdueInvoices.length ? money(overdueBalance, currency) : "Aucune échéance dépassée"}</small>
           </button>
-          <button type="button" className="activity-priority" onClick={() => navigate("/cash")}>
+          {canManageCash && <button type="button" className="activity-priority" onClick={() => navigate("/cash")}>
             <span>Sorties / décaissements</span><strong>{money(disbursedAmount, currency)}</strong><small>{matchingDisbursements.length} sortie{matchingDisbursements.length > 1 ? "s" : ""} en {currency}</small>
-          </button>
+          </button>}
         </section>
 
         <section className="activity-charts" aria-label="Analyse financière">
@@ -150,18 +151,17 @@ export function DashboardPage() {
 
         <div className="dashboard-lists-grid">
           <section className="panel entity-list-panel dashboard-disbursements-panel">
-            <SectionHeader title="Bons de sortie récents" buttonLabel="Voir tous" onButtonClick={() => navigate("/cash")} />
-            {recentDisbursements.length ? <Table className="entity-list-table dashboard-disbursements-table" columns={["N° de bon", "Date", "Bénéficiaire", "Motif", "Montant"]} rows={recentDisbursements.map((record) => [
+            <SectionHeader title="Bons de sortie récents" buttonLabel={canManageCash ? "Voir tous" : undefined} onButtonClick={() => navigate("/cash")} />
+            {recentDisbursements.length ? <Table className="entity-list-table dashboard-disbursements-table" columns={["N° de bon", "Date", "Bénéficiaire / motif", "Montant"]} rows={recentDisbursements.map((record) => [
               record.number,
               formatDate(record.paidAt || record.createdAt),
-              record.beneficiary,
-              <span className="dashboard-disbursement-reason" title={record.reason}>{record.reason}</span>,
+              <div className="table-primary-cell"><strong>{record.beneficiary}</strong><small className="dashboard-disbursement-reason" title={record.reason}>{record.reason}</small></div>,
               <strong>{money(record.amount, record.currency || currency)}</strong>
             ])} /> : <div className="empty-state">Aucun bon de sortie dans cette devise.</div>}
           </section>
 
           <section className="panel activity-feed-panel">
-            <SectionHeader title="Factures récentes" buttonLabel="Voir tout" onButtonClick={() => navigate("/invoices")} />
+            <SectionHeader title="Factures et paiements récents" buttonLabel="Voir tout" onButtonClick={() => navigate("/invoices")} />
             <div className="activity-feed">
               {activity.length ? activity.map((event) => <button className="activity-event" type="button" key={event.key} onClick={() => navigate("/invoices", { state: { invoiceAction: { id: event.invoice.id, mode: event.type === "payment" ? "payments" : "edit" } } })}>
                 <span className={`activity-event-dot ${event.type} ${invoiceFinancialTone(event.invoice)}`} />

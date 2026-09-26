@@ -1,12 +1,14 @@
 const express = require("express");
 const { validateUserCreate } = require("../validators/users");
 const { listUsers, createUser, updateUser, deleteUser } = require("../services/usersService");
+const { requireRole } = require("../middleware/requireRole");
 
 function createUsersRouter({ prisma, requireAuth }) {
   const router = express.Router();
   const allowedRoles = new Set(["user", "admin", "finance", "sales"]);
+  router.use(requireAuth, requireRole("admin"));
 
-  router.get("/", requireAuth, async (_req, res, next) => {
+  router.get("/", async (_req, res, next) => {
     try {
       res.json(await listUsers(prisma));
     } catch (error) {
@@ -14,7 +16,7 @@ function createUsersRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.post("/", requireAuth, async (req, res, next) => {
+  router.post("/", async (req, res, next) => {
     try {
       const validationError = validateUserCreate(req.body);
       if (validationError) {
@@ -38,7 +40,7 @@ function createUsersRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.patch("/:id", requireAuth, async (req, res, next) => {
+  router.patch("/:id", async (req, res, next) => {
     try {
       const { id } = req.params;
       const { username, name, email, role, passwordHash } = req.body || {};
@@ -59,7 +61,7 @@ function createUsersRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.delete("/:id", requireAuth, async (req, res, next) => {
+  router.delete("/:id", async (req, res, next) => {
     try {
       const { id } = req.params;
       await deleteUser(prisma, id);

@@ -1,5 +1,6 @@
 const express = require("express");
 const { listProformas, createProforma, updateProforma, deleteProforma, convertProforma } = require("../services/proformasService");
+const { requireRole } = require("../middleware/requireRole");
 
 function validate(body = {}) {
   const hasClient = body.clientMode === "manual" ? String(body.manualClientName || "").trim() : body.clientId;
@@ -49,7 +50,7 @@ function createProformasRouter({ prisma, requireAuth }) {
     } catch (error) { next(error); }
   });
 
-  router.delete("/:id", async (req, res, next) => {
+  router.delete("/:id", requireRole("admin", "finance"), async (req, res, next) => {
     try {
       res.locals.auditSource = await prisma.proforma.findUnique({ where: { id: req.params.id }, include: { lines: true, client: true } });
       await deleteProforma(prisma, req.params.id);

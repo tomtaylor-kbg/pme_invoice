@@ -14,6 +14,7 @@ function newForm(settings) {
 
 export function ProformasPage() {
   const { token, data, user, workspaceSettings, notifySuccess, notifyError, refresh: refreshWorkspace } = useWorkspace();
+  const canDeleteRecords = user?.role === "admin" || user?.role === "finance";
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [form, setForm] = useState(() => newForm(workspaceSettings));
@@ -117,7 +118,7 @@ export function ProformasPage() {
       {error && !selected && <div className="empty-card-state text-danger">{error}</div>}
       {records.length ? <div className="panel entity-list-panel"><Table className="entity-list-table invoices-table" columns={["N° pro forma", "Client", "Date", "Valide jusqu’au", "Statut", "Montant", "Actions"]} rows={records.map((record) => [
         <strong>{record.number}</strong>, record.client?.company || [record.client?.firstName, record.client?.lastName].filter(Boolean).join(" "), formatDate(record.issueDate), formatDate(record.validUntil), <span className={`badge ${record.status}`}>{({ draft: "Brouillon", sent: "Envoyée", accepted: "Acceptée", rejected: "Refusée", converted: "Convertie" })[record.status] || record.status}</span>, <strong>{money(record.total, record.currency)}</strong>,
-        <div className="table-row-actions"><button type="button" className="text-button" onClick={() => preview(record)}>Imprimer</button>{record.status === "accepted" && <button type="button" className="text-button" onClick={() => convert(record)}>Convertir en facture</button>}{record.status !== "converted" && <button type="button" className="text-button" onClick={() => openEdit(record)}>Modifier</button>}{record.status !== "converted" && <button type="button" className="text-button danger" onClick={() => remove(record)}>Supprimer</button>}</div>
+        <div className="table-row-actions"><button type="button" className="text-button" onClick={() => preview(record)}>Imprimer</button>{record.status === "accepted" && <button type="button" className="text-button" onClick={() => convert(record)}>Convertir en facture</button>}{record.status !== "converted" && <button type="button" className="text-button" onClick={() => openEdit(record)}>Modifier</button>}{canDeleteRecords && record.status !== "converted" && <button type="button" className="text-button danger" onClick={() => remove(record)}>Supprimer</button>}</div>
       ])} /></div> : <div className="empty-card-state">Aucune pro forma. Créez-en une pour préparer une proposition au client.</div>}
     </section></div>
 

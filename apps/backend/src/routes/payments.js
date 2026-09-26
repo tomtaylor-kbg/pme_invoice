@@ -6,6 +6,7 @@ const {
   updateInvoicePayment,
   deleteInvoicePayment
 } = require("../services/invoicesService");
+const { requireRole } = require("../middleware/requireRole");
 
 function createPaymentsRouter({ prisma, requireAuth }) {
   const router = express.Router();
@@ -62,7 +63,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.delete("/payments/:id", requireAuth, async (req, res, next) => {
+  router.delete("/payments/:id", requireAuth, requireRole("admin", "finance"), async (req, res, next) => {
     try {
       const deleted = await deleteInvoicePayment(prisma, req.params.id);
       if (!deleted) {

@@ -50,6 +50,7 @@ export function InvoicesPage() {
     workspaceSettings,
     notifyError
   } = useWorkspace();
+  const canDeleteRecords = user?.role === "admin" || user?.role === "finance";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");
@@ -281,7 +282,7 @@ export function InvoicesPage() {
               <strong>{money(invoice.total, invoice.currency)}</strong>,
               money(invoice.amountPaid ?? 0, invoice.currency),
               money(invoice.balanceDue ?? invoice.total ?? 0, invoice.currency),
-              <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditInvoice(invoice)}>Ouvrir</button><button type="button" className="text-button" onClick={() => beginManagePayments(invoice)}>Paiements</button><button type="button" className="text-button" onClick={() => printThermalTicket(invoice)}>Ticket</button><button type="button" className="text-button danger" onClick={() => removeInvoice(invoice.id)} disabled={loading}>Supprimer</button></div>
+              <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditInvoice(invoice)}>Ouvrir</button><button type="button" className="text-button" onClick={() => beginManagePayments(invoice)}>Paiements</button><button type="button" className="text-button" onClick={() => printThermalTicket(invoice)}>Ticket</button>{canDeleteRecords && <button type="button" className="text-button danger" onClick={() => removeInvoice(invoice.id)} disabled={loading}>Supprimer</button>}</div>
             ])} /></div> : <div className="empty-card-state">Aucune facture ne correspond à vos critères.</div>}
         </section>
       </div>
@@ -604,9 +605,9 @@ export function InvoicesPage() {
                         <button type="button" className="text-button" onClick={() => beginEditPayment(payment, paymentInvoice)}>
                           Modifier
                         </button>
-                        <button type="button" className="text-button danger" onClick={() => removePayment(payment.id)}>
+                        {canDeleteRecords && <button type="button" className="text-button danger" onClick={() => removePayment(payment.id)}>
                           Supprimer
-                        </button>
+                        </button>}
                       </div>
                     </article>
                   ))

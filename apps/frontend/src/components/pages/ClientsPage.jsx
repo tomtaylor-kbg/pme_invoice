@@ -4,7 +4,8 @@ import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table } from "../u
 import { buildClientsCsv, clientTypeLabel, downloadTextFile, localDateStamp } from "../../utils/formatters";
 
 export function ClientsPage() {
-  const { data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor } = useWorkspace();
+  const { data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor, user } = useWorkspace();
+  const canDeleteRecords = user?.role === "admin" || user?.role === "finance";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -87,7 +88,7 @@ export function ClientsPage() {
               client.phone || "—",
               client.city || "—",
               <span className={`badge ${client.status === "active" ? "actif" : "inactif"}`}>{client.status === "active" ? "Actif" : "Inactif"}</span>,
-              <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditClient(client)}>Modifier</button><button type="button" className="text-button danger" onClick={() => removeClient(client.id)} disabled={loading}>Supprimer</button></div>
+              <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditClient(client)}>Modifier</button>{canDeleteRecords && <button type="button" className="text-button danger" onClick={() => removeClient(client.id)} disabled={loading}>Supprimer</button>}</div>
             ])} /></div> : <div className="empty-card-state">Aucun client ne correspond à vos critères.</div>}
         </section>
       </div>

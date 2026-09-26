@@ -1,6 +1,7 @@
 const express = require("express");
 const { validateClientCreate } = require("../validators/clients");
 const { listClients, createClient, updateClient, deleteClient } = require("../services/clientsService");
+const { requireRole } = require("../middleware/requireRole");
 
 function createClientsRouter({ prisma, requireAuth }) {
   const router = express.Router();
@@ -65,7 +66,7 @@ function createClientsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.delete("/:id", requireAuth, async (req, res, next) => {
+  router.delete("/:id", requireAuth, requireRole("admin", "finance"), async (req, res, next) => {
     try {
       const { id } = req.params;
       await deleteClient(prisma, id);

@@ -1,6 +1,7 @@
 const express = require("express");
 const { validateInvoiceCreate } = require("../validators/invoices");
 const { listInvoices, previewNextInvoiceNumber, createInvoice, updateInvoice, deleteInvoice } = require("../services/invoicesService");
+const { requireRole } = require("../middleware/requireRole");
 
 function createInvoicesRouter({ prisma, requireAuth }) {
   const router = express.Router();
@@ -49,7 +50,7 @@ function createInvoicesRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.delete("/:id", requireAuth, async (req, res, next) => {
+  router.delete("/:id", requireAuth, requireRole("admin", "finance"), async (req, res, next) => {
     try {
       const { id } = req.params;
       res.locals.auditSource = await prisma.invoice.findUnique({
