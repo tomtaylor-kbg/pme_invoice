@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createCashDisbursement, deleteCashDisbursement, getCashDisbursements, updateCashDisbursement } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
-import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table } from "../ui";
+import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table } from "../ui";
 import { buildCashDisbursementsCsv, downloadTextFile, formatISODate, localDateStamp, money, todayISO } from "../../utils/formatters";
 import { buildCashDisbursementPrintHtml } from "../../utils/print/cashDisbursementPrint";
 
@@ -30,6 +30,7 @@ export function CashDisbursementsPage() {
   const [saving, setSaving] = useState(false);
 
   async function refresh() {
+    setLoading(true);
     try {
       setRecords(await getCashDisbursements(token));
     } catch (error) {
@@ -143,7 +144,7 @@ export function CashDisbursementsPage() {
             </label>
             <div className="cash-total-line"><span>{filteredRecords.length} bon{filteredRecords.length === 1 ? "" : "s"}</span>{Object.entries(totals).map(([currency, total]) => <strong key={currency}>{money(total, currency)}</strong>)}</div>
           </div>
-          {loading ? <div className="empty-card-state">Chargement des sorties de caisse...</div> : filteredRecords.length ? <div className="panel entity-list-panel"><Table className="entity-list-table cash-table" columns={["N° de bon", "Date", "Bénéficiaire", "Catégorie", "Motif", "Montant", "Saisi par", "Actions"]} rows={filteredRecords.map((record) => [
+          {loading ? <DataLoadingState label="Chargement des bons de sortie…" /> : filteredRecords.length ? <div className="panel entity-list-panel"><Table className="entity-list-table cash-table" columns={["N° de bon", "Date", "Bénéficiaire", "Catégorie", "Motif", "Montant", "Saisi par", "Actions"]} rows={filteredRecords.map((record) => [
             <strong>{record.number}</strong>,
             formatISODate(record.paidAt.slice(0, 10)),
             record.beneficiary,

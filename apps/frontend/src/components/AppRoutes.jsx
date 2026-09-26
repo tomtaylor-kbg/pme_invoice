@@ -11,6 +11,7 @@ import { CashDisbursementsPage } from "./pages/CashDisbursementsPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
 import { ProformasPage } from "./pages/ProformasPage";
 import { SetupPage } from "./pages/SetupPage";
+import { DataLoadingState } from "./ui";
 
 function LoginRoute() {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ function RequireRoles({ allowedRoles, children }) {
 
 function RequireSetupComplete() {
   const { user, workspaceSettings, loading } = useWorkspace();
-  if (loading || !user) return null;
+  if (!user) return loading ? <DataLoadingState label="Chargement de votre espace…" className="full-screen-loading" /> : null;
   if (!workspaceSettings.setupCompleted) return <Navigate to="/setup" replace />;
   return <Outlet />;
 }

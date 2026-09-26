@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "../WorkspaceProvider";
-import { SectionHeader, Table } from "../ui";
+import { DataLoadingState, SectionHeader, Table } from "../ui";
 import { buildMonthlyRevenueSeries, formatDate, money } from "../../utils/formatters";
 
 function clientName(invoice) {
@@ -17,7 +17,7 @@ function invoiceFinancialTone(invoice) {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { data, refresh, beginCreateInvoiceWithPreset, workspaceSettings, user } = useWorkspace();
+  const { data, refresh, beginCreateInvoiceWithPreset, workspaceSettings, user, isHydrating } = useWorkspace();
   const canManageCash = user?.role === "admin" || user?.role === "finance";
   const invoices = data.invoices || [];
   const currencies = [...new Set([workspaceSettings.defaultCurrency, "USD", "CDF", ...invoices.map((invoice) => invoice.currency)].filter(Boolean))];
@@ -94,6 +94,7 @@ export function DashboardPage() {
       </header>
 
       <div className="page-scroll">
+        {isHydrating ? <DataLoadingState label="Chargement du tableau de bord…" className="page-loading-state" /> : <>
         <section className="activity-priorities" aria-label="Priorités financières">
           <button type="button" className="activity-priority outstanding" onClick={() => navigate("/invoices?status=open")}>
             <span>Encours à encaisser</span><strong className="financial-outstanding">{money(receivable, currency)}</strong><small>{currentInvoices.length} facture{currentInvoices.length > 1 ? "s" : ""} à suivre</small>
@@ -172,6 +173,7 @@ export function DashboardPage() {
             </div>
           </section>
         </div>
+        </>}
       </div>
     </div>
   );

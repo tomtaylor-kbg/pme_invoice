@@ -217,6 +217,7 @@ export function WorkspaceProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(false);
   const [error, setError] = useState("");
   const [toasts, setToasts] = useState([]);
   const [data, setData] = useState({
@@ -424,6 +425,7 @@ export function WorkspaceProvider({ children }) {
   }, [data.invoices, editor.id, editor.kind, forms.invoice.issueDate, token, workspaceSettings.invoicePrefix]);
 
   async function hydrate(currentToken) {
+    setIsHydrating(true);
     setLoading(true);
     setError("");
     try {
@@ -474,6 +476,7 @@ export function WorkspaceProvider({ children }) {
       setUser(null);
       setError(normalizeError(err));
     } finally {
+      setIsHydrating(false);
       setLoading(false);
     }
   }
@@ -867,6 +870,7 @@ export function WorkspaceProvider({ children }) {
       token,
       user,
       loading,
+      isHydrating,
       error,
       notifySuccess,
       notifyError,
@@ -905,7 +909,7 @@ export function WorkspaceProvider({ children }) {
       setTheme,
       toggleTheme
     };
-  }, [data.clients, data.invoices, data.users, editor, forms, loading, token, user, error, workspaceSettings, theme, toasts, dismissToast, resetWorkspaceSettings]);
+  }, [data.clients, data.invoices, data.users, editor, forms, loading, isHydrating, token, user, error, workspaceSettings, theme, toasts, dismissToast, resetWorkspaceSettings]);
 
   return <WorkspaceContext.Provider value={actions}>{children}</WorkspaceContext.Provider>;
 }

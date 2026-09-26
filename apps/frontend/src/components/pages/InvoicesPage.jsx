@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useWorkspace } from "../WorkspaceProvider";
 import {
+  DataLoadingState,
   OverlayActionButton,
   OverlayDialog,
   OverlayPreviewIcon,
@@ -45,6 +46,7 @@ export function InvoicesPage() {
     removeInvoice,
     removePayment,
     loading,
+    isHydrating,
     closeEditor,
     user,
     workspaceSettings,
@@ -274,7 +276,7 @@ export function InvoicesPage() {
               </div>
             </div>
 
-            {filteredInvoices.length > 0 ? <div className="panel entity-list-panel"><Table className="entity-list-table invoices-table" columns={["Facture / Client", "Date", "Statut", "Paiement", "Total", "Encaissé", "Reste dû", "Actions"]} rows={filteredInvoices.map((invoice) => [
+            {isHydrating ? <DataLoadingState label="Chargement des factures…" className="page-loading-state" /> : filteredInvoices.length > 0 ? <div className="panel entity-list-panel"><Table className="entity-list-table invoices-table" columns={["Facture / Client", "Date", "Statut", "Paiement", "Total", "Encaissé", "Reste dû", "Actions"]} rows={filteredInvoices.map((invoice) => [
               <div className="table-primary-cell"><strong>{invoiceDisplayLabel(invoice)}</strong><small>{invoice.client?.clientType === "company" ? invoice.client.company : [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ") || invoice.client?.company || "Client"}</small></div>,
               formatDate(invoice.issueDate),
               <span className={`badge ${String(invoice.status || "").toLowerCase()}`}>{statusToLabel(invoice.status)}</span>,
@@ -303,13 +305,14 @@ export function InvoicesPage() {
               Aperçu PDF
             </OverlayActionButton>
             <OverlayActionButton
-              icon={<OverlaySaveIcon />}
+              icon={loading ? <span className="loading-spinner" /> : <OverlaySaveIcon />}
               className="primary-button overlay-save-button"
               type="submit"
               form="invoice-form"
               disabled={loading || !hasInvoiceClient}
+              aria-busy={loading}
             >
-              {isEditing ? "Enregistrer" : "Créer facture"}
+              {loading ? (isEditing ? "Enregistrement…" : "Création…") : isEditing ? "Enregistrer" : "Créer facture"}
             </OverlayActionButton>
           </>
         }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getAuditLogs } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
-import { OverlayDialog, SectionHeader, Table } from "../ui";
+import { DataLoadingState, OverlayDialog, SectionHeader, Table } from "../ui";
 import { money } from "../../utils/formatters";
 
 function formatTimestamp(value) {
@@ -106,7 +106,7 @@ export function AuditLogPage() {
       <div className="page-scroll">
         <section className="panel audit-log-panel">
           <SectionHeader title={isAdmin ? "Toutes les activités" : "Mes activités"} />
-          {loading ? <div className="empty-card-state">Chargement du journal…</div>
+          {loading ? <DataLoadingState label="Chargement du journal…" />
             : error ? <div className="empty-card-state text-danger">{error}</div>
               : records.length ? <Table className="entity-list-table audit-log-table" columns={columns} rows={rows} />
                 : <div className="empty-card-state">Aucune activité enregistrée pour le moment.</div>}

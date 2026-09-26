@@ -106,6 +106,16 @@ export function OverlayActionButton({ icon, children, className = "", ...props }
   );
 }
 
+export function DataLoadingState({ label = "Chargement…", className = "" }) {
+  return (
+    <div className={`data-loading-state${className ? ` ${className}` : ""}`} role="status" aria-live="polite">
+      <span className="loading-spinner" aria-hidden="true" />
+      <span>{label}</span>
+      <span className="loading-track" aria-hidden="true"><span /></span>
+    </div>
+  );
+}
+
 export function OverlayDialog({ title, open, onClose, children, topbarActions, className = "" }) {
   const bodyRef = useRef(null);
   const onCloseRef = useRef(onClose);

@@ -2548,6 +2548,84 @@ tbody tr:hover {
   justify-content: center;
 }
 
+.loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loading-spinner-rotate 0.7s linear infinite;
+}
+
+.data-loading-state {
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--muted);
+  text-align: center;
+}
+
+.data-loading-state .loading-spinner {
+  width: 26px;
+  height: 26px;
+  border-width: 3px;
+  color: var(--accent-color);
+}
+
+.loading-track {
+  width: min(220px, 65%);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-color) 15%, var(--border));
+}
+
+.loading-track > span {
+  display: block;
+  width: 38%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-color);
+  animation: loading-track-slide 1.2s ease-in-out infinite;
+}
+
+.page-loading-state {
+  min-height: 100%;
+}
+
+.full-screen-loading {
+  min-height: 100vh;
+  border: 0;
+  border-radius: 0;
+  background: var(--background);
+}
+
+@keyframes loading-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loading-track-slide {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(270%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner,
+  .loading-track > span {
+    animation: none;
+  }
+}
+
 .overlay-action-svg {
   width: 16px;
   height: 16px;
