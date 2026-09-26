@@ -1954,7 +1954,7 @@ body[data-theme="light"] .hero.list-page-header {
 
 .activity-priorities {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
   border-block: 1px solid var(--border);
 }
 
@@ -1975,10 +1975,11 @@ body[data-theme="light"] .hero.list-page-header {
 .activity-priority > span, .activity-priority small { color: var(--muted); }
 .activity-priority > strong { font-size: 1.45rem; }
 .activity-priority small { font-size: 0.82rem; }
+.financial-outstanding { color: var(--warning); }
+.financial-overdue { color: var(--danger); }
 
 .audit-log-panel { padding: 20px; }
 .audit-log-table td:first-child { white-space: nowrap; }
-.audit-log-table td:last-child { min-width: 210px; }
 .audit-log-table td:nth-child(2) { white-space: nowrap; }
 .audit-detail-content { display: grid; gap: 20px; }
 .audit-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
@@ -2010,7 +2011,7 @@ body[data-theme="light"] .hero.list-page-header {
 .audit-lines-table td, .audit-lines-table th { white-space: nowrap; }
 .text-danger { color: var(--danger); }
 
-.activity-charts { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr); gap: 16px; margin-top: 20px; }
+.activity-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; margin-top: 20px; }
 .activity-revenue-panel, .activity-breakdown-panel { min-width: 0; }
 .activity-revenue-chart { padding-top: 12px; }
 .activity-revenue-chart svg { display: block; width: 100%; height: 190px; overflow: visible; }
@@ -2020,9 +2021,9 @@ body[data-theme="light"] .hero.list-page-header {
 .revenue-point { fill: var(--panel-strong); stroke: var(--accent-color); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .activity-revenue-labels { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 2px; margin-top: 8px; color: var(--muted); font-size: 0.7rem; text-align: center; }
 .activity-revenue-labels span { overflow: hidden; text-overflow: clip; white-space: nowrap; }
-.activity-donut-layout { display: flex; align-items: center; gap: 20px; min-height: 220px; padding: 12px 4px 0; }
-.activity-donut { display: grid; flex: 0 0 150px; width: 150px; aspect-ratio: 1; place-items: center; border-radius: 50%; background: conic-gradient(var(--success) 0 var(--received-share), var(--accent-color) var(--received-share) 100%); }
-.activity-donut > div { display: grid; align-content: center; justify-items: center; width: 106px; aspect-ratio: 1; border-radius: 50%; background: var(--panel-strong); }
+.activity-donut-layout { display: grid; grid-template-columns: minmax(112px, 150px) minmax(0, 1fr); align-items: center; gap: clamp(12px, 2vw, 20px); min-height: 220px; padding: 12px 4px 0; }
+.activity-donut { display: grid; width: 100%; max-width: 150px; aspect-ratio: 1; place-items: center; border-radius: 50%; background: conic-gradient(var(--success) 0 var(--received-share), var(--warning) var(--received-share) calc(var(--received-share) + var(--current-outstanding-share)), var(--danger) calc(var(--received-share) + var(--current-outstanding-share)) 100%); }
+.activity-donut > div { display: grid; align-content: center; justify-items: center; width: min(70%, 106px); aspect-ratio: 1; border-radius: 50%; background: var(--panel-strong); }
 .activity-donut strong { font-size: 1.35rem; }
 .activity-donut span { color: var(--muted); font-size: 0.76rem; }
 .activity-donut-legend { display: grid; flex: 1; gap: 14px; min-width: 0; }
@@ -2033,7 +2034,8 @@ body[data-theme="light"] .hero.list-page-header {
 .activity-donut-total strong { grid-column: 1 !important; }
 .activity-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
 .activity-legend-dot.received { background: var(--success); }
-.activity-legend-dot.outstanding { background: var(--accent-color); }
+.activity-legend-dot.outstanding { background: var(--warning); }
+.activity-legend-dot.overdue { background: var(--danger); }
 
 .activity-alert {
   display: flex;
@@ -2048,7 +2050,11 @@ body[data-theme="light"] .hero.list-page-header {
 
 .activity-alert > div { display: grid; gap: 4px; }
 .activity-alert span { color: var(--muted); font-size: 0.88rem; }
-.activity-feed-panel { margin-top: 20px; }
+.dashboard-lists-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); align-items: start; gap: 16px; margin-top: 20px; }
+.activity-feed-panel, .dashboard-disbursements-panel { min-width: 0; margin-top: 0; }
+.dashboard-disbursements-table table { min-width: 760px; }
+.dashboard-disbursements-table td:last-child { min-width: 0; white-space: nowrap; }
+.dashboard-disbursement-reason { display: block; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .activity-feed { display: grid; }
 
 .activity-event {
@@ -2070,11 +2076,15 @@ body[data-theme="light"] .hero.list-page-header {
 .activity-event:hover { background: rgba(148, 163, 184, 0.05); }
 .activity-event-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-color); }
 .activity-event-dot.payment { background: var(--success); }
+.activity-event-dot.invoice.outstanding { background: var(--warning); }
+.activity-event-dot.invoice.overdue { background: var(--danger); }
+.activity-event-dot.invoice.received { background: var(--success); }
 .activity-event-copy { display: grid; gap: 4px; min-width: 0; }
 .activity-event-copy small, .activity-event-date { color: var(--muted); }
 .activity-event-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .activity-event-date { font-size: 0.84rem; }
 .activity-event-amount { min-width: 120px; text-align: right; }
+.activity-event-amount.received { color: var(--success); }
 
 .analytics-chart {
   display: grid;
@@ -2246,9 +2256,12 @@ body[data-theme="light"] .hero.list-page-header {
   border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
+.entity-list-panel { min-width: 0; padding: 20px; }
+.entity-list-panel .entity-list-table { margin-top: 0; }
 .entity-list-table { margin-top: 4px; }
 .entity-list-table.table-shell { overflow: auto; border: 0; border-radius: 0; }
 .entity-list-table table { min-width: 900px; }
+.entity-list-table td:last-child { min-width: 210px; }
 .clients-table table { min-width: 820px; }
 .invoices-table table { min-width: 1120px; }
 .entity-list-table th { position: sticky; top: 0; z-index: 1; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -2270,7 +2283,7 @@ body[data-theme="light"] .hero.list-page-header {
 .cash-form-wide { grid-column: 1 / -1; }
 .invoices-table td .badge, .clients-table td .badge { white-space: nowrap; }
 .invoices-table .badge.paid { background: rgba(22, 163, 74, 0.14); color: var(--success); }
-.invoices-table .badge.sent { background: rgba(37, 99, 235, 0.14); color: var(--accent-color); }
+.invoices-table .badge.sent { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); }
 .invoices-table .badge.draft { background: rgba(148, 163, 184, 0.12); color: var(--muted); }
 .invoices-table .badge.overdue { background: rgba(220, 38, 38, 0.14); color: var(--danger); }
 

@@ -143,7 +143,7 @@ export function CashDisbursementsPage() {
             </label>
             <div className="cash-total-line"><span>{filteredRecords.length} bon{filteredRecords.length === 1 ? "" : "s"}</span>{Object.entries(totals).map(([currency, total]) => <strong key={currency}>{money(total, currency)}</strong>)}</div>
           </div>
-          {loading ? <div className="empty-card-state">Chargement des sorties de caisse...</div> : filteredRecords.length ? <Table className="entity-list-table cash-table" columns={["N° de bon", "Date", "Bénéficiaire", "Catégorie", "Motif", "Montant", "Saisi par", "Actions"]} rows={filteredRecords.map((record) => [
+          {loading ? <div className="empty-card-state">Chargement des sorties de caisse...</div> : filteredRecords.length ? <div className="panel entity-list-panel"><Table className="entity-list-table cash-table" columns={["N° de bon", "Date", "Bénéficiaire", "Catégorie", "Motif", "Montant", "Saisi par", "Actions"]} rows={filteredRecords.map((record) => [
             <strong>{record.number}</strong>,
             formatISODate(record.paidAt.slice(0, 10)),
             record.beneficiary,
@@ -152,7 +152,7 @@ export function CashDisbursementsPage() {
             <strong>{money(record.amount, record.currency)}</strong>,
             record.recorder?.name || record.recorder?.email || "—",
             <div className="table-row-actions"><button type="button" className="text-button" onClick={() => print(record)}>Imprimer</button><button type="button" className="text-button" onClick={() => beginEdit(record)}>Modifier</button><button type="button" className="text-button danger" onClick={() => remove(record)}>Supprimer</button></div>
-          ])} /> : <div className="empty-card-state">Aucun bon de sortie à afficher.</div>}
+          ])} /></div> : <div className="empty-card-state">Aucun bon de sortie à afficher.</div>}
         </section>
       </div>
 

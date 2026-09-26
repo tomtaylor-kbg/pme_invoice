@@ -71,6 +71,7 @@ async function getDashboardData(prisma, user) {
       amount: true,
       currency: true,
       beneficiary: true,
+      reason: true,
       paidAt: true,
       createdAt: true
     }

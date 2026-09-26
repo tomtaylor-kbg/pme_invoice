@@ -80,7 +80,7 @@ export function ClientsPage() {
               </div>
             </div>
 
-            {filteredClients.length > 0 ? <Table className="entity-list-table clients-table" columns={["Client", "Type", "Email", "Téléphone", "Ville", "Statut", "Actions"]} rows={filteredClients.map((client) => [
+            {filteredClients.length > 0 ? <div className="panel entity-list-panel"><Table className="entity-list-table clients-table" columns={["Client", "Type", "Email", "Téléphone", "Ville", "Statut", "Actions"]} rows={filteredClients.map((client) => [
               <div className="table-primary-cell"><strong>{client.clientType === "company" ? client.company || "Entité" : `${client.firstName} ${client.lastName}`.trim() || "Client"}</strong>{client.clientType === "company" && (client.firstName || client.lastName) ? <small>Contact : {[client.firstName, client.lastName].filter(Boolean).join(" ")}</small> : null}</div>,
               clientTypeLabel(client.clientType),
               client.email || "—",
@@ -88,7 +88,7 @@ export function ClientsPage() {
               client.city || "—",
               <span className={`badge ${client.status === "active" ? "actif" : "inactif"}`}>{client.status === "active" ? "Actif" : "Inactif"}</span>,
               <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditClient(client)}>Modifier</button><button type="button" className="text-button danger" onClick={() => removeClient(client.id)} disabled={loading}>Supprimer</button></div>
-            ])} /> : <div className="empty-card-state">Aucun client ne correspond à vos critères.</div>}
+            ])} /></div> : <div className="empty-card-state">Aucun client ne correspond à vos critères.</div>}
         </section>
       </div>
 

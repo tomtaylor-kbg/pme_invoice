@@ -273,7 +273,7 @@ export function InvoicesPage() {
               </div>
             </div>
 
-            {filteredInvoices.length > 0 ? <Table className="entity-list-table invoices-table" columns={["Facture / Client", "Date", "Statut", "Paiement", "Total", "Encaissé", "Reste dû", "Actions"]} rows={filteredInvoices.map((invoice) => [
+            {filteredInvoices.length > 0 ? <div className="panel entity-list-panel"><Table className="entity-list-table invoices-table" columns={["Facture / Client", "Date", "Statut", "Paiement", "Total", "Encaissé", "Reste dû", "Actions"]} rows={filteredInvoices.map((invoice) => [
               <div className="table-primary-cell"><strong>{invoiceDisplayLabel(invoice)}</strong><small>{invoice.client?.clientType === "company" ? invoice.client.company : [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ") || invoice.client?.company || "Client"}</small></div>,
               formatDate(invoice.issueDate),
               <span className={`badge ${String(invoice.status || "").toLowerCase()}`}>{statusToLabel(invoice.status)}</span>,
@@ -282,7 +282,7 @@ export function InvoicesPage() {
               money(invoice.amountPaid ?? 0, invoice.currency),
               money(invoice.balanceDue ?? invoice.total ?? 0, invoice.currency),
               <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditInvoice(invoice)}>Ouvrir</button><button type="button" className="text-button" onClick={() => beginManagePayments(invoice)}>Paiements</button><button type="button" className="text-button" onClick={() => printThermalTicket(invoice)}>Ticket</button><button type="button" className="text-button danger" onClick={() => removeInvoice(invoice.id)} disabled={loading}>Supprimer</button></div>
-            ])} /> : <div className="empty-card-state">Aucune facture ne correspond à vos critères.</div>}
+            ])} /></div> : <div className="empty-card-state">Aucune facture ne correspond à vos critères.</div>}
         </section>
       </div>
 
