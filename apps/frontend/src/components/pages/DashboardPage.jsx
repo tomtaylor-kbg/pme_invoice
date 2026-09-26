@@ -79,7 +79,7 @@ export function DashboardPage() {
       <header className="hero activity-header">
         <div>
           <span className="eyebrow">Activité</span>
-          <h1>Bonjour, voici votre activité</h1>
+          <h1>Tableau de bord</h1>
           <p>{new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}</p>
         </div>
         <div className="hero-actions">
