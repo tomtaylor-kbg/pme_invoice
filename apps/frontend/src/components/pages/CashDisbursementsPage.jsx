@@ -125,7 +125,7 @@ export function CashDisbursementsPage() {
       <header className="hero list-page-header">
         <div><span className="eyebrow">Caisse</span><h1>Sorties de caisse</h1></div>
         <div className="hero-actions">
-          <button className="secondary-button list-action-button" type="button" onClick={beginCreate}>Nouveau bon de sortie</button>
+          <button className="primary-button list-action-button" type="button" onClick={beginCreate}>Nouveau bon de sortie</button>
           <button className="secondary-button" type="button" onClick={exportCsv}>Export CSV</button>
         </div>
       </header>

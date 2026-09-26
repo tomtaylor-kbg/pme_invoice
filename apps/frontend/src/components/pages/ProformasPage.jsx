@@ -112,7 +112,7 @@ export function ProformasPage() {
   }
 
   return <div className="page-shell invoices-page proformas-page">
-      <header className="hero list-page-header"><div><span className="eyebrow">Commercial</span><h1>Factures pro forma</h1><p>Préparez une offre chiffrée avant d’émettre la facture définitive.</p></div><div className="hero-actions"><button className="secondary-button list-action-button" type="button" onClick={openCreate}>Nouvelle pro forma</button><button className="secondary-button" type="button" onClick={exportCsv}>Export CSV</button></div></header>
+      <header className="hero list-page-header"><div><span className="eyebrow">Commercial</span><h1>Factures pro forma</h1><p>Préparez une offre chiffrée avant d’émettre la facture définitive.</p></div><div className="hero-actions"><button className="primary-button list-action-button" type="button" onClick={openCreate}>Nouvelle pro forma</button><button className="secondary-button" type="button" onClick={exportCsv}>Export CSV</button></div></header>
     <div className="page-scroll"><section className="list-view-content">
       {error && !selected && <div className="empty-card-state text-danger">{error}</div>}
       {records.length ? <Table className="entity-list-table invoices-table" columns={["N° pro forma", "Client", "Date", "Valide jusqu’au", "Statut", "Montant", "Actions"]} rows={records.map((record) => [

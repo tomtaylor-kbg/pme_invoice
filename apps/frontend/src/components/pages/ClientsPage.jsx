@@ -42,7 +42,7 @@ export function ClientsPage() {
           <h1>Clients</h1>
         </div>
         <div className="hero-actions">
-          <button className="secondary-button list-action-button" type="button" onClick={beginCreateClient}>
+          <button className="primary-button list-action-button" type="button" onClick={beginCreateClient}>
             Nouveau client
           </button>
           <button className="secondary-button" type="button" onClick={exportClientsCsv}>

@@ -211,7 +211,7 @@ export function InvoicesPage() {
           <h1>Factures</h1>
         </div>
         <div className="hero-actions">
-          <button className="secondary-button list-action-button" type="button" onClick={() => beginCreateInvoiceWithPreset()}>
+          <button className="primary-button list-action-button" type="button" onClick={() => beginCreateInvoiceWithPreset()}>
             Nouvelle facture
           </button>
           <button className="secondary-button" type="button" onClick={exportInvoicesCsv}>

@@ -16,7 +16,7 @@ export function UsersPage() {
           <h1>Utilisateurs</h1>
         </div>
         <div className="hero-actions">
-          <button className="secondary-button" type="button" onClick={beginCreateUser}>
+          <button className="primary-button" type="button" onClick={beginCreateUser}>
             Nouvel utilisateur
           </button>
         </div>
