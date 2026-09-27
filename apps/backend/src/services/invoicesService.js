@@ -1,6 +1,6 @@
 const { Prisma } = require("@prisma/client");
 const { toNumber } = require("../utils/number");
-const { serializeInvoice, serializePayment } = require("../utils/serializers");
+const { serializeInvoice, serializePayment, serializeReceipt } = require("../utils/serializers");
 
 const INVOICE_NUMBER_PATTERN = /^([A-Z0-9]+)-(\d{4})-(\d{4})$/;
 
@@ -73,7 +73,8 @@ function normalizePaymentMethod(value) {
 
 function paymentInclude() {
   return {
-    recorder: true
+    recorder: true,
+    receipt: true
   };
 }
 
@@ -82,14 +83,16 @@ function invoiceInclude(prisma) {
     client: true,
     creator: true,
     lines: true,
-    ...(hasPaymentModel(prisma)
+      ...(hasPaymentModel(prisma)
       ? {
           payments: {
             include: paymentInclude(),
             orderBy: { paidAt: "desc" }
           }
-        }
-      : {})
+          }
+        : {}),
+    deliveryNote: { select: { id: true, number: true, status: true } },
+    deliveryLinks: { include: { deliveryNote: { select: { id: true, number: true, status: true } } } }
   };
 }
 
@@ -328,15 +331,15 @@ async function createInvoice(prisma, data) {
         total: new Prisma.Decimal(calculateInvoiceTotal(lines, taxRate)),
         taxRate: new Prisma.Decimal(taxRate),
         notes: data.notes || null,
+        ...(data.deliveryNoteId ? { deliveryNote: { connect: { id: data.deliveryNoteId } } } : {}),
         lines: lines.length
           ? {
               create: lines
             }
           : undefined
-      },
-      include: hasPaymentModel(prisma) ? { lines: true, payments: true } : { lines: true }
+      }
     });
-  });
+  }, { maxWait: 10000, timeout: 15000 });
 
   await syncOverdueInvoices(prisma);
 
@@ -471,8 +474,14 @@ async function createInvoicePayment(prisma, invoiceId, data = {}) {
     });
 
     await syncInvoicePaymentStatus(tx, invoiceId);
+    const invoiceAfterPayment = await tx.invoice.findUnique({ where: { id: invoiceId }, select: { clientId: true, total: true, payments: { select: { amount: true } } } });
+    const totalPaid = (invoiceAfterPayment?.payments || []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const paidAt = data.paidAt ? new Date(data.paidAt) : new Date();
+    const year = paidAt.getUTCFullYear();
+    const receiptCounter = await tx.receiptCounter.upsert({ where: { year }, update: { currentSequence: { increment: 1 } }, create: { year, currentSequence: 1 } });
+    await tx.receipt.create({ data: { number: `REC-${year}-${String(receiptCounter.currentSequence).padStart(4, "0")}`, paymentId: created.id, invoiceId, clientId: invoiceAfterPayment.clientId, amount: created.amount, method: created.method, receivedAt: created.paidAt, balanceDue: Math.max(0, Number(invoiceAfterPayment.total || 0) - totalPaid) } });
 
-    return created;
+    return tx.payment.findUnique({ where: { id: created.id }, include: paymentInclude() });
   });
 
   return serializePayment(payment);
@@ -502,6 +511,7 @@ async function updateInvoicePayment(prisma, id, data = {}) {
     });
 
     await syncInvoicePaymentStatus(tx, existing.invoiceId);
+    await tx.receipt.updateMany({ where: { paymentId: id }, data: { amount: updated.amount, method: updated.method, receivedAt: updated.paidAt } });
 
     return updated;
   });
@@ -527,6 +537,11 @@ async function deleteInvoicePayment(prisma, id) {
   return true;
 }
 
+async function getPaymentReceipt(prisma, paymentId) {
+  const receipt = await prisma.receipt.findUnique({ where: { paymentId } });
+  return receipt ? serializeReceipt(receipt) : null;
+}
+
 module.exports = {
   syncOverdueInvoices,
   listInvoices,
@@ -537,5 +552,6 @@ module.exports = {
   listInvoicePayments,
   createInvoicePayment,
   updateInvoicePayment,
-  deleteInvoicePayment
+  deleteInvoicePayment,
+  getPaymentReceipt
 };

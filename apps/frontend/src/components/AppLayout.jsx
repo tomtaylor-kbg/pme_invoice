@@ -27,6 +27,12 @@ export const navItems = [
     icon: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7" />
   },
   {
+    key: "delivery-notes",
+    label: "Bons de livraison",
+    path: "/delivery-notes",
+    icon: <path d="M4 5h11v14H4zM15 9h3l2 3v7h-5M7 9h5M7 13h5M8 20a2 2 0 1 0-4 0m13 0a2 2 0 1 0-4 0" />
+  },
+  {
     key: "clients",
     label: "Clients",
     path: "/clients",
@@ -74,7 +80,7 @@ export function AppLayout() {
   const visibleNavItems = navItems.filter((item) => (item.key !== "users" || displayRole === "admin") && (item.key !== "cash" || canManageSettings));
   const navGroups = [
     { label: "Espace de travail", keys: ["dashboard"] },
-    { label: "Commercial", keys: ["invoices", "proformas", "clients"] },
+    { label: "Commercial", keys: ["invoices", "proformas", "delivery-notes", "clients"] },
     { label: "Suivi", keys: ["logs"] },
     { label: "Caisse", keys: ["cash"] },
     { label: "Administration", keys: ["users"] }

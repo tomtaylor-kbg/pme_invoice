@@ -8,74 +8,23 @@ async function getDashboardData(prisma, user) {
   await syncOverdueInvoices(prisma);
 
   const paymentModel = prisma.payment;
-  const [users, clients, invoices, paidInvoices, overdueInvoices, totalAmount] = await Promise.all([
+  const canViewAllDisbursements = user?.role === "admin" || user?.role === "finance";
+  const [users, clients, invoices, paidInvoices, overdueInvoices, totalAmount, payments, collectedAmount, recentInvoices, cashDisbursements] = await Promise.all([
     prisma.user.count(),
     prisma.client.count(),
     prisma.invoice.count(),
     prisma.invoice.count({ where: { status: "paid" } }),
     prisma.invoice.count({ where: { status: "overdue" } }),
-    prisma.invoice.aggregate({ _sum: { total: true } })
+    prisma.invoice.aggregate({ _sum: { total: true } }),
+    paymentModel?.count ? paymentModel.count().catch((error) => { if (!isMissingPaymentTableError(error)) throw error; return 0; }) : Promise.resolve(0),
+    paymentModel?.aggregate ? paymentModel.aggregate({ _sum: { amount: true } }).catch((error) => { if (!isMissingPaymentTableError(error)) throw error; return { _sum: { amount: 0 } }; }) : Promise.resolve({ _sum: { amount: 0 } }),
+    getRecentInvoices(prisma),
+    prisma.cashDisbursement.findMany({
+      where: canViewAllDisbursements ? {} : { userId: user?.id || "" },
+      orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+      select: { id: true, number: true, amount: true, currency: true, beneficiary: true, reason: true, paidAt: true, createdAt: true }
+    })
   ]);
-
-  let payments = 0;
-  let collectedAmount = { _sum: { amount: 0 } };
-  try {
-    if (paymentModel?.count) {
-      payments = await paymentModel.count();
-    }
-    if (paymentModel?.aggregate) {
-      collectedAmount = await paymentModel.aggregate({ _sum: { amount: true } });
-    }
-  } catch (error) {
-    if (!isMissingPaymentTableError(error)) {
-      throw error;
-    }
-  }
-
-  let recentInvoices;
-  try {
-    recentInvoices = await prisma.invoice.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: {
-        client: true,
-        creator: true,
-        payments: {
-          include: {
-            recorder: true
-          }
-        }
-      }
-    });
-  } catch (error) {
-    if (!isMissingPaymentTableError(error)) {
-      throw error;
-    }
-    recentInvoices = await prisma.invoice.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: {
-        client: true,
-        creator: true
-      }
-    });
-  }
-
-  const canViewAllDisbursements = user?.role === "admin" || user?.role === "finance";
-  const cashDisbursements = await prisma.cashDisbursement.findMany({
-    where: canViewAllDisbursements ? {} : { userId: user?.id || "" },
-    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
-    select: {
-      id: true,
-      number: true,
-      amount: true,
-      currency: true,
-      beneficiary: true,
-      reason: true,
-      paidAt: true,
-      createdAt: true
-    }
-  });
 
   return {
     metrics: {
@@ -96,6 +45,15 @@ async function getDashboardData(prisma, user) {
       createdAt: record.createdAt.toISOString()
     }))
   };
+}
+
+async function getRecentInvoices(prisma) {
+  try {
+    return await prisma.invoice.findMany({ take: 5, orderBy: { createdAt: "desc" }, include: { client: true, creator: true, payments: { include: { recorder: true } } } });
+  } catch (error) {
+    if (!isMissingPaymentTableError(error)) throw error;
+    return prisma.invoice.findMany({ take: 5, orderBy: { createdAt: "desc" }, include: { client: true, creator: true } });
+  }
 }
 
 module.exports = { getDashboardData };

@@ -8,12 +8,14 @@ const { createWorkspaceSettingsRouter } = require("./workspaceSettings");
 const { createCashDisbursementsRouter } = require("./cashDisbursements");
 const { createAuditLogsRouter } = require("./auditLogs");
 const { createProformasRouter } = require("./proformas");
+const { createDeliveryNotesRouter } = require("./deliveryNotes");
 
 function registerRoutes(app, deps) {
   app.use("/api/auth", createAuthRouter(deps));
   app.use("/api/dashboard", createDashboardRouter(deps));
   app.use("/api/audit-logs", createAuditLogsRouter(deps));
   app.use("/api/proformas", createProformasRouter(deps));
+  app.use("/api/delivery-notes", createDeliveryNotesRouter(deps));
   app.use("/api/clients", createClientsRouter(deps));
   app.use("/api/workspace-settings", createWorkspaceSettingsRouter(deps));
   app.use("/api/cash-disbursements", createCashDisbursementsRouter(deps));

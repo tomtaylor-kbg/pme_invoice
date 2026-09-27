@@ -10,6 +10,7 @@ import { InvoicesPage } from "./pages/InvoicesPage";
 import { CashDisbursementsPage } from "./pages/CashDisbursementsPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
 import { ProformasPage } from "./pages/ProformasPage";
+import { DeliveryNotesPage } from "./pages/DeliveryNotesPage";
 import { SetupPage } from "./pages/SetupPage";
 import { DataLoadingState } from "./ui";
 
@@ -81,6 +82,7 @@ export function AppRoutes() {
           <Route path="/users" element={<RequireRoles allowedRoles={["admin"]}><UsersPage /></RequireRoles>} />
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/proformas" element={<ProformasPage />} />
+          <Route path="/delivery-notes" element={<DeliveryNotesPage />} />
           <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "finance"]}><CashDisbursementsPage /></RequireRoles>} />
           </Route>
         </Route>

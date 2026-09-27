@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createCashDisbursement, deleteCashDisbursement, getCashDisbursements, updateCashDisbursement } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
-import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table } from "../ui";
+import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table, TableAction } from "../ui";
 import { buildCashDisbursementsCsv, downloadTextFile, formatISODate, localDateStamp, money, todayISO } from "../../utils/formatters";
 import { buildCashDisbursementPrintHtml } from "../../utils/print/cashDisbursementPrint";
 
@@ -152,7 +152,7 @@ export function CashDisbursementsPage() {
             <span className="cash-reason-cell">{record.reason}</span>,
             <strong>{money(record.amount, record.currency)}</strong>,
             record.recorder?.name || record.recorder?.email || "—",
-            <div className="table-row-actions"><button type="button" className="text-button" onClick={() => print(record)}>Imprimer</button><button type="button" className="text-button" onClick={() => beginEdit(record)}>Modifier</button><button type="button" className="text-button danger" onClick={() => remove(record)}>Supprimer</button></div>
+            <div className="table-row-actions"><TableAction icon="print" label="Imprimer" onClick={() => print(record)} /><TableAction icon="edit" label="Modifier" onClick={() => beginEdit(record)} /><TableAction icon="delete" label="Supprimer" danger onClick={() => remove(record)} /></div>
           ])} /></div> : <div className="empty-card-state">Aucun bon de sortie à afficher.</div>}
         </section>
       </div>

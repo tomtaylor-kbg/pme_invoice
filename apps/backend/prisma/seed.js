@@ -21,9 +21,9 @@ const DEFAULT_WORKSPACE_SETTINGS = {
   companyName: "Mon entreprise",
   companyAcronym: "",
   logoDataUrl: "",
-  businessSector: "Imprimerie",
+  businessSector: "Mon Secteur",
   vatRate: "20",
-  defaultCurrency: "EUR",
+  defaultCurrency: "CDF",
   addressLine1: "",
   addressLine2: "",
   postalCode: "",
@@ -51,11 +51,11 @@ async function ensureWorkspaceSettings() {
 async function ensureInitialAdmin() {
   // Explicit SEED_ADMIN_* environment variables take precedence. Otherwise,
   // prefer the backend .env values over generic shell variables like USERNAME.
-  const username = process.env.SEED_ADMIN_USERNAME || backendEnv.SEED_ADMIN_USERNAME || backendEnv.USERNAME || process.env.USERNAME || "";
+  const username = process.env.SEED_ADMIN_USERNAME || backendEnv.SEED_ADMIN_USERNAME || backendEnv.USERNAME || process.env.USERNAME || "admin";
   const password = process.env.SEED_ADMIN_PASSWORD || backendEnv.SEED_ADMIN_PASSWORD || backendEnv.PASSWORD || process.env.PASSWORD || "";
 
-  if (!username || !password) {
-    console.log("No initial admin created: set SEED_ADMIN_USERNAME and SEED_ADMIN_PASSWORD to provision one.");
+  if (!password) {
+    console.log("No initial admin created: set SEED_ADMIN_PASSWORD (or PASSWORD) to provision one.");
     return null;
   }
 
@@ -64,11 +64,11 @@ async function ensureInitialAdmin() {
     return null;
   }
 
-  const email = username.includes("@") ? username : `${username}@facturation.local`;
+  const email = process.env.SEED_ADMIN_EMAIL || backendEnv.SEED_ADMIN_EMAIL || (username.includes("@") ? username : `${username}@facturation.local`);
   const user = await prisma.user.create({
     data: {
       username,
-      name: process.env.SEED_ADMIN_NAME || backendEnv.SEED_ADMIN_NAME || (username.includes("@") ? username.split("@")[0] : username),
+      name: process.env.SEED_ADMIN_NAME || backendEnv.SEED_ADMIN_NAME || "Administrateur",
       email,
       role: "admin",
       passwordHash: hashPassword(password)
@@ -111,7 +111,7 @@ async function ensureDemoInvoice(user) {
         clientId: client.id,
         userId: user?.id,
         status: "paid",
-        currency: "EUR",
+        currency: "USD",
         issueDate,
         dueDate,
         total: 1740,

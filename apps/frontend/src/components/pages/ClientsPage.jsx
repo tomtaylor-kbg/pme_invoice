@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
-import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table } from "../ui";
+import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table, TableAction } from "../ui";
 import { buildClientsCsv, clientTypeLabel, downloadTextFile, localDateStamp } from "../../utils/formatters";
 
 export function ClientsPage() {
@@ -88,7 +88,7 @@ export function ClientsPage() {
               client.phone || "—",
               client.city || "—",
               <span className={`badge ${client.status === "active" ? "actif" : "inactif"}`}>{client.status === "active" ? "Actif" : "Inactif"}</span>,
-              <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditClient(client)}>Modifier</button>{canDeleteRecords && <button type="button" className="text-button danger" onClick={() => removeClient(client.id)} disabled={loading}>Supprimer</button>}</div>
+              <div className="table-row-actions"><TableAction icon="edit" label="Modifier" onClick={() => beginEditClient(client)} />{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeClient(client.id)} disabled={loading} />}</div>
             ])} /></div> : <div className="empty-card-state">Aucun client ne correspond à vos critères.</div>}
         </section>
       </div>

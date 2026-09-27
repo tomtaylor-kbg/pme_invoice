@@ -96,7 +96,7 @@ export function AuditLogPage() {
 
   return (
     <div className="page-shell audit-log-page">
-      <header className="hero">
+      <header className="hero list-page-header">
         <div>
           <span className="eyebrow">Traçabilité</span>
           <h1>Journal d’activité</h1>

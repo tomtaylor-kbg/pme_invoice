@@ -7,7 +7,8 @@ import {
   OverlayDialog,
   OverlayPreviewIcon,
   OverlaySaveIcon,
-  Table
+  Table,
+  TableAction
 } from "../ui";
 import {
   createInvoiceLineDraft,
@@ -206,6 +207,19 @@ export function InvoicesPage() {
     }, 350);
   }
 
+  function printReceipt(payment) {
+    if (!payment.receipt || !paymentInvoice) return;
+    const receipt = payment.receipt;
+    const clientLabel = paymentInvoice.client?.company || [paymentInvoice.client?.firstName, paymentInvoice.client?.lastName].filter(Boolean).join(" ") || "Client";
+    const html = `<html><head><title>${receipt.number}</title><style>body{font:14px Arial;max-width:560px;margin:40px auto;color:#17202a}h1{margin-bottom:4px;border-bottom:2px solid #17202a;padding-bottom:12px}p{line-height:1.7}.amount{font-size:24px;font-weight:bold;margin:28px 0}</style></head><body><h1>REÇU DE PAIEMENT</h1><p><strong>${receipt.number}</strong><br>Client : ${clientLabel}<br>Facture : ${paymentInvoice.number}<br>Date : ${formatDate(receipt.receivedAt)}<br>Moyen : ${paymentMethodLabel(receipt.method)}</p><p class="amount">Montant reçu : ${money(receipt.amount, paymentInvoice.currency)}</p><p>Solde restant : ${money(receipt.balanceDue, paymentInvoice.currency)}</p></body></html>`;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  }
+
   return (
     <div className="page-shell invoices-page">
       <header className="hero list-page-header">
@@ -277,14 +291,14 @@ export function InvoicesPage() {
             </div>
 
             {isHydrating ? <DataLoadingState label="Chargement des factures…" className="page-loading-state" /> : filteredInvoices.length > 0 ? <div className="panel entity-list-panel"><Table className="entity-list-table invoices-table" columns={["Facture / Client", "Date", "Statut", "Paiement", "Total", "Encaissé", "Reste dû", "Actions"]} rows={filteredInvoices.map((invoice) => [
-              <div className="table-primary-cell"><strong>{invoiceDisplayLabel(invoice)}</strong><small>{invoice.client?.clientType === "company" ? invoice.client.company : [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ") || invoice.client?.company || "Client"}</small></div>,
+              <div className="table-primary-cell"><strong>{invoiceDisplayLabel(invoice)}</strong><small>{invoice.client?.clientType === "company" ? invoice.client.company : [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ") || invoice.client?.company || "Client"}</small>{(invoice.deliveryNotes || []).map((note) => <small key={note.id} className="document-link-label">BL lié : {note.number}</small>)}</div>,
               formatDate(invoice.issueDate),
               <span className={`badge ${String(invoice.status || "").toLowerCase()}`}>{statusToLabel(invoice.status)}</span>,
               invoicePaymentStatusLabel(invoice),
               <strong>{money(invoice.total, invoice.currency)}</strong>,
               money(invoice.amountPaid ?? 0, invoice.currency),
               money(invoice.balanceDue ?? invoice.total ?? 0, invoice.currency),
-              <div className="table-row-actions"><button type="button" className="text-button" onClick={() => beginEditInvoice(invoice)}>Ouvrir</button><button type="button" className="text-button" onClick={() => beginManagePayments(invoice)}>Paiements</button><button type="button" className="text-button" onClick={() => printThermalTicket(invoice)}>Ticket</button>{canDeleteRecords && <button type="button" className="text-button danger" onClick={() => removeInvoice(invoice.id)} disabled={loading}>Supprimer</button>}</div>
+              <div className="table-row-actions"><TableAction icon="open" label="Ouvrir" onClick={() => beginEditInvoice(invoice)} /><TableAction icon="payments" label="Paiements" onClick={() => beginManagePayments(invoice)} /><TableAction icon="print" label="Ticket" onClick={() => printThermalTicket(invoice)} />{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeInvoice(invoice.id)} disabled={loading} />}</div>
             ])} /></div> : <div className="empty-card-state">Aucune facture ne correspond à vos critères.</div>}
         </section>
       </div>
@@ -292,7 +306,12 @@ export function InvoicesPage() {
         <OverlayDialog
         open={editor.kind === "invoice"}
         title={isEditing ? "Modifier facture" : "Créer facture"}
-        onClose={closeEditor}
+        onClose={() => {
+          closeEditor();
+          if (location.state?.invoiceAction) {
+            navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+          }
+        }}
         topbarActions={
           <>
             <OverlayActionButton
@@ -605,12 +624,9 @@ export function InvoicesPage() {
                         <span>{paymentMethodLabel(payment.method)} · {formatDate(payment.paidAt)}</span>
                       </div>
                       <div className="entity-actions">
-                        <button type="button" className="text-button" onClick={() => beginEditPayment(payment, paymentInvoice)}>
-                          Modifier
-                        </button>
-                        {canDeleteRecords && <button type="button" className="text-button danger" onClick={() => removePayment(payment.id)}>
-                          Supprimer
-                        </button>}
+                        <TableAction icon="edit" label="Modifier" onClick={() => beginEditPayment(payment, paymentInvoice)} />
+                        {payment.receipt && <TableAction icon="receipt" label="Reçu" onClick={() => printReceipt(payment)} />}
+                        {canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removePayment(payment.id)} />}
                       </div>
                     </article>
                   ))

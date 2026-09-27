@@ -10,10 +10,11 @@ export function UsersPage() {
 
   return (
     <div className="page-shell users-page">
-      <header className="hero">
+      <header className="hero list-page-header">
         <div>
           <span className="eyebrow">Administration</span>
           <h1>Utilisateurs</h1>
+          <p>Gérez les accès et les rôles de l’espace de travail.</p>
         </div>
         <div className="hero-actions">
           <button className="primary-button" type="button" onClick={beginCreateUser}>

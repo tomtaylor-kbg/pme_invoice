@@ -5,6 +5,7 @@ const {
   createInvoicePayment,
   updateInvoicePayment,
   deleteInvoicePayment
+  , getPaymentReceipt
 } = require("../services/invoicesService");
 const { requireRole } = require("../middleware/requireRole");
 
@@ -73,6 +74,14 @@ function createPaymentsRouter({ prisma, requireAuth }) {
     } catch (error) {
       next(error);
     }
+  });
+
+  router.get("/payments/:id/receipt", requireAuth, async (req, res, next) => {
+    try {
+      const receipt = await getPaymentReceipt(prisma, req.params.id);
+      if (!receipt) return res.status(404).json({ message: "Receipt not found" });
+      res.json(receipt);
+    } catch (error) { next(error); }
   });
 
   return router;

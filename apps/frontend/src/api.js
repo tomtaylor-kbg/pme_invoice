@@ -129,6 +129,12 @@ export function convertProforma(token, id) {
   return request(`/api/proformas/${id}/convert`, { token, method: "POST" });
 }
 
+export function getDeliveryNotes(token) { return request("/api/delivery-notes", { token }); }
+export function createDeliveryNote(token, data) { return request("/api/delivery-notes", { token, method: "POST", body: data }); }
+export function updateDeliveryNote(token, id, data) { return request(`/api/delivery-notes/${id}`, { token, method: "PATCH", body: data }); }
+export function deleteDeliveryNote(token, id) { return request(`/api/delivery-notes/${id}`, { token, method: "DELETE" }); }
+export function convertDeliveryNote(token, id) { return request(`/api/delivery-notes/${id}/convert`, { token, method: "POST" }); }
+
 export function getCashDisbursements(token) {
   return request("/api/cash-disbursements", { token });
 }

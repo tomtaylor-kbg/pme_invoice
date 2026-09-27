@@ -5,6 +5,7 @@ function serializePayment(payment) {
     paidAt: payment.paidAt.toISOString(),
     createdAt: payment.createdAt.toISOString(),
     updatedAt: payment.updatedAt.toISOString(),
+    receipt: payment.receipt ? serializeReceipt(payment.receipt) : null,
     recorder: payment.recorder
       ? {
           id: payment.recorder.id,
@@ -12,6 +13,17 @@ function serializePayment(payment) {
           email: payment.recorder.email
         }
       : null
+  };
+}
+
+function serializeReceipt(receipt) {
+  return {
+    ...receipt,
+    amount: Number(receipt.amount),
+    balanceDue: Number(receipt.balanceDue),
+    receivedAt: receipt.receivedAt.toISOString(),
+    createdAt: receipt.createdAt.toISOString(),
+    updatedAt: receipt.updatedAt.toISOString()
   };
 }
 
@@ -35,6 +47,7 @@ function serializeInvoice(invoice) {
       updatedAt: line.updatedAt.toISOString()
     })),
     payments,
+    deliveryNotes: [invoice.deliveryNote, ...(invoice.deliveryLinks || []).map((link) => link.deliveryNote)].filter(Boolean).filter((note, index, notes) => notes.findIndex((item) => item.id === note.id) === index),
     amountPaid,
     balanceDue: Math.max(0, total - amountPaid)
   };
@@ -84,6 +97,7 @@ function serializeCashDisbursement(record) {
 module.exports = {
   serializeInvoice,
   serializePayment,
+  serializeReceipt,
   serializeClient,
   serializeUser,
   serializeWorkspaceSetting,

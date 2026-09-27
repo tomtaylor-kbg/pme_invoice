@@ -744,7 +744,7 @@ export function ToolsPage() {
                       <div className="a4-total-row"><span>Sous-total HT</span><strong>{money(sampleSubtotalHT, currentCurrency)}</strong></div>
                       <div className="a4-total-row"><span>TVA ({workspaceSettings.vatRate}%)</span><strong>{money(sampleTax, currentCurrency)}</strong></div>
                       <div className="a4-total-row grand-total"><span>Total TTC</span><strong>{money(sampleTotalTTC, currentCurrency)}</strong></div>
-                    </> : <div className="a4-total-row grand-total"><span>Total net à payer</span><strong>{money(sampleSubtotalHT, currentCurrency)}</strong></div>}
+                    </> : <div className="a4-total-row grand-total"><span>Total : </span><strong>{money(sampleSubtotalHT, currentCurrency)}</strong></div>}
                   </div>
 
                   {formattedLegal && (
@@ -807,7 +807,7 @@ export function ToolsPage() {
                       <div className="thermal-total-line"><span>TOTAL HT</span><span>{money(sampleSubtotalHT, currentCurrency)}</span></div>
                       <div className="thermal-total-line"><span>TVA ({workspaceSettings.vatRate}%)</span><span>{money(sampleTax, currentCurrency)}</span></div>
                       <div className="thermal-total-line highlight"><strong>TOTAL TTC</strong><strong>{money(sampleTotalTTC, currentCurrency)}</strong></div>
-                    </> : <div className="thermal-total-line highlight"><strong>TOTAL NET À PAYER</strong><strong>{money(sampleSubtotalHT, currentCurrency)}</strong></div>}
+                    </> : <div className="thermal-total-line highlight"><strong>TOTAL : </strong><strong>{money(sampleSubtotalHT, currentCurrency)}</strong></div>}
                   </div>
 
                   {formattedLegal && (

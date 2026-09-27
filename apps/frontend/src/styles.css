@@ -1991,6 +1991,11 @@ body[data-theme="light"] .hero.list-page-header {
 .proforma-line { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(90px, .6fr) minmax(130px, 1fr) auto; align-items: end; gap: 10px; }
 .proforma-line label { display: grid; gap: 6px; color: var(--muted); font-size: .82rem; }
 .proforma-line input { width: 100%; }
+.delivery-note-lines .section-header { margin: 0; align-items: center; }
+.delivery-note-lines .section-header h3 { font-size: 1rem; }
+.delivery-note-total { display: block; padding-top: 4px; color: var(--text); }
+.field-hint { color: var(--muted); font-size: .76rem; font-weight: 400; }
+.document-link-label { color: var(--accent); }
 .proforma-total { justify-self: end; padding-top: 8px; }
 .setup-page { min-height: 100vh; display: grid; place-items: start center; padding: clamp(20px, 5vh, 56px) 20px; background: var(--app-background); overflow: auto; }
 .setup-card { width: min(100%, 920px); padding: clamp(22px, 4vw, 40px); border: 1px solid var(--border); border-radius: 22px; background: var(--panel); box-shadow: 0 20px 60px rgba(0, 0, 0, .16); }
@@ -2272,6 +2277,11 @@ body[data-theme="light"] .hero.list-page-header {
 .table-primary-cell small { color: var(--muted); font-size: 0.78rem; }
 .table-row-actions { display: flex; align-items: center; gap: 4px; }
 .table-row-actions .text-button { padding: 6px 8px; font-size: 0.78rem; }
+.table-icon-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 32px; min-height: 32px; padding: 6px 8px; border: 1px solid transparent; border-radius: 8px; color: var(--muted); background: transparent; font: inherit; font-size: .76rem; cursor: pointer; transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease; }
+.table-icon-action svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+.table-icon-action:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: color-mix(in srgb, var(--accent) 22%, transparent); transform: translateY(-1px); }
+.table-icon-action.danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); border-color: color-mix(in srgb, var(--danger) 22%, transparent); }
+.table-icon-action span { white-space: nowrap; }
 .cash-filters { grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) auto; align-items: end; }
 .cash-total-line { display: flex; align-items: center; justify-content: flex-end; gap: 14px; min-height: 42px; color: var(--muted); white-space: nowrap; }
 .cash-total-line strong { color: var(--text); }

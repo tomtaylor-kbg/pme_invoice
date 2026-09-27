@@ -20,6 +20,8 @@ model User {
   proformas    Proforma[] @relation("CreatedProformas")
   payments     Payment[] @relation("RecordedPayments")
   cashDisbursements CashDisbursement[] @relation("RecordedCashDisbursements")
+  deliveryNotes DeliveryNote[]
+  orders       Order[]
   auditLogs     AuditLog[] @relation("AuditLogActor")
 }
 
@@ -37,6 +39,9 @@ model Client {
   updatedAt DateTime  @updatedAt
   invoices  Invoice[]
   proformas Proforma[]
+  deliveryNotes DeliveryNote[]
+  orders       Order[]
+  receipts     Receipt[]
 }
 
 model WorkspaceSetting {
@@ -85,6 +90,10 @@ model Invoice {
   lines       InvoiceLine[]
   payments    Payment[]
   proformasFrom Proforma[] @relation("ConvertedProforma")
+  deliveryNoteId String? @unique
+  deliveryNote DeliveryNote? @relation("DeliveryNoteInvoice", fields: [deliveryNoteId], references: [id], onDelete: SetNull)
+  deliveryLinks DeliveryInvoiceLink[]
+  receipts Receipt[]
 }
 
 model InvoiceCounter {
@@ -136,6 +145,96 @@ model ProformaCounter {
   updatedAt       DateTime @updatedAt
 }
 
+model DeliveryNote {
+  id              String   @id @default(cuid())
+  number          String   @unique
+  clientId        String
+  userId          String?
+  orderId         String?
+  status          String   @default("draft")
+  issueDate       DateTime
+  deliveryAddress String?
+  orderReference  String?
+  deliveredBy     String?
+  receivedBy      String?
+  receivedAt      DateTime?
+  signatureDataUrl String?
+  notes           String?
+  totalItems      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  creator         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order           Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  lines           DeliveryNoteLine[]
+  invoice         Invoice? @relation("DeliveryNoteInvoice")
+  invoiceLinks    DeliveryInvoiceLink[]
+}
+
+model DeliveryNoteLine {
+  id             String       @id @default(cuid())
+  deliveryNoteId String
+  description    String
+  quantity       Int
+  unitPrice      Decimal   @default(0)
+  unit           String    @default("unité")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deliveryNote   DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+}
+
+model DeliveryNoteCounter {
+  year            Int      @id
+  currentSequence Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  number          String   @unique
+  clientId        String
+  userId          String?
+  status          String   @default("draft")
+  issueDate       DateTime
+  total           Decimal  @default(0)
+  currency        String   @default("EUR")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  creator         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lines           OrderLine[]
+  deliveryNotes   DeliveryNote[]
+}
+
+model OrderLine {
+  id          String   @id @default(cuid())
+  orderId     String
+  description String
+  quantity    Int
+  unit        String   @default("unité")
+  unitPrice   Decimal
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderCounter {
+  year            Int      @id
+  currentSequence Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model DeliveryInvoiceLink {
+  deliveryNoteId String
+  invoiceId      String
+  createdAt      DateTime @default(now())
+  deliveryNote   DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+  invoice        Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  @@id([deliveryNoteId, invoiceId])
+  @@index([invoiceId])
+}
+
 model InvoiceLine {
   id          String   @id @default(cuid())
   invoiceId   String
@@ -161,6 +260,30 @@ model Payment {
 
   invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   recorder  User?    @relation("RecordedPayments", fields: [userId], references: [id], onDelete: SetNull)
+  receipt   Receipt?
+}
+
+model Receipt {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  paymentId   String   @unique
+  invoiceId   String
+  clientId    String
+  amount      Decimal
+  method      String
+  receivedAt  DateTime
+  balanceDue  Decimal
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model ReceiptCounter {
+  year            Int      @id
+  currentSequence Int      @default(0)
+  updatedAt       DateTime @updatedAt
 }
 
 model CashDisbursement {

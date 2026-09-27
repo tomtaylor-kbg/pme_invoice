@@ -12,6 +12,11 @@ import {
   getDashboard,
   getInvoiceNextNumber,
   getInvoices,
+  getDeliveryNotes,
+  createDeliveryNote,
+  updateDeliveryNote,
+  deleteDeliveryNote,
+  convertDeliveryNote,
   getMe,
   getWorkspaceSettings,
   getUsers,
@@ -227,6 +232,7 @@ export function WorkspaceProvider({ children }) {
     invoices: [],
     clients: [],
     users: [],
+    deliveryNotes: []
   });
   const legacyWorkspaceSettingsRef = useRef(readLegacyWorkspaceSettings());
   const workspaceSettingsSnapshotRef = useRef(normalizeWorkspaceSettings(legacyWorkspaceSettingsRef.current || defaultWorkspaceSettings()));
@@ -449,7 +455,8 @@ export function WorkspaceProvider({ children }) {
         cashDisbursements: dashboard.cashDisbursements || [],
         invoices,
         clients,
-        users
+        users,
+        deliveryNotes: []
       });
       workspaceSettingsSnapshotRef.current = serverSettings;
       setWorkspaceSettings(nextWorkspaceSettings);
@@ -502,7 +509,7 @@ export function WorkspaceProvider({ children }) {
       localStorage.removeItem(STORAGE_KEY);
       setToken("");
       setUser(null);
-      setData({ metrics: null, recentInvoices: [], cashDisbursements: [], invoices: [], clients: [], users: [] });
+      setData({ metrics: null, recentInvoices: [], cashDisbursements: [], invoices: [], clients: [], users: [], deliveryNotes: [] });
       setForms(emptyForms());
       setEditor({ kind: null, id: null });
     }
@@ -645,6 +652,12 @@ export function WorkspaceProvider({ children }) {
       if (token) {
         await hydrate(token);
       }
+    }
+
+    async function refreshDeliveryNotes() {
+      const deliveryNotes = await getDeliveryNotes(token);
+      setData((current) => ({ ...current, deliveryNotes }));
+      return deliveryNotes;
     }
 
     async function saveClient() {
@@ -866,6 +879,34 @@ export function WorkspaceProvider({ children }) {
       }
     }
 
+    async function saveDeliveryNote(payload, id = null) {
+      setLoading(true);
+      try {
+        const result = id ? await updateDeliveryNote(token, id, payload) : await createDeliveryNote(token, payload);
+        await refreshDeliveryNotes();
+        notifySuccess(id ? "Bon de livraison mis à jour" : "Bon de livraison créé", result.number);
+        return result;
+      } catch (err) {
+        notifyError("Bon de livraison non enregistré", normalizeError(err));
+        throw err;
+      } finally { setLoading(false); }
+    }
+
+    async function removeDeliveryNote(id) {
+      if (!confirmDestructiveAction("Supprimer ce bon de livraison ? Cette action est définitive.")) return;
+      setLoading(true);
+      try { await deleteDeliveryNote(token, id); await refreshDeliveryNotes(); notifySuccess("Bon de livraison supprimé", ""); }
+      catch (err) { notifyError("Suppression impossible", normalizeError(err)); }
+      finally { setLoading(false); }
+    }
+
+    async function invoiceDeliveryNote(id) {
+      setLoading(true);
+      try { const invoice = await convertDeliveryNote(token, id); await refreshDeliveryNotes(); notifySuccess("Facture créée", invoice.number); return invoice; }
+      catch (err) { notifyError("Conversion impossible", normalizeError(err)); throw err; }
+      finally { setLoading(false); }
+    }
+
     return {
       token,
       user,
@@ -886,6 +927,7 @@ export function WorkspaceProvider({ children }) {
       saveWorkspaceSettingsNow,
       closeEditor: () => setEditor({ kind: null, id: null }),
       refresh,
+      refreshDeliveryNotes,
       beginCreateClient,
       beginEditClient,
       beginCreateUser,
@@ -903,13 +945,16 @@ export function WorkspaceProvider({ children }) {
       removeUser,
       removeInvoice,
       removePayment,
+      saveDeliveryNote,
+      removeDeliveryNote,
+      invoiceDeliveryNote,
       workspaceSettings,
       setWorkspaceSettings,
       theme,
       setTheme,
       toggleTheme
     };
-  }, [data.clients, data.invoices, data.users, editor, forms, loading, isHydrating, token, user, error, workspaceSettings, theme, toasts, dismissToast, resetWorkspaceSettings]);
+  }, [data.clients, data.invoices, data.users, data.deliveryNotes, editor, forms, loading, isHydrating, token, user, error, workspaceSettings, theme, toasts, dismissToast, resetWorkspaceSettings]);
 
   return <WorkspaceContext.Provider value={actions}>{children}</WorkspaceContext.Provider>;
 }

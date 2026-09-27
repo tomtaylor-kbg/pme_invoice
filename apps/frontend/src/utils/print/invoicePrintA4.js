@@ -12,6 +12,7 @@ import { formatWorkspaceAddress, formatWorkspaceContact, formatWorkspaceLegalInf
 
 export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} }) {
   const currency = invoice?.currency || "EUR";
+  const isDeliveryNote = invoice?.documentType === "delivery-note";
   const lines = (Array.isArray(invoice?.lines) ? invoice.lines : []).filter(
     (line) => String(line?.description || "").trim() || Number(line?.quantity || 0) > 0 || Number(line?.unitPrice || 0) > 0
   );
@@ -31,15 +32,21 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
   const contactLine = formatWorkspaceContact(settings);
   const legalLine = formatWorkspaceLegalInfo(settings);
   const businessSector = String(settings.businessSector || "").trim();
-  const documentLabel = invoice?.documentType === "proforma"
+  const documentLabel = isDeliveryNote
+    ? `Bon de livraison n° ${String(invoice.number || "").replace(/^[A-Z0-9]+-/, "")}`
+    : invoice?.documentType === "proforma"
     ? `Facture pro forma n° ${String(invoice.number || "").replace(/^[A-Z0-9]+-/, "")}`
     : invoiceDisplayLabel(invoice);
-  const documentFilename = invoice?.documentType === "proforma"
+  const documentFilename = isDeliveryNote
+    ? `Bon de livraison ${String(invoice.number || "bon-de-livraison").replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")}.pdf`
+    : invoice?.documentType === "proforma"
     ? `Pro forma ${String(invoice.number || "proforma").replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")}.pdf`
     : buildInvoicePdfFilename({ invoice, client });
-  const dateQualifier = invoice?.documentType === "proforma" ? "Valable jusqu’au" : "Échéance";
-  const endDate = invoice?.documentType === "proforma" ? invoice?.validUntil : invoice?.dueDate;
-  const printStatus = invoice?.documentType === "proforma"
+  const dateQualifier = isDeliveryNote ? "Livré le" : invoice?.documentType === "proforma" ? "Valable jusqu’au" : "Échéance";
+  const endDate = isDeliveryNote ? invoice?.issueDate : invoice?.documentType === "proforma" ? invoice?.validUntil : invoice?.dueDate;
+  const printStatus = isDeliveryNote
+    ? ({ draft: "Brouillon", confirmed: "Confirmé", delivered: "Livré", cancelled: "Annulé" })[invoice?.status] || "Bon de livraison"
+    : invoice?.documentType === "proforma"
     ? ({ draft: "Brouillon", sent: "Envoyée au client", accepted: "Acceptée", rejected: "Refusée", converted: "Convertie en facture" })[invoice?.status] || "Pro forma"
     : statusToLabel(invoice?.status || "draft");
 
@@ -289,8 +296,15 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
           <div class="card">
             <h2>Informations</h2>
             <div class="invoice-meta">
-              <div><span>Devise</span><strong>${escapeHtml(currency)}</strong></div>
-              ${settings.vatRate ? `<div><span>TVA par défaut</span><strong>${escapeHtml(settings.vatRate)}%</strong></div>` : ""}
+              ${isDeliveryNote ? `
+                ${invoice?.orderReference ? `<div><span>Commande</span><strong>${escapeHtml(invoice.orderReference)}</strong></div>` : ""}
+                <div><span>Total livré</span><strong>${escapeHtml(invoice?.totalItems || 0)} article(s)</strong></div>
+                ${invoice?.deliveredBy ? `<div><span>Livré par</span><strong>${escapeHtml(invoice.deliveredBy)}</strong></div>` : ""}
+                ${invoice?.receivedBy ? `<div><span>Réceptionné par</span><strong>${escapeHtml(invoice.receivedBy)}</strong></div>` : ""}
+              ` : `
+                <div><span>Devise</span><strong>${escapeHtml(currency)}</strong></div>
+                ${settings.vatRate ? `<div><span>TVA par défaut</span><strong>${escapeHtml(settings.vatRate)}%</strong></div>` : ""}
+              `}
               <div><span>Créée par</span><strong>${escapeHtml(createdBy)}</strong></div>
             </div>
           </div>
@@ -302,8 +316,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
               <th class="num">N°</th>
               <th>Désignation</th>
               <th class="qty">Qte</th>
-              <th class="unit">PU</th>
-              <th class="total">PT</th>
+              ${isDeliveryNote ? `<th class="unit">Unité</th>` : `<th class="unit">PU</th><th class="total">PT</th>`}
             </tr>
           </thead>
           <tbody>
@@ -314,20 +327,19 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
                     <td class="num">${index + 1}</td>
                     <td>${escapeHtml(line.description || "")}</td>
                     <td class="qty">${escapeHtml(line.quantity || 0)}</td>
-                    <td class="unit">${escapeHtml(formatMoney(line.unitPrice, currency))}</td>
-                    <td class="total">${escapeHtml(formatMoney(invoiceLineTotal(line), currency))}</td>
+                    ${isDeliveryNote ? `<td class="unit">${escapeHtml(line.unit || "unité")}</td>` : `<td class="unit">${escapeHtml(formatMoney(line.unitPrice, currency))}</td><td class="total">${escapeHtml(formatMoney(invoiceLineTotal(line), currency))}</td>`}
                   </tr>
                 `
               )
               .join("") || `
                 <tr>
-                  <td class="num" colspan="5">Aucune ligne</td>
+                  <td class="num" colspan="${isDeliveryNote ? 4 : 5}">Aucune ligne</td>
                 </tr>
               `}
           </tbody>
         </table>
 
-        <div class="summary">
+        ${isDeliveryNote ? `<div class="summary"><div class="summary-box"><div class="summary-row divider-row"><span>Total livré</span><strong>${escapeHtml(invoice?.totalItems || 0)} article(s)</strong></div></div></div>` : `<div class="summary">
           <div class="summary-box">
             ${isVatActive ? `
             <div class="summary-row">
@@ -350,7 +362,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
             </div>
             `}
           </div>
-        </div>
+        </div>`}
 
         ${invoice?.notes ? `<div class="notes">${escapeHtml(invoice.notes)}</div>` : ""}
         <footer class="footer-note"><span>${escapeHtml(companyName)}</span>${legalLine ? `<span class="legal">${escapeHtml(legalLine)}</span>` : ""}</footer>

@@ -204,6 +204,22 @@ export function Table({ columns, rows, className = "" }) {
   );
 }
 
+const tableActionPaths = {
+  open: <><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z" /><circle cx="12" cy="12" r="2.5" /></>,
+  edit: <><path d="m4 16-.8 4.8L8 20l10.8-10.8a2.2 2.2 0 0 0-3.1-3.1L4 16Z" /><path d="m14.5 7.5 2 2" /></>,
+  print: <><path d="M6 9V4h12v5" /><path d="M6 17H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v6H6z" /></>,
+  invoice: <><path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 12h7M9 16h5" /></>,
+  payments: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h3" /></>,
+  receipt: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" /><path d="M9 8h6M9 12h6M9 16h3" /></>,
+  delete: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" /></>
+};
+
+export function TableAction({ label, icon = "open", danger = false, className = "", ...props }) {
+  return <button {...props} type="button" className={`table-icon-action${danger ? " danger" : ""}${className ? ` ${className}` : ""}`} aria-label={label} title={label}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">{tableActionPaths[icon] || tableActionPaths.open}</svg><span>{label}</span>
+  </button>;
+}
+
 export function EntityCard({ title, subtitle, badge, meta, children, actions, tone = "neutral" }) {
   return (
     <article className={`entity-card ${tone}`}>
