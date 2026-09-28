@@ -27,10 +27,18 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "backend" });
 });
 
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, service: "backend" });
+});
+
 registerRoutes(app, { prisma, loginWithCredentials, requireAuth, requireAdmin, revokeSession });
 
 app.use(errorHandler);
 
-app.listen(port, () => {
-  console.log(`Backend listening on http://localhost:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Backend listening on http://localhost:${port}`);
+  });
+}
+
+module.exports = app;

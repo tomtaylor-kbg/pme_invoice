@@ -2,11 +2,14 @@ const crypto = require("crypto");
 const { serializeUser } = require("./utils/serializers");
 const { hashPassword, isHashedPassword, verifyPassword } = require("./utils/password");
 
-const sessions = new Map();
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 function createSessionToken() {
   return crypto.randomBytes(32).toString("hex");
+}
+
+function hashSessionToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 function resolveAuthHeader(req) {
@@ -72,10 +75,12 @@ async function loginWithCredentials(prisma, username, password) {
 
   const token = createSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-  sessions.set(token, {
-    userId: user.id,
-    createdAt: new Date().toISOString(),
-    expiresAt: expiresAt.toISOString()
+  await prisma.session.create({
+    data: {
+      tokenHash: hashSessionToken(token),
+      userId: user.id,
+      expiresAt
+    }
   });
 
   return {
@@ -85,13 +90,15 @@ async function loginWithCredentials(prisma, username, password) {
 }
 
 async function resolveSession(prisma, token) {
-  const session = sessions.get(token);
+  const session = await prisma.session.findUnique({
+    where: { tokenHash: hashSessionToken(token) }
+  });
   if (!session) {
     return null;
   }
 
-  if (session.expiresAt && Date.now() > Date.parse(session.expiresAt)) {
-    sessions.delete(token);
+  if (session.expiresAt && Date.now() > session.expiresAt.getTime()) {
+    await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
     return null;
   }
 
@@ -109,16 +116,18 @@ async function resolveSession(prisma, token) {
   });
 
   if (!user) {
-    sessions.delete(token);
+    await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
     return null;
   }
 
   return serializeUser(user);
 }
 
-function revokeSession(token) {
+async function revokeSession(prisma, token) {
   if (token) {
-    sessions.delete(token);
+    await prisma.session.deleteMany({
+      where: { tokenHash: hashSessionToken(token) }
+    });
   }
 }
 

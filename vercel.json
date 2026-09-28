@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "installCommand": "npm install",
+  "buildCommand": "npm run db:generate --workspace @facturation/backend && npm run build --workspace @facturation/frontend",
+  "outputDirectory": "apps/frontend/dist",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/health", "destination": "/api/health" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

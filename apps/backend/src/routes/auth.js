@@ -88,8 +88,8 @@ function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSes
     res.json(req.user);
   });
 
-  router.post("/logout", requireAuth, (req, res) => {
-    revokeSession(req.authToken);
+  router.post("/logout", requireAuth, async (req, res) => {
+    await revokeSession(prisma, req.authToken);
     res.status(204).send();
   });
 
