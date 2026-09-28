@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install",
+  "installCommand": "npm install --include=dev",
   "buildCommand": "npm run db:generate --workspace @facturation/backend && npm run build --workspace @facturation/frontend",
   "outputDirectory": "apps/frontend/dist",
   "rewrites": [
