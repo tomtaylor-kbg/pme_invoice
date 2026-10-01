@@ -17,11 +17,11 @@ function createProformasRouter({ prisma, requireAuth }) {
   const router = express.Router();
   router.use(requireAuth);
 
-  router.get("/", async (_req, res, next) => {
+  router.get("/", requireRole("admin"), async (_req, res, next) => {
     try { res.json(await listProformas(prisma)); } catch (error) { next(error); }
   });
 
-  router.post("/", async (req, res, next) => {
+  router.post("/", requireRole("admin"), async (req, res, next) => {
     try {
       const validationError = validate(req.body);
       if (validationError) return res.status(400).json({ message: validationError });
@@ -29,7 +29,7 @@ function createProformasRouter({ prisma, requireAuth }) {
     } catch (error) { next(error); }
   });
 
-  router.patch("/:id", async (req, res, next) => {
+  router.patch("/:id", requireRole("admin"), async (req, res, next) => {
     try {
       if (req.body?.clientId || req.body?.clientMode === "manual" || req.body?.lines) {
         const current = await prisma.proforma.findUnique({ where: { id: req.params.id }, include: { lines: true } });
@@ -50,7 +50,7 @@ function createProformasRouter({ prisma, requireAuth }) {
     } catch (error) { next(error); }
   });
 
-  router.delete("/:id", requireRole("admin", "finance"), async (req, res, next) => {
+  router.delete("/:id", requireRole("admin"), async (req, res, next) => {
     try {
       res.locals.auditSource = await prisma.proforma.findUnique({ where: { id: req.params.id }, include: { lines: true, client: true } });
       await deleteProforma(prisma, req.params.id);
@@ -58,7 +58,7 @@ function createProformasRouter({ prisma, requireAuth }) {
     } catch (error) { next(error); }
   });
 
-  router.post("/:id/convert", async (req, res, next) => {
+  router.post("/:id/convert", requireRole("admin"), async (req, res, next) => {
     try {
       const invoice = await convertProforma(prisma, req.params.id, req.user?.id);
       if (!invoice) return res.status(404).json({ message: "Pro forma introuvable." });

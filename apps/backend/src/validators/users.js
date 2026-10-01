@@ -6,8 +6,8 @@ function validateUserCreate(body = {}) {
   if (!passwordHash || String(passwordHash).trim() === "") {
     return "passwordHash is required";
   }
-  if (role !== undefined && !["user", "admin", "finance", "sales"].includes(role)) {
-    return "role must be user, admin, finance or sales";
+  if (role !== undefined && !["order_manager", "order_operator", "admin", "receptionist"].includes(role)) {
+    return "role must be order_manager, order_operator, admin or receptionist";
   }
   return null;
 }

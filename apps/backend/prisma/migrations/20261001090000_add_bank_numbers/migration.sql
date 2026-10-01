@@ -1,0 +1,3 @@
+ALTER TABLE "WorkspaceSetting"
+ADD COLUMN "bankNumber1" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "bankNumber2" TEXT NOT NULL DEFAULT '';

@@ -39,7 +39,6 @@ export function InvoicesPage() {
     setForms,
     editor,
     beginCreateInvoiceWithPreset,
-    beginEditInvoice,
     beginManagePayments,
     beginEditPayment,
     saveInvoice,
@@ -53,11 +52,14 @@ export function InvoicesPage() {
     workspaceSettings,
     notifyError
   } = useWorkspace();
-  const canDeleteRecords = user?.role === "admin" || user?.role === "finance";
+  const canDeleteRecords = user?.role === "admin";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");
   const [clientFilter, setClientFilter] = useState("all");
+  const [invoiceClientSearch, setInvoiceClientSearch] = useState("");
+  const [invoiceClientType, setInvoiceClientType] = useState("all");
+  const [invoiceClientStatus, setInvoiceClientStatus] = useState("active");
 
   const isEditing = editor.kind === "invoice" && Boolean(editor.id);
   const invoiceLines = forms.invoice.lines?.length ? forms.invoice.lines : [createInvoiceLineDraft()];
@@ -74,6 +76,13 @@ export function InvoicesPage() {
     company: forms.invoice.manualClientCompany || "",
     email: forms.invoice.manualClientEmail || ""
   } : null);
+  const invoiceClientOptions = data.clients.filter((client) => {
+    if (invoiceClientType !== "all" && client.clientType !== invoiceClientType) return false;
+    if (invoiceClientStatus !== "all" && client.status !== invoiceClientStatus) return false;
+    const query = invoiceClientSearch.trim().toLocaleLowerCase("fr-FR");
+    if (!query) return true;
+    return [client.displayName, client.company, client.email, client.phone].some((value) => String(value || "").toLocaleLowerCase("fr-FR").includes(query));
+  });
   const hasInvoiceClient = forms.invoice.clientMode === "manual" ? Boolean(forms.invoice.manualClientName.trim()) : Boolean(forms.invoice.clientId);
   const selectedCreator = data.users.find((item) => item.id === forms.invoice.userId) || user || null;
   const canAddInvoiceLine = (() => {
@@ -94,9 +103,9 @@ export function InvoicesPage() {
     const invoice = data.invoices.find((item) => item.id === requested.id);
     if (!invoice) return;
     if (requested.mode === "payments") beginManagePayments(invoice);
-    else beginEditInvoice(invoice);
+    else openInvoicePdf(invoice);
     navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
-  }, [data.invoices, location.key, location.pathname, location.search, location.state, navigate, beginEditInvoice, beginManagePayments]);
+  }, [data.invoices, location.key, location.pathname, location.search, location.state, navigate, beginManagePayments]);
 
   useEffect(() => {
     setStatusFilter(searchParams.get("status") || "all");
@@ -168,14 +177,15 @@ export function InvoicesPage() {
     });
   }
 
-  function openInvoicePdf() {
+  function openInvoicePdf(invoice = null) {
+    const sourceInvoice = invoice || {
+      ...forms.invoice,
+      lines: invoiceLines
+    };
     const a4PrintHtml = buildInvoicePrintHtml({
-      invoice: {
-        ...forms.invoice,
-        lines: invoiceLines
-      },
-      client: selectedClient,
-      creator: selectedCreator,
+      invoice: sourceInvoice,
+      client: invoice ? invoice.client : selectedClient,
+      creator: invoice ? invoice.creator : selectedCreator,
       settings: workspaceSettings
     });
     const previewWindow = window.open("", "_blank");
@@ -298,7 +308,7 @@ export function InvoicesPage() {
               <strong>{money(invoice.total, invoice.currency)}</strong>,
               money(invoice.amountPaid ?? 0, invoice.currency),
               money(invoice.balanceDue ?? invoice.total ?? 0, invoice.currency),
-              <div className="table-row-actions"><TableAction icon="open" label="Ouvrir" onClick={() => beginEditInvoice(invoice)} /><TableAction icon="payments" label="Paiements" onClick={() => beginManagePayments(invoice)} /><TableAction icon="print" label="Ticket" onClick={() => printThermalTicket(invoice)} />{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeInvoice(invoice.id)} disabled={loading} />}</div>
+              <div className="table-row-actions"><TableAction icon="open" label="Ouvrir" onClick={() => openInvoicePdf(invoice)} /><TableAction icon="payments" label="Paiements" onClick={() => beginManagePayments(invoice)} /><TableAction icon="print" label="Ticket" onClick={() => printThermalTicket(invoice)} />{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeInvoice(invoice.id)} disabled={loading} />}</div>
             ])} /></div> : <div className="empty-card-state">Aucune facture ne correspond à vos critères.</div>}
         </section>
       </div>
@@ -370,16 +380,26 @@ export function InvoicesPage() {
             <label className="invoice-form-field">E-mail (facultatif)
               <input type="email" autoComplete="email" value={forms.invoice.manualClientEmail} onChange={(event) => setForms((current) => ({ ...current, invoice: { ...current.invoice, manualClientEmail: event.target.value } }))} />
             </label>
-          </> : <label className="invoice-form-field">
+          </> : <>
+          <label className="invoice-form-field invoice-form-wide">Rechercher un client
+            <input value={invoiceClientSearch} onChange={(event) => setInvoiceClientSearch(event.target.value)} placeholder="Nom, société, e-mail ou téléphone" />
+          </label>
+          <label className="invoice-form-field">Type de client
+            <select value={invoiceClientType} onChange={(event) => setInvoiceClientType(event.target.value)}><option value="all">Tous</option><option value="individual">Personne physique</option><option value="company">Entité</option></select>
+          </label>
+          <label className="invoice-form-field">Statut du client
+            <select value={invoiceClientStatus} onChange={(event) => setInvoiceClientStatus(event.target.value)}><option value="active">Actifs</option><option value="all">Tous</option><option value="inactive">Inactifs</option></select>
+          </label>
+          <label className="invoice-form-field invoice-form-wide">
             Client
             <select required value={forms.invoice.clientId} onChange={(event) => setForms((current) => ({
               ...current,
               invoice: { ...current.invoice, clientId: event.target.value }
             }))}>
               <option value="">Sélectionner</option>
-              {data.clients.map((client) => <option key={client.id} value={client.id}>{client.firstName} {client.lastName}{client.company ? ` · ${client.company}` : ""}</option>)}
+              {invoiceClientOptions.map((client) => <option key={client.id} value={client.id}>{client.displayName || `${client.firstName} ${client.lastName}`.trim() || client.company}{client.company && client.clientType !== "company" ? ` · ${client.company}` : ""}</option>)}
             </select>
-          </label>}
+          </label></>}
           <label className="invoice-form-field">
             Statut
             <select

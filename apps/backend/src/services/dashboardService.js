@@ -8,7 +8,7 @@ async function getDashboardData(prisma, user) {
   await syncOverdueInvoices(prisma);
 
   const paymentModel = prisma.payment;
-  const canViewAllDisbursements = user?.role === "admin" || user?.role === "finance";
+  const canViewAllDisbursements = user?.role === "admin" || user?.role === "receptionist";
   const [users, clients, invoices, paidInvoices, overdueInvoices, totalAmount, payments, collectedAmount, recentInvoices, cashDisbursements] = await Promise.all([
     prisma.user.count(),
     prisma.client.count(),

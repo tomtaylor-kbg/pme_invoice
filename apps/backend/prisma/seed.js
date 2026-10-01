@@ -87,7 +87,7 @@ async function ensureDemoInvoice(user) {
     return;
   }
 
-  const clientEmail = "contact@papeterie-exemple.invalid";
+  const clientEmail = "contact@papeterie-exemple.com";
   let client = await prisma.client.findFirst({ where: { email: clientEmail } });
   if (!client) {
     client = await prisma.client.create({
@@ -111,7 +111,7 @@ async function ensureDemoInvoice(user) {
         clientId: client.id,
         userId: user?.id,
         status: "paid",
-        currency: "USD",
+        currency: "CDF",
         issueDate,
         dueDate,
         total: 1740,

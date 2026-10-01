@@ -76,6 +76,7 @@ export function CashDisbursementsPage() {
 
   async function save(event) {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     try {
       if (selected) {

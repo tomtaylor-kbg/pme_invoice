@@ -3,9 +3,9 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 async function request(path, { token, method = "GET", body } = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
     method,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
     body: body ? JSON.stringify(body) : undefined
   });
@@ -134,6 +134,19 @@ export function createDeliveryNote(token, data) { return request("/api/delivery-
 export function updateDeliveryNote(token, id, data) { return request(`/api/delivery-notes/${id}`, { token, method: "PATCH", body: data }); }
 export function deleteDeliveryNote(token, id) { return request(`/api/delivery-notes/${id}`, { token, method: "DELETE" }); }
 export function convertDeliveryNote(token, id) { return request(`/api/delivery-notes/${id}/convert`, { token, method: "POST" }); }
+
+export function getOrders(token) { return request("/api/orders", { token }); }
+export function createOrder(token, data) { return request("/api/orders", { token, method: "POST", body: data }); }
+export function updateOrder(token, id, data) { return request(`/api/orders/${id}`, { token, method: "PATCH", body: data }); }
+export function convertOrderToInvoice(token, id) { return request(`/api/orders/${id}/convert-to-invoice`, { token, method: "POST" }); }
+export function getOrderOperators(token) { return request("/api/orders/operators", { token }); }
+
+export function getActiveCashSession(token) { return request("/api/cash-register/active", { token }); }
+export function getCashSessions(token) { return request("/api/cash-register/sessions", { token }); }
+export function getDailyCashReport(token, date) { return request(`/api/cash-register/reports/daily${date ? `?date=${encodeURIComponent(date)}` : ""}`, { token }); }
+export function openCashSession(token, data) { return request("/api/cash-register/sessions", { token, method: "POST", body: data }); }
+export function closeCashSession(token, id, data) { return request(`/api/cash-register/sessions/${id}/close`, { token, method: "POST", body: data }); }
+export function addCashMovement(token, data) { return request("/api/cash-register/movements", { token, method: "POST", body: data }); }
 
 export function getCashDisbursements(token) {
   return request("/api/cash-disbursements", { token });

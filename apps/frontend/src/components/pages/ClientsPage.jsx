@@ -1,17 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
 import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table, TableAction } from "../ui";
 import { buildClientsCsv, clientTypeLabel, downloadTextFile, localDateStamp } from "../../utils/formatters";
+import { buildClientPrintHtml } from "../../utils/print/clientPrintA4";
+import { getOrders } from "../../api";
 
 export function ClientsPage() {
-  const { data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor, user } = useWorkspace();
-  const canDeleteRecords = user?.role === "admin" || user?.role === "finance";
+  const { token, data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor, user, workspaceSettings } = useWorkspace();
+  const canEditRecords = user?.role === "admin";
+  const canDeleteRecords = user?.role === "admin";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [orders, setOrders] = useState([]);
 
   const isEditing = editor.kind === "client" && Boolean(editor.id);
   const isCompany = forms.client.clientType === "company";
+  const fullName = `${forms.client.firstName || ""} ${forms.client.lastName || ""}`.trim();
+
+  function updateFullName(value) {
+    const parts = value.trim().split(/\s+/).filter(Boolean);
+    setForms((current) => ({ ...current, client: { ...current.client, firstName: parts.shift() || "", lastName: parts.join(" ") } }));
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    getOrders(token).then((items) => {
+      if (!cancelled) setOrders(items);
+    }).catch(() => {
+      if (!cancelled) setOrders([]);
+    });
+    return () => { cancelled = true; };
+  }, [token]);
 
   const filteredClients = data.clients.filter((client) => {
     if (statusFilter !== "all" && client.status !== statusFilter) {
@@ -33,6 +53,15 @@ export function ClientsPage() {
   function exportClientsCsv() {
     const filename = `clients-${localDateStamp()}.csv`;
     downloadTextFile(filename, buildClientsCsv(filteredClients), "text/csv;charset=utf-8");
+  }
+
+  function openClientSheet(client) {
+    const previewWindow = window.open("", "_blank");
+    if (!previewWindow) return;
+    previewWindow.document.open();
+    previewWindow.document.write(buildClientPrintHtml({ client, settings: workspaceSettings, orders, invoices: data.invoices }));
+    previewWindow.document.close();
+    previewWindow.focus();
   }
 
   return (
@@ -88,7 +117,7 @@ export function ClientsPage() {
               client.phone || "—",
               client.city || "—",
               <span className={`badge ${client.status === "active" ? "actif" : "inactif"}`}>{client.status === "active" ? "Actif" : "Inactif"}</span>,
-              <div className="table-row-actions"><TableAction icon="edit" label="Modifier" onClick={() => beginEditClient(client)} />{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeClient(client.id)} disabled={loading} />}</div>
+              <div className="table-row-actions"><TableAction icon="open" label="Ouvrir la fiche" onClick={() => openClientSheet(client)} />{canEditRecords && <TableAction icon="edit" label="Modifier" onClick={() => beginEditClient(client)} />}{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeClient(client.id)} disabled={loading} />}</div>
             ])} /></div> : <div className="empty-card-state">Aucun client ne correspond à vos critères.</div>}
         </section>
       </div>
@@ -131,21 +160,15 @@ export function ClientsPage() {
               Nom du contact
               <input value={forms.client.lastName} onChange={(event) => setForms((current) => ({ ...current, client: { ...current.client, lastName: event.target.value } }))} />
             </label>
-          </> : <>
-            <label className="client-form-field">
-              Prénom
-              <input required value={forms.client.firstName} onChange={(event) => setForms((current) => ({ ...current, client: { ...current.client, firstName: event.target.value } }))} />
-            </label>
-            <label className="client-form-field">
-              Nom
-              <input required value={forms.client.lastName} onChange={(event) => setForms((current) => ({ ...current, client: { ...current.client, lastName: event.target.value } }))} />
-            </label>
-          </>}
+          </> : <label className="client-form-field client-form-span-2">
+            Nom complet
+            <input required value={fullName} onChange={(event) => updateFullName(event.target.value)} placeholder="Prénom et nom" />
+          </label>}
           <label className="client-form-field">
             {isCompany ? "Email du contact" : "Email"}
             <input
               type="email"
-              required={!isCompany}
+              required={false}
               value={forms.client.email}
               onChange={(event) => setForms((current) => ({
                 ...current,

@@ -12,7 +12,7 @@ const { requireRole } = require("../middleware/requireRole");
 function createPaymentsRouter({ prisma, requireAuth }) {
   const router = express.Router();
 
-  router.get("/invoices/:invoiceId/payments", requireAuth, async (req, res, next) => {
+  router.get("/invoices/:invoiceId/payments", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
     try {
       const payments = await listInvoicePayments(prisma, req.params.invoiceId);
       if (!payments) {
@@ -24,7 +24,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.post("/invoices/:invoiceId/payments", requireAuth, async (req, res, next) => {
+  router.post("/invoices/:invoiceId/payments", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
     try {
       const validationError = validatePaymentBody(req.body);
       if (validationError) {
@@ -46,14 +46,14 @@ function createPaymentsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.patch("/payments/:id", requireAuth, async (req, res, next) => {
+  router.patch("/payments/:id", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
     try {
       const validationError = validatePaymentBody(req.body, { requireAmount: false });
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
 
-      const payment = await updateInvoicePayment(prisma, req.params.id, req.body || {});
+      const payment = await updateInvoicePayment(prisma, req.params.id, { ...(req.body || {}), userId: req.user?.id });
       if (!payment) {
         return res.status(404).json({ message: "Payment not found" });
       }
@@ -64,7 +64,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.delete("/payments/:id", requireAuth, requireRole("admin", "finance"), async (req, res, next) => {
+  router.delete("/payments/:id", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
     try {
       const deleted = await deleteInvoicePayment(prisma, req.params.id);
       if (!deleted) {
@@ -76,7 +76,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.get("/payments/:id/receipt", requireAuth, async (req, res, next) => {
+  router.get("/payments/:id/receipt", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
     try {
       const receipt = await getPaymentReceipt(prisma, req.params.id);
       if (!receipt) return res.status(404).json({ message: "Receipt not found" });

@@ -9,7 +9,7 @@ import {
   invoicePaymentTotal,
   paymentMethodLabel
 } from "../formatters";
-import { formatWorkspaceAddress, formatWorkspaceContact, formatWorkspaceLegalInfo } from "./invoicePrintShared";
+import { formatWorkspaceAddress, formatWorkspaceBankInfo, formatWorkspaceContact, formatWorkspaceLegalInfo } from "./invoicePrintShared";
 
 export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {} }) {
   const currency = invoice?.currency || "EUR";
@@ -17,7 +17,8 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
     (line) => String(line?.description || "").trim() || Number(line?.quantity || 0) > 0 || Number(line?.unitPrice || 0) > 0
   );
   const totalHT = invoiceLinesTotal(lines);
-  const taxRate = Number(invoice?.taxRate ?? 20);
+  const configuredVatRate = Number(settings?.vatRate);
+  const taxRate = configuredVatRate === 0 ? 0 : Number(invoice?.taxRate ?? (configuredVatRate || 20));
   const isVatActive = taxRate > 0;
   const taxAmount = isVatActive ? (totalHT * taxRate / 100) : 0;
   const totalTTC = totalHT + taxAmount;
@@ -28,6 +29,7 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
   const address = formatWorkspaceAddress(settings);
   const contact = formatWorkspaceContact(settings);
   const legalInfo = formatWorkspaceLegalInfo(settings);
+  const bankInfo = formatWorkspaceBankInfo(settings);
   const logo = String(settings.logoDataUrl || "");
   const filename = buildInvoicePdfFilename({ invoice, client }).replace(/\.pdf$/i, "");
 
@@ -42,14 +44,14 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
       * { box-sizing: border-box; }
       html, body { width: 80mm; margin: 0; padding: 0; color: #111; background: #fff; font-family: Arial, sans-serif; }
       body { padding: 4mm; }
-      .ticket { width: 72mm; margin: 0 auto; font-size: 10px; line-height: 1.35; }
+      .ticket { width: 72mm; margin: 0 auto; font-size: 9px; line-height: 1.3; }
       .center { text-align: center; }
       .brand { display: grid; justify-items: center; gap: 2px; overflow-wrap: anywhere; }
       .logo { max-width: 30mm; max-height: 16mm; object-fit: contain; margin-bottom: 2px; }
-      .company-name { font-size: 15px; line-height: 1.15; }
+      .company-name { font-size: 14px; line-height: 1.15; }
       .muted { color: #444; }
       .small { font-size: 9px; }
-      .doc-title { margin-top: 5px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+      .doc-title { margin-top: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
       .divider { margin: 8px 0; border-top: 1px dashed #555; }
       .meta { display: grid; gap: 3px; }
       .meta-row, .line-total, .total-row { display: flex; justify-content: space-between; gap: 8px; }
@@ -58,9 +60,9 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
       .items { display: grid; gap: 8px; }
       .item { display: grid; gap: 2px; overflow-wrap: anywhere; }
       .item-name { font-weight: 700; }
-      .line-detail { display: flex; justify-content: space-between; gap: 6px; font-size: 9px; }
+      .line-detail { display: flex; justify-content: space-between; gap: 6px; font-size: 8px; }
       .totals { display: grid; gap: 4px; }
-      .grand-total { margin-top: 3px; padding-top: 6px; border-top: 1px dashed #555; font-size: 13px; font-weight: 700; }
+      .grand-total { margin-top: 3px; padding-top: 6px; border-top: 1px dashed #555; font-size: 12px; font-weight: 700; }
       .payment-state { display: grid; gap: 3px; }
       .payment-list { display: grid; gap: 2px; margin-top: 4px; }
       .footer { margin-top: 10px; text-align: center; white-space: pre-wrap; }
@@ -100,11 +102,9 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
       <section class="totals">
         ${isVatActive ? `
         <div class="total-row"><span>Total HT</span><strong>${escapeHtml(formatMoney(totalHT, currency))}</strong></div>
-        <div class="total-row"><span>TVA (${escapeHtml(taxRate)} %)</span><strong>${escapeHtml(formatMoney(taxAmount, currency))}</strong></div>
         <div class="total-row grand-total"><span>Total TTC</span><strong>${escapeHtml(formatMoney(totalTTC, currency))}</strong></div>
         ` : `
         <div class="total-row grand-total"><span>TOTAL</span><strong>${escapeHtml(formatMoney(totalTTC, currency))}</strong></div>
-        <div class="small muted center" style="margin-top: 2px;">TVA non applicable</div>
         `}
       </section>
 
@@ -116,7 +116,7 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
       </section>
 
       ${invoice?.notes ? `<div class="divider"></div><p class="small">${escapeHtml(invoice.notes)}</p>` : ""}
-      <footer class="footer small">Merci de votre confiance
+      <footer class="footer small">Merci de votre confiance${legalInfo ? `<br>${escapeHtml(legalInfo)}` : ""}${bankInfo ? `<br>${escapeHtml(bankInfo)}` : ""}
     </main>
   </body>
 </html>`;

@@ -14,7 +14,7 @@ function newForm(settings) {
 
 export function ProformasPage() {
   const { token, data, user, workspaceSettings, notifySuccess, notifyError, refresh: refreshWorkspace } = useWorkspace();
-  const canDeleteRecords = user?.role === "admin" || user?.role === "finance";
+  const canDeleteRecords = user?.role === "admin";
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [form, setForm] = useState(() => newForm(workspaceSettings));
@@ -29,7 +29,7 @@ export function ProformasPage() {
 
   async function refresh() {
     try { setRecords(await getProformas(token)); }
-    catch (requestError) { setError(requestError.message || "Chargement des pro forma impossible."); }
+    catch (requestError) { setError(requestError.message || "Chargement des proforma impossible."); }
   }
 
   useEffect(() => { refresh(); }, [token]);
@@ -86,7 +86,7 @@ export function ProformasPage() {
       const payload = { ...form, ...(form.clientMode === "manual" ? { clientId: "" } : {}), taxRate: Number(form.taxRate), lines: form.lines.map((line) => ({ ...line, quantity: Number(line.quantity), unitPrice: Number(line.unitPrice) })) };
       const saved = selected ? await updateProforma(token, selected.id, payload) : await createProforma(token, payload);
       await refresh();
-      notifySuccess(selected ? "Pro forma modifiée" : "Pro forma créée", saved.number);
+      notifySuccess(selected ? "Proforma modifiée" : "Proforma créée", saved.number);
       setSelected(null);
       setEditorOpen(false);
     } catch (requestError) { setError(requestError.message || "Enregistrement impossible."); }
@@ -94,8 +94,8 @@ export function ProformasPage() {
   }
 
   async function remove(record) {
-    if (!window.confirm(`Supprimer la pro forma ${record.number} ?`)) return;
-    try { await deleteProforma(token, record.id); await refresh(); notifySuccess("Pro forma supprimée", record.number); }
+    if (!window.confirm(`Supprimer la proforma ${record.number} ?`)) return;
+    try { await deleteProforma(token, record.id); await refresh(); notifySuccess("Proforma supprimée", record.number); }
     catch (requestError) { notifyError("Suppression impossible", requestError.message); }
   }
 
@@ -113,18 +113,18 @@ export function ProformasPage() {
   }
 
   return <div className="page-shell invoices-page proformas-page">
-      <header className="hero list-page-header"><div><span className="eyebrow">Commercial</span><h1>Factures pro forma</h1><p>Préparez une offre chiffrée avant d’émettre la facture définitive.</p></div><div className="hero-actions"><button className="primary-button list-action-button" type="button" onClick={openCreate}>Nouvelle pro forma</button><button className="secondary-button" type="button" onClick={exportCsv}>Export CSV</button></div></header>
+      <header className="hero list-page-header"><div><span className="eyebrow">Commercial</span><h1>Factures proforma</h1><p>Préparez une offre chiffrée avant d’émettre la facture définitive.</p></div><div className="hero-actions"><button className="primary-button list-action-button" type="button" onClick={openCreate}>Nouvelle proforma</button><button className="secondary-button" type="button" onClick={exportCsv}>Export CSV</button></div></header>
     <div className="page-scroll"><section className="list-view-content">
       {error && !selected && <div className="empty-card-state text-danger">{error}</div>}
-      {records.length ? <div className="panel entity-list-panel"><Table className="entity-list-table invoices-table" columns={["N° pro forma", "Client", "Date", "Valide jusqu’au", "Statut", "Montant", "Actions"]} rows={records.map((record) => [
+      {records.length ? <div className="panel entity-list-panel"><Table className="entity-list-table invoices-table" columns={["N° proforma", "Client", "Date", "Valide jusqu’au", "Statut", "Montant", "Actions"]} rows={records.map((record) => [
         <strong>{record.number}</strong>, record.client?.company || [record.client?.firstName, record.client?.lastName].filter(Boolean).join(" "), formatDate(record.issueDate), formatDate(record.validUntil), <span className={`badge ${record.status}`}>{({ draft: "Brouillon", sent: "Envoyée", accepted: "Acceptée", rejected: "Refusée", converted: "Convertie" })[record.status] || record.status}</span>, <strong>{money(record.total, record.currency)}</strong>,
         <div className="table-row-actions"><TableAction icon="print" label="Imprimer" onClick={() => preview(record)} />{record.status === "accepted" && <TableAction icon="invoice" label="Convertir en facture" onClick={() => convert(record)} />}{record.status !== "converted" && <TableAction icon="edit" label="Modifier" onClick={() => openEdit(record)} />}{canDeleteRecords && record.status !== "converted" && <TableAction icon="delete" label="Supprimer" danger onClick={() => remove(record)} />}</div>
-      ])} /></div> : <div className="empty-card-state">Aucune pro forma. Créez-en une pour préparer une proposition au client.</div>}
+      ])} /></div> : <div className="empty-card-state">Aucune proforma. Créez-en une pour préparer une proposition au client.</div>}
     </section></div>
 
-    <OverlayDialog open={editorOpen} title={selected ? `Modifier ${selected.number}` : "Créer une pro forma"} onClose={() => { setEditorOpen(false); setSelected(null); setError(""); }} className="invoice-editor-modal" topbarActions={<>
+    <OverlayDialog open={editorOpen} title={selected ? `Modifier ${selected.number}` : "Créer une proforma"} onClose={() => { setEditorOpen(false); setSelected(null); setError(""); }} className="invoice-editor-modal" topbarActions={<>
       <OverlayActionButton icon={<OverlayPreviewIcon />} className="overlay-preview-button" type="button" onClick={() => preview()} disabled={!hasClient}>Aperçu PDF</OverlayActionButton>
-      <OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="proforma-form" disabled={loading || !hasClient}>{loading ? "Enregistrement…" : selected ? "Enregistrer" : "Créer la pro forma"}</OverlayActionButton>
+      <OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="proforma-form" disabled={loading || !hasClient}>{loading ? "Enregistrement…" : selected ? "Enregistrer" : "Créer la proforma"}</OverlayActionButton>
     </>}>
       <form id="proforma-form" className="stack-form invoice-form-grid" onSubmit={save}>
         {error && <div className="empty-card-state text-danger">{error}</div>}

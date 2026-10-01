@@ -33,6 +33,12 @@ export const navItems = [
     icon: <path d="M4 5h11v14H4zM15 9h3l2 3v7h-5M7 9h5M7 13h5M8 20a2 2 0 1 0-4 0m13 0a2 2 0 1 0-4 0" />
   },
   {
+    key: "orders",
+    label: "Commandes",
+    path: "/orders",
+    icon: <path d="M4 5h16v14H4zM8 9h8M8 13h5" />
+  },
+  {
     key: "clients",
     label: "Clients",
     path: "/clients",
@@ -53,6 +59,12 @@ export const navItems = [
     icon: <path d="M3 7h18v13H3zM3 10h18M7 4h10M16 14h2" />
   },
   {
+    key: "cash-register",
+    label: "Caisse",
+    path: "/cash-register",
+    icon: <path d="M4 7h16v13H4zM7 4h10M8 11h8M8 15h4" />
+  },
+  {
     key: "users",
     label: "Utilisateurs",
     path: "/users",
@@ -64,25 +76,31 @@ export const navItems = [
 
 const roleLabels = {
   admin: "Administrateur",
-  finance: "Finance",
-  sales: "Ventes",
-  user: "Collaborateur"
+  receptionist: "Réceptionniste",
+  order_manager: "Gestionnaire des commandes",
+  order_operator: "Opérateur de commande"
 };
 
 export function AppLayout() {
   const { user, logout, theme, toggleTheme, toasts, dismissToast, workspaceSettings } = useWorkspace();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("facturation_sidebar") === "collapsed");
   const displayName = user?.name?.trim() || user?.email?.trim() || "Utilisateur connecté";
-  const displayRole = user?.role || "user";
-  const roleLabel = roleLabels[displayRole] || roleLabels.user;
+  const displayRole = user?.role || "order_operator";
+  const roleLabel = roleLabels[displayRole] || roleLabels.order_operator;
   const isDark = theme === "dark";
-  const canManageSettings = displayRole === "admin" || displayRole === "finance";
-  const visibleNavItems = navItems.filter((item) => (item.key !== "users" || displayRole === "admin") && (item.key !== "cash" || canManageSettings));
+  const visibleKeys = displayRole === "admin"
+    ? new Set(navItems.map((item) => item.key))
+    : displayRole === "receptionist"
+      ? new Set(["dashboard", "invoices", "orders", "delivery-notes", "clients", "cash", "cash-register"])
+      : displayRole === "order_manager"
+        ? new Set(["orders", "clients", "delivery-notes"])
+        : new Set(["orders"]);
+  const visibleNavItems = navItems.filter((item) => visibleKeys.has(item.key));
   const navGroups = [
     { label: "Espace de travail", keys: ["dashboard"] },
-    { label: "Commercial", keys: ["invoices", "proformas", "delivery-notes", "clients"] },
+    { label: "Commercial", keys: ["invoices", "proformas", "orders", "delivery-notes", "clients"] },
     { label: "Suivi", keys: ["logs"] },
-    { label: "Caisse", keys: ["cash"] },
+    { label: "Caisse", keys: ["cash", "cash-register"] },
     { label: "Administration", keys: ["users"] }
   ].map((group) => ({ ...group, items: visibleNavItems.filter((item) => group.keys.includes(item.key)) }))
     .filter((group) => group.items.length > 0);
@@ -94,7 +112,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
+    <div className={`app-shell role-${displayRole}${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
           {workspaceSettings.logoDataUrl ? (
@@ -122,7 +140,7 @@ export function AppLayout() {
               key={item.key}
               to={item.path}
               title={item.label}
-              className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
+              className={({ isActive }) => `nav-item nav-item-${item.key}${isActive ? " active" : ""}`}
               end
             >
               <span className="nav-item-icon" aria-hidden="true">
@@ -133,22 +151,6 @@ export function AppLayout() {
           </div>)}
         </nav>
 
-        <div className="sidebar-bottom">
-          {canManageSettings && <NavLink to="/tools" title="Paramètres" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")} end>
-            <span className="nav-item-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" className="nav-item-svg">
-                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.1-3.1a5 5 0 0 1-6.7 6.7l-7.7 7.7a2 2 0 0 1-2.8-2.8l7.7-7.7a5 5 0 0 1 6.7-6.7l-3.1 3.1Z" />
-              </svg>
-            </span>
-            <span className="nav-item-label">Paramètres</span>
-          </NavLink>}
-          <div className="sidebar-note">
-            <button className="ghost-button sidebar-logout" type="button" onClick={logout} aria-label="Déconnexion" title="Déconnexion">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3m9-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" /></svg>
-              Déconnexion
-            </button>
-          </div>
-        </div>
       </aside>
 
       <main className="main">
@@ -160,6 +162,14 @@ export function AppLayout() {
               <p>{roleLabel}</p>
             </div>
             <div className="topbar-actions">
+              {displayRole === "admin" && <NavLink to="/tools" className={({ isActive }) => `topbar-action${isActive ? " active" : ""}`} title="Paramètres">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8 3.5-1.8-.7a6.7 6.7 0 0 0-.5-1.2l.8-1.8-1.8-1.8-1.8.8a6.7 6.7 0 0 0-1.2-.5L13 5h-2l-.7 1.8a6.7 6.7 0 0 0-1.2.5l-1.8-.8-1.8 1.8.8 1.8a6.7 6.7 0 0 0-.5 1.2L4 12v2l1.8.7c.1.4.3.8.5 1.2l-.8 1.8 1.8 1.8 1.8-.8c.4.2.8.4 1.2.5L11 21h2l.7-1.8c.4-.1.8-.3 1.2-.5l1.8.8 1.8-1.8-.8-1.8c.2-.4.4-.8.5-1.2L20 14v-2Z" /></svg>
+                <span>Paramètres</span>
+              </NavLink>}
+              <button className="topbar-action topbar-logout" type="button" onClick={logout} aria-label="Déconnexion" title="Déconnexion">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3m9-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" /></svg>
+                <span>Déconnexion</span>
+              </button>
               <button
                 className="ghost-button theme-toggle"
                 type="button"

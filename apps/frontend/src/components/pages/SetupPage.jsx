@@ -10,7 +10,7 @@ export function SetupPage() {
   const [error, setError] = useState("");
   const [formSettings, setFormSettings] = useState(workspaceSettings);
   const navigate = useNavigate();
-  const canConfigure = user?.role === "admin" || user?.role === "finance";
+  const canConfigure = user?.role === "admin";
 
   useEffect(() => {
     if (user && !workspaceSettings.setupCompleted) setFormSettings(workspaceSettings);
@@ -57,7 +57,7 @@ export function SetupPage() {
 
   if (!user) return null;
   if (!canConfigure) {
-    return <main className="setup-page"><section className="setup-card"><span className="eyebrow">Configuration requise</span><h1>Établissement à configurer</h1><p>Un administrateur ou un responsable finance doit terminer la configuration initiale avant l’accès à l’application.</p><button type="button" className="secondary-button" onClick={logout}>Se déconnecter</button></section></main>;
+    return <main className="setup-page"><section className="setup-card"><span className="eyebrow">Configuration requise</span><h1>Établissement à configurer</h1><p>Un administrateur doit terminer la configuration initiale avant l’accès à l’application.</p><button type="button" className="secondary-button" onClick={logout}>Se déconnecter</button></section></main>;
   }
 
   return <main className="setup-page">
@@ -95,6 +95,8 @@ export function SetupPage() {
             <label>Préfixe des factures<input required maxLength="12" value={formSettings.invoicePrefix} onChange={(event) => update("invoicePrefix", event.target.value.toUpperCase())} /></label>
             <label>Délai de paiement (jours)<input type="number" min="0" max="365" value={formSettings.paymentTermsDays} onChange={(event) => update("paymentTermsDays", event.target.value)} /></label>
             <label>RCCM<input maxLength="100" value={formSettings.rccm} onChange={(event) => update("rccm", event.target.value)} /></label>
+            <label>Numéro bancaire 1<input maxLength="100" value={formSettings.bankNumber1} onChange={(event) => update("bankNumber1", event.target.value)} /></label>
+            <label>Numéro bancaire 2<input maxLength="100" value={formSettings.bankNumber2} onChange={(event) => update("bankNumber2", event.target.value)} /></label>
             <label>Id.Nat<input maxLength="100" value={formSettings.idNat} onChange={(event) => update("idNat", event.target.value)} /></label>
             <label className="setup-form-wide">Numéro fiscal<input maxLength="100" value={formSettings.taxNumber} onChange={(event) => update("taxNumber", event.target.value)} /></label>
           </div>

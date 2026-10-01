@@ -69,7 +69,7 @@ export function ToolsPage() {
   const fileInputRef = useRef(null);
   const lastActiveVatRef = useRef(workspaceSettings.vatRate && Number(workspaceSettings.vatRate) > 0 ? workspaceSettings.vatRate : "20");
 
-  const canReset = user?.role === "admin" || user?.role === "finance";
+  const canReset = user?.role === "admin";
   const today = todayISO();
 
   function updateSetting(field, value) {
@@ -329,6 +329,26 @@ export function ToolsPage() {
                         placeholder="Ex. CD/KIN/RCCM/14-B-0000"
                       />
                       <small>Registre du Commerce et du Crédit Mobilier</small>
+                    </label>
+
+                    <label>
+                      Numéro bancaire 1
+                      <input
+                        type="text"
+                        value={workspaceSettings.bankNumber1}
+                        onChange={(e) => updateSetting("bankNumber1", e.target.value)}
+                        placeholder="Ex. 00000 00000 00000000000 00"
+                      />
+                    </label>
+
+                    <label>
+                      Numéro bancaire 2
+                      <input
+                        type="text"
+                        value={workspaceSettings.bankNumber2}
+                        onChange={(e) => updateSetting("bankNumber2", e.target.value)}
+                        placeholder="Ex. 00000 00000 00000000000 00"
+                      />
                     </label>
 
                     <label>
@@ -742,7 +762,6 @@ export function ToolsPage() {
                   <div className="a4-totals-box">
                     {isVatActive ? <>
                       <div className="a4-total-row"><span>Sous-total HT</span><strong>{money(sampleSubtotalHT, currentCurrency)}</strong></div>
-                      <div className="a4-total-row"><span>TVA ({workspaceSettings.vatRate}%)</span><strong>{money(sampleTax, currentCurrency)}</strong></div>
                       <div className="a4-total-row grand-total"><span>Total TTC</span><strong>{money(sampleTotalTTC, currentCurrency)}</strong></div>
                     </> : <div className="a4-total-row grand-total"><span>Total : </span><strong>{money(sampleSubtotalHT, currentCurrency)}</strong></div>}
                   </div>
@@ -805,7 +824,6 @@ export function ToolsPage() {
                   <div className="thermal-totals">
                     {isVatActive ? <>
                       <div className="thermal-total-line"><span>TOTAL HT</span><span>{money(sampleSubtotalHT, currentCurrency)}</span></div>
-                      <div className="thermal-total-line"><span>TVA ({workspaceSettings.vatRate}%)</span><span>{money(sampleTax, currentCurrency)}</span></div>
                       <div className="thermal-total-line highlight"><strong>TOTAL TTC</strong><strong>{money(sampleTotalTTC, currentCurrency)}</strong></div>
                     </> : <div className="thermal-total-line highlight"><strong>TOTAL : </strong><strong>{money(sampleSubtotalHT, currentCurrency)}</strong></div>}
                   </div>

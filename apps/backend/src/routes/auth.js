@@ -48,6 +48,8 @@ function clearLoginAttempts(key) {
 
 function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSession }) {
   const router = express.Router();
+  const sessionCookie = process.env.NODE_ENV === "production" ? "__Host-session" : "session";
+  const cookieOptions = `Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
 
   router.post("/login", async (req, res) => {
     const { username, password } = req.body || {};
@@ -62,6 +64,7 @@ function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSes
     const result = await loginWithCredentials(prisma, username, password);
     if (result) {
       clearLoginAttempts(loginKey);
+      res.setHeader("Set-Cookie", `${sessionCookie}=${encodeURIComponent(result.token)}; ${cookieOptions}; Max-Age=28800`);
       prisma.auditLog.create({
         data: {
           userId: result.user.id,
@@ -72,7 +75,7 @@ function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSes
           description: "Connexion réussie"
         }
       }).catch((error) => console.error("Unable to write audit log", error));
-      return res.json(result);
+      return res.json({ user: result.user });
     }
 
     const failedState = recordFailedLogin(loginKey);
@@ -90,6 +93,7 @@ function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSes
 
   router.post("/logout", requireAuth, async (req, res) => {
     await revokeSession(prisma, req.authToken);
+    res.setHeader("Set-Cookie", `${sessionCookie}=; ${cookieOptions}; Max-Age=0`);
     res.status(204).send();
   });
 

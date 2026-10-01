@@ -1,5 +1,6 @@
 const express = require("express");
 const { validateCashDisbursement } = require("../validators/cashDisbursements");
+const { requireRole } = require("../middleware/requireRole");
 const {
   listCashDisbursements,
   createCashDisbursement,
@@ -7,16 +8,9 @@ const {
   deleteCashDisbursement
 } = require("../services/cashDisbursementsService");
 
-function canManageCash(user) {
-  return user?.role === "admin" || user?.role === "finance";
-}
-
 function createCashDisbursementsRouter({ prisma, requireAuth }) {
   const router = express.Router();
-  router.use(requireAuth, (req, res, next) => {
-    if (!canManageCash(req.user)) return res.status(403).json({ message: "Forbidden" });
-    next();
-  });
+  router.use(requireAuth, requireRole("admin", "receptionist"));
 
   router.get("/", async (_req, res, next) => {
     try { res.json(await listCashDisbursements(prisma)); } catch (error) { next(error); }

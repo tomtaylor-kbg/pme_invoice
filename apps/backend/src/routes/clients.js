@@ -14,7 +14,7 @@ function createClientsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.post("/", requireAuth, async (req, res, next) => {
+  router.post("/", requireAuth, requireRole("admin", "receptionist", "order_manager"), async (req, res, next) => {
     try {
       const validationError = validateClientCreate(req.body);
       if (validationError) {
@@ -38,7 +38,7 @@ function createClientsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.patch("/:id", requireAuth, async (req, res, next) => {
+  router.patch("/:id", requireAuth, requireRole("admin"), async (req, res, next) => {
     try {
       const { id } = req.params;
       const { firstName, lastName, company, email, phone, city, status, clientType } = req.body || {};
@@ -66,7 +66,7 @@ function createClientsRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.delete("/:id", requireAuth, requireRole("admin", "finance"), async (req, res, next) => {
+  router.delete("/:id", requireAuth, requireRole("admin"), async (req, res, next) => {
     try {
       const { id } = req.params;
       await deleteClient(prisma, id);

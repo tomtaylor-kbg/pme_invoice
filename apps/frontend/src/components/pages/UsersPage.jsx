@@ -1,7 +1,7 @@
 import { useWorkspace } from "../WorkspaceProvider";
 import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader } from "../ui";
 
-const roleLabels = { admin: "Administrateur", finance: "Finance", sales: "Ventes", user: "Collaborateur" };
+const roleLabels = { admin: "Administrateur", receptionist: "Réceptionniste", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
 
 export function UsersPage() {
   const { data, forms, setForms, editor, beginCreateUser, beginEditUser, saveUser, removeUser, loading, closeEditor } = useWorkspace();
@@ -37,7 +37,7 @@ export function UsersPage() {
                     <span>{item.email}</span>
                   </div>
                 </div>
-                <span className={`user-role role-${item.role}`}>{roleLabels[item.role] || roleLabels.user}</span>
+                <span className={`user-role role-${item.role}`}>{roleLabels[item.role] || roleLabels.order_operator}</span>
                 <div className="user-card-actions">
                   <button type="button" className="text-button" onClick={() => beginEditUser(item)}>Modifier</button>
                   <button type="button" className="text-button danger" onClick={() => removeUser(item.id)} disabled={loading}>Supprimer</button>
@@ -106,10 +106,10 @@ export function UsersPage() {
                 user: { ...current.user, role: event.target.value }
               }))}
             >
-              <option value="user">Utilisateur</option>
+              <option value="order_manager">Gestionnaire des commandes</option>
+              <option value="order_operator">Opérateur de commande</option>
               <option value="admin">Administrateur</option>
-              <option value="finance">Finance</option>
-              <option value="sales">Ventes</option>
+              <option value="receptionist">Réceptionniste</option>
             </select>
           </label>
           <label>

@@ -8,22 +8,27 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  username     String    @unique
-  name         String
-  email        String    @unique
-  role         String    @default("user")
-  passwordHash String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  invoices     Invoice[] @relation("CreatedBy")
-  proformas    Proforma[] @relation("CreatedProformas")
-  payments     Payment[] @relation("RecordedPayments")
-  cashDisbursements CashDisbursement[] @relation("RecordedCashDisbursements")
-  deliveryNotes DeliveryNote[]
-  orders       Order[]
-  auditLogs     AuditLog[] @relation("AuditLogActor")
-  sessions      Session[]
+  id                 String                 @id @default(cuid())
+  username           String                 @unique
+  name               String
+  email              String                 @unique
+  role               String                 @default("order_operator")
+  passwordHash       String
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  invoices           Invoice[]              @relation("CreatedBy")
+  proformas          Proforma[]             @relation("CreatedProformas")
+  payments           Payment[]              @relation("RecordedPayments")
+  cashDisbursements  CashDisbursement[]     @relation("RecordedCashDisbursements")
+  openedCashSessions CashRegisterSession[]  @relation("CashSessionOperator")
+  cashMovements      CashRegisterMovement[] @relation("CashMovementOperator")
+  deliveryNotes      DeliveryNote[]
+  orders             Order[]
+  managedOrders      Order[]                @relation("OrderManager")
+  assignedOrders     Order[]                @relation("OrderOperator")
+  orderEvents        OrderEvent[]
+  auditLogs          AuditLog[]             @relation("AuditLogActor")
+  sessions           Session[]
 }
 
 model Session {
@@ -39,74 +44,78 @@ model Session {
 }
 
 model Client {
-  id        String    @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String
-  phone     String?
-  company   String?
-  clientType String    @default("individual")
-  status    String    @default("active")
-  city      String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  invoices  Invoice[]
-  proformas Proforma[]
+  id            String         @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String
+  phone         String?
+  company       String?
+  clientType    String         @default("individual")
+  status        String         @default("active")
+  city          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  invoices      Invoice[]
+  proformas     Proforma[]
   deliveryNotes DeliveryNote[]
-  orders       Order[]
-  receipts     Receipt[]
+  orders        Order[]
+  receipts      Receipt[]
 }
 
 model WorkspaceSetting {
-  id                String   @id @default("singleton")
-  setupCompleted    Boolean  @default(false)
-  companyName       String   @default("Mon entreprise")
-  companyAcronym    String   @default("")
-  logoDataUrl       String   @default("")
-  businessSector    String   @default("Imprimerie")
-  vatRate           String   @default("20")
-  defaultCurrency   String   @default("EUR")
-  addressLine1      String   @default("")
-  addressLine2      String   @default("")
-  postalCode        String   @default("")
-  city              String   @default("")
-  country           String   @default("")
-  phone             String   @default("")
-  phone2            String   @default("")
-  email             String   @default("")
-  website           String   @default("")
-  rccm              String   @default("")
-  idNat             String   @default("")
-  taxNumber         String   @default("")
-  invoicePrefix     String   @default("FAC")
-  paymentTermsDays  String   @default("30")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default("singleton")
+  setupCompleted   Boolean  @default(false)
+  companyName      String   @default("Mon entreprise")
+  companyAcronym   String   @default("")
+  logoDataUrl      String   @default("")
+  businessSector   String   @default("Imprimerie")
+  vatRate          String   @default("20")
+  defaultCurrency  String   @default("EUR")
+  addressLine1     String   @default("")
+  addressLine2     String   @default("")
+  postalCode       String   @default("")
+  city             String   @default("")
+  country          String   @default("")
+  phone            String   @default("")
+  phone2           String   @default("")
+  email            String   @default("")
+  website          String   @default("")
+  rccm             String   @default("")
+  bankNumber1      String   @default("")
+  bankNumber2      String   @default("")
+  idNat            String   @default("")
+  taxNumber        String   @default("")
+  invoicePrefix    String   @default("FAC")
+  paymentTermsDays String   @default("30")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model Invoice {
-  id          String        @id @default(cuid())
-  number      String        @unique
-  clientId    String
-  userId      String?
-  status      String        @default("draft")
-  currency    String        @default("EUR")
-  issueDate   DateTime
-  dueDate     DateTime
-  total       Decimal       @default(0)
-  taxRate     Decimal       @default(20)
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  creator     User?         @relation("CreatedBy", fields: [userId], references: [id], onDelete: SetNull)
-  lines       InvoiceLine[]
-  payments    Payment[]
-  proformasFrom Proforma[] @relation("ConvertedProforma")
-  deliveryNoteId String? @unique
-  deliveryNote DeliveryNote? @relation("DeliveryNoteInvoice", fields: [deliveryNoteId], references: [id], onDelete: SetNull)
-  deliveryLinks DeliveryInvoiceLink[]
-  receipts Receipt[]
+  id             String                @id @default(cuid())
+  number         String                @unique
+  clientId       String
+  userId         String?
+  status         String                @default("draft")
+  currency       String                @default("EUR")
+  issueDate      DateTime
+  dueDate        DateTime
+  total          Decimal               @default(0)
+  taxRate        Decimal               @default(20)
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  client         Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  creator        User?                 @relation("CreatedBy", fields: [userId], references: [id], onDelete: SetNull)
+  lines          InvoiceLine[]
+  payments       Payment[]
+  proformasFrom  Proforma[]            @relation("ConvertedProforma")
+  deliveryNoteId String?               @unique
+  orderId        String?               @unique
+  deliveryNote   DeliveryNote?         @relation("DeliveryNoteInvoice", fields: [deliveryNoteId], references: [id], onDelete: SetNull)
+  deliveryLinks  DeliveryInvoiceLink[]
+  receipts       Receipt[]
+  order          Order?                @relation("OrderInvoice", fields: [orderId], references: [id], onDelete: SetNull)
 }
 
 model InvoiceCounter {
@@ -121,24 +130,25 @@ model InvoiceCounter {
 }
 
 model Proforma {
-  id        String         @id @default(cuid())
-  number    String         @unique
-  clientId  String
-  userId    String?
-  status    String         @default("draft")
-  currency  String         @default("EUR")
-  issueDate DateTime
-  validUntil DateTime
-  total     Decimal        @default(0)
-  taxRate   Decimal        @default(20)
-  notes     String?
-  convertedInvoiceId String? @unique
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  creator   User?          @relation("CreatedProformas", fields: [userId], references: [id], onDelete: SetNull)
-  lines     ProformaLine[]
-  convertedInvoice Invoice? @relation("ConvertedProforma", fields: [convertedInvoiceId], references: [id], onDelete: SetNull)
+  id                 String         @id @default(cuid())
+  number             String         @unique
+  clientId           String
+  userId             String?
+  status             String         @default("draft")
+  currency           String         @default("EUR")
+  issueDate          DateTime
+  validUntil         DateTime
+  total              Decimal        @default(0)
+  taxRate            Decimal        @default(20)
+  notes              String?
+  convertedInvoiceId String?        @unique
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  client             Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  creator            User?          @relation("CreatedProformas", fields: [userId], references: [id], onDelete: SetNull)
+  lines              ProformaLine[]
+  convertedInvoice   Invoice?       @relation("ConvertedProforma", fields: [convertedInvoiceId], references: [id], onDelete: SetNull)
+  orders             Order[]
 }
 
 model ProformaLine {
@@ -159,29 +169,29 @@ model ProformaCounter {
 }
 
 model DeliveryNote {
-  id              String   @id @default(cuid())
-  number          String   @unique
-  clientId        String
-  userId          String?
-  orderId         String?
-  status          String   @default("draft")
-  issueDate       DateTime
-  deliveryAddress String?
-  orderReference  String?
-  deliveredBy     String?
-  receivedBy      String?
-  receivedAt      DateTime?
+  id               String                @id @default(cuid())
+  number           String                @unique
+  clientId         String
+  userId           String?
+  orderId          String?
+  status           String                @default("draft")
+  issueDate        DateTime
+  deliveryAddress  String?
+  orderReference   String?
+  deliveredBy      String?
+  receivedBy       String?
+  receivedAt       DateTime?
   signatureDataUrl String?
-  notes           String?
-  totalItems      Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  creator         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  order           Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  lines           DeliveryNoteLine[]
-  invoice         Invoice? @relation("DeliveryNoteInvoice")
-  invoiceLinks    DeliveryInvoiceLink[]
+  notes            String?
+  totalItems       Int                   @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  client           Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  creator          User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order            Order?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  lines            DeliveryNoteLine[]
+  invoice          Invoice?              @relation("DeliveryNoteInvoice")
+  invoiceLinks     DeliveryInvoiceLink[]
 }
 
 model DeliveryNoteLine {
@@ -189,8 +199,8 @@ model DeliveryNoteLine {
   deliveryNoteId String
   description    String
   quantity       Int
-  unitPrice      Decimal   @default(0)
-  unit           String    @default("unité")
+  unitPrice      Decimal      @default(0)
+  unit           String       @default("unité")
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   deliveryNote   DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
@@ -203,21 +213,36 @@ model DeliveryNoteCounter {
 }
 
 model Order {
-  id              String   @id @default(cuid())
-  number          String   @unique
-  clientId        String
-  userId          String?
-  status          String   @default("draft")
-  issueDate       DateTime
-  total           Decimal  @default(0)
-  currency        String   @default("EUR")
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  creator         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  lines           OrderLine[]
-  deliveryNotes   DeliveryNote[]
+  id               String         @id @default(cuid())
+  number           String         @unique
+  clientId         String
+  userId           String?
+  managerId        String?
+  status           String         @default("pending")
+  priority         String         @default("normal")
+  operatorId       String?
+  proformaId       String?
+  issueDate        DateTime
+  dueDate          DateTime?
+  total            Decimal        @default(0)
+  currency         String         @default("EUR")
+  notes            String?
+  blockedReason    String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  client           Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  creator          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  manager          User?          @relation("OrderManager", fields: [managerId], references: [id], onDelete: SetNull)
+  lines            OrderLine[]
+  deliveryNotes    DeliveryNote[]
+  operator         User?          @relation("OrderOperator", fields: [operatorId], references: [id], onDelete: SetNull)
+  proforma         Proforma?      @relation(fields: [proformaId], references: [id], onDelete: SetNull)
+  convertedInvoice Invoice?       @relation("OrderInvoice")
+  events           OrderEvent[]
+
+  @@index([status])
+  @@index([operatorId])
+  @@index([managerId])
 }
 
 model OrderLine {
@@ -232,18 +257,83 @@ model OrderLine {
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
+model OrderEvent {
+  id         String   @id @default(cuid())
+  orderId    String
+  userId     String?
+  action     String
+  fromStatus String?
+  toStatus   String?
+  note       String?
+  createdAt  DateTime @default(now())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+}
+
 model OrderCounter {
   year            Int      @id
   currentSequence Int      @default(0)
   updatedAt       DateTime @updatedAt
 }
 
+model CashRegisterSession {
+  id                String                 @id @default(cuid())
+  userId            String
+  status            String                 @default("open")
+  currency          String                 @default("EUR")
+  businessDate      DateTime               @db.Date
+  openedAt          DateTime               @default(now())
+  closedAt          DateTime?
+  openingBalance    Decimal
+  openingBalances   Json?
+  closingBalance    Decimal?
+  closingBalances   Json?
+  expectedBalance   Decimal?
+  expectedBalances  Json?
+  notes             String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  operator          User                   @relation("CashSessionOperator", fields: [userId], references: [id], onDelete: Cascade)
+  movements         CashRegisterMovement[]
+  payments          Payment[]
+  cashDisbursements CashDisbursement[]
+
+  @@index([userId, status])
+  @@index([status, openedAt])
+  @@index([userId, businessDate])
+}
+
+model CashRegisterMovement {
+  id                 String              @id @default(cuid())
+  sessionId          String
+  userId             String
+  type               String
+  amount             Decimal
+  currency           String              @default("EUR")
+  description        String
+  invoiceId          String?
+  paymentId          String?             @unique
+  cashDisbursementId String?             @unique
+  createdAt          DateTime            @default(now())
+  session            CashRegisterSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  operator           User                @relation("CashMovementOperator", fields: [userId], references: [id], onDelete: Cascade)
+  payment            Payment?            @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  cashDisbursement   CashDisbursement?   @relation(fields: [cashDisbursementId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@index([invoiceId])
+  @@index([cashDisbursementId])
+}
+
 model DeliveryInvoiceLink {
   deliveryNoteId String
   invoiceId      String
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
   deliveryNote   DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
-  invoice        Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice        Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
   @@id([deliveryNoteId, invoiceId])
   @@index([invoiceId])
 }
@@ -271,26 +361,29 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  recorder  User?    @relation("RecordedPayments", fields: [userId], references: [id], onDelete: SetNull)
-  receipt   Receipt?
+  invoice       Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recorder      User?                @relation("RecordedPayments", fields: [userId], references: [id], onDelete: SetNull)
+  receipt       Receipt?
+  cashSessionId String?
+  cashSession   CashRegisterSession? @relation(fields: [cashSessionId], references: [id], onDelete: SetNull)
+  cashMovement  CashRegisterMovement?
 }
 
 model Receipt {
-  id          String   @id @default(cuid())
-  number      String   @unique
-  paymentId   String   @unique
-  invoiceId   String
-  clientId    String
-  amount      Decimal
-  method      String
-  receivedAt  DateTime
-  balanceDue  Decimal
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  number     String   @unique
+  paymentId  String   @unique
+  invoiceId  String
+  clientId   String
+  amount     Decimal
+  method     String
+  receivedAt DateTime
+  balanceDue Decimal
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  payment    Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model ReceiptCounter {
@@ -300,19 +393,22 @@ model ReceiptCounter {
 }
 
 model CashDisbursement {
-  id          String   @id @default(cuid())
-  number      String   @unique
-  userId      String?
-  amount      Decimal
-  currency    String   @default("EUR")
-  category    String
-  beneficiary String
-  reason      String
-  paidAt      DateTime @default(now())
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  recorder    User?    @relation("RecordedCashDisbursements", fields: [userId], references: [id], onDelete: SetNull)
+  id            String               @id @default(cuid())
+  number        String               @unique
+  userId        String?
+  amount        Decimal
+  currency      String               @default("EUR")
+  category      String
+  beneficiary   String
+  reason        String
+  paidAt        DateTime             @default(now())
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  recorder      User?                @relation("RecordedCashDisbursements", fields: [userId], references: [id], onDelete: SetNull)
+  cashSessionId String?
+  cashSession   CashRegisterSession? @relation(fields: [cashSessionId], references: [id], onDelete: SetNull)
+  cashMovement  CashRegisterMovement?
 }
 
 model CashDisbursementCounter {

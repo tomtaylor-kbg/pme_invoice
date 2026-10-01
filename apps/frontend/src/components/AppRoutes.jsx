@@ -12,6 +12,8 @@ import { AuditLogPage } from "./pages/AuditLogPage";
 import { ProformasPage } from "./pages/ProformasPage";
 import { DeliveryNotesPage } from "./pages/DeliveryNotesPage";
 import { SetupPage } from "./pages/SetupPage";
+import { OrdersPage } from "./pages/OrdersPage";
+import { CashRegisterPage } from "./pages/CashRegisterPage";
 import { DataLoadingState } from "./ui";
 
 function LoginRoute() {
@@ -54,7 +56,7 @@ function RequireRoles({ allowedRoles, children }) {
     return null;
   }
   if (!allowedRoles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={["order_manager", "order_operator"].includes(user?.role) ? "/orders" : "/dashboard"} replace />;
   }
   return children;
 }
@@ -66,24 +68,31 @@ function RequireSetupComplete() {
   return <Outlet />;
 }
 
+function HomeRedirect() {
+  const { user } = useWorkspace();
+  return <Navigate to={["order_manager", "order_operator"].includes(user?.role) ? "/orders" : "/dashboard"} replace />;
+}
+
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<HomeRedirect />} />
       <Route element={<RequireAuth />}>
         <Route path="/setup" element={<SetupPage />} />
         <Route element={<RequireSetupComplete />}>
           <Route element={<AppLayout />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/tools" element={<RequireRoles allowedRoles={["admin", "finance"]}><ToolsPage /></RequireRoles>} />
-          <Route path="/clients" element={<ClientsPage />} />
-          <Route path="/logs" element={<AuditLogPage />} />
+          <Route path="/dashboard" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><DashboardPage /></RequireRoles>} />
+          <Route path="/tools" element={<RequireRoles allowedRoles={["admin"]}><ToolsPage /></RequireRoles>} />
+          <Route path="/clients" element={<RequireRoles allowedRoles={["admin", "receptionist", "order_manager"]}><ClientsPage /></RequireRoles>} />
+          <Route path="/logs" element={<RequireRoles allowedRoles={["admin"]}><AuditLogPage /></RequireRoles>} />
           <Route path="/users" element={<RequireRoles allowedRoles={["admin"]}><UsersPage /></RequireRoles>} />
-          <Route path="/invoices" element={<InvoicesPage />} />
-          <Route path="/proformas" element={<ProformasPage />} />
-          <Route path="/delivery-notes" element={<DeliveryNotesPage />} />
-          <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "finance"]}><CashDisbursementsPage /></RequireRoles>} />
+          <Route path="/invoices" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><InvoicesPage /></RequireRoles>} />
+          <Route path="/proformas" element={<RequireRoles allowedRoles={["admin"]}><ProformasPage /></RequireRoles>} />
+          <Route path="/delivery-notes" element={<RequireRoles allowedRoles={["admin", "receptionist", "order_manager"]}><DeliveryNotesPage /></RequireRoles>} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/cash-register" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashRegisterPage /></RequireRoles>} />
+          <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashDisbursementsPage /></RequireRoles>} />
           </Route>
         </Route>
       </Route>

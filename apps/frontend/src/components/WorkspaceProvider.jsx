@@ -40,7 +40,6 @@ import {
   money
 } from "../utils/formatters";
 
-const STORAGE_KEY = "facturation_token";
 const SETTINGS_STORAGE_KEY = "facturation_workspace_settings";
 const THEME_STORAGE_KEY = "facturation_theme";
 
@@ -65,6 +64,8 @@ function defaultWorkspaceSettings() {
     email: "",
     website: "",
     rccm: "",
+    bankNumber1: "",
+    bankNumber2: "",
     idNat: "",
     taxNumber: "",
     invoicePrefix: "FAC",
@@ -92,6 +93,8 @@ function normalizeWorkspaceSettings(settings = {}) {
     email: String(settings.email ?? defaultWorkspaceSettings().email),
     website: String(settings.website ?? defaultWorkspaceSettings().website),
     rccm: String(settings.rccm ?? defaultWorkspaceSettings().rccm),
+    bankNumber1: String(settings.bankNumber1 ?? defaultWorkspaceSettings().bankNumber1),
+    bankNumber2: String(settings.bankNumber2 ?? defaultWorkspaceSettings().bankNumber2),
     idNat: String(settings.idNat ?? defaultWorkspaceSettings().idNat),
     taxNumber: String(settings.taxNumber ?? defaultWorkspaceSettings().taxNumber),
     invoicePrefix: String(settings.invoicePrefix ?? defaultWorkspaceSettings().invoicePrefix).toUpperCase(),
@@ -134,7 +137,7 @@ function readTheme() {
 function emptyForms() {
   return {
     client: { firstName: "", lastName: "", company: "", email: "", phone: "", city: "", status: "active", clientType: "individual" },
-    user: { username: "", name: "", email: "", role: "user", passwordHash: "" },
+    user: { username: "", name: "", email: "", role: "order_operator", passwordHash: "" },
     invoice: {
       number: "",
       clientId: "",
@@ -219,7 +222,7 @@ function createToastId() {
 }
 
 export function WorkspaceProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
+  const [token, setToken] = useState(() => "cookie-session");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isHydrating, setIsHydrating] = useState(false);
@@ -435,13 +438,13 @@ export function WorkspaceProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const [me, dashboard, clients, invoices, workspaceSettingsPayload] = await Promise.all([
+      const [me, dashboard, clients, workspaceSettingsPayload] = await Promise.all([
         getMe(currentToken),
         getDashboard(currentToken),
         getClients(currentToken),
-        getInvoices(currentToken),
         getWorkspaceSettings(currentToken).catch(() => null)
       ]);
+      const invoices = ["admin", "receptionist"].includes(me?.role) ? await getInvoices(currentToken) : [];
       const users = me?.role === "admin" ? await getUsers(currentToken) : [];
       const serverSettings = normalizeWorkspaceSettings(workspaceSettingsPayload?.settings || workspaceSettingsPayload || defaultWorkspaceSettings());
       const legacySettings = legacyWorkspaceSettingsRef.current;
@@ -478,7 +481,6 @@ export function WorkspaceProvider({ children }) {
         }
       }
     } catch (err) {
-      localStorage.removeItem(STORAGE_KEY);
       setToken("");
       setUser(null);
       setError(normalizeError(err));
@@ -496,17 +498,13 @@ export function WorkspaceProvider({ children }) {
 
   const actions = useMemo(() => {
     function logout() {
-      const currentToken = token;
-      if (currentToken) {
-        apiLogout(currentToken).catch(() => {});
-      }
+      apiLogout(token).catch(() => {});
       if (workspaceSettingsSaveTimerRef.current) {
         window.clearTimeout(workspaceSettingsSaveTimerRef.current);
         workspaceSettingsSaveTimerRef.current = null;
       }
       workspaceSettingsActionRef.current = null;
       workspaceSettingsRollbackRef.current = null;
-      localStorage.removeItem(STORAGE_KEY);
       setToken("");
       setUser(null);
       setData({ metrics: null, recentInvoices: [], cashDisbursements: [], invoices: [], clients: [], users: [], deliveryNotes: [] });
@@ -522,9 +520,8 @@ export function WorkspaceProvider({ children }) {
       setLoading(true);
       setError("");
       try {
-        const result = await login(username, password);
-        localStorage.setItem(STORAGE_KEY, result.token);
-        setToken(result.token);
+        await login(username, password);
+        setToken("cookie-session");
         return true;
       } catch (err) {
         setError(normalizeError(err));
@@ -569,7 +566,7 @@ export function WorkspaceProvider({ children }) {
           username: item.username || "",
           name: item.name || "",
           email: item.email || "",
-          role: item.role || "user",
+          role: item.role || "order_operator",
           passwordHash: ""
         }
       }));
@@ -665,12 +662,15 @@ export function WorkspaceProvider({ children }) {
       setError("");
       try {
         const payload = forms.client;
-        if (editor.kind === "client" && editor.id) {
-          await updateClient(token, editor.id, payload);
-        } else {
-          await createClient(token, payload);
-        }
-        await refresh();
+        const savedClient = editor.kind === "client" && editor.id
+          ? await updateClient(token, editor.id, payload)
+          : await createClient(token, payload);
+        setData((current) => ({
+          ...current,
+          clients: editor.kind === "client" && editor.id
+            ? current.clients.map((item) => item.id === editor.id ? savedClient : item)
+            : [savedClient, ...current.clients]
+        }));
         notifySuccess(
           editor.kind === "client" && editor.id ? "Client mis à jour" : "Client créé",
           (payload.clientType === "company" ? payload.company : `${payload.firstName} ${payload.lastName}`.trim()) || (editor.kind === "client" && editor.id ? "Les modifications ont été enregistrées." : "Le client a été enregistré.")
@@ -693,15 +693,21 @@ export function WorkspaceProvider({ children }) {
           email: forms.user.email,
           role: forms.user.role
         };
+        let savedUser;
         if (editor.kind === "user" && editor.id) {
-          await updateUser(token, editor.id, payload);
+          savedUser = await updateUser(token, editor.id, payload);
         } else {
-          await createUser(token, {
+          savedUser = await createUser(token, {
             ...payload,
             ...(forms.user.passwordHash ? { passwordHash: forms.user.passwordHash } : {})
           });
         }
-        await refresh();
+        setData((current) => ({
+          ...current,
+          users: editor.kind === "user" && editor.id
+            ? current.users.map((item) => item.id === editor.id ? savedUser : item)
+            : [savedUser, ...current.users]
+        }));
         notifySuccess(editor.kind === "user" && editor.id ? "Utilisateur mis à jour" : "Utilisateur créé", payload.name || payload.email || (editor.kind === "user" && editor.id ? "Les modifications ont été enregistrées." : "Le compte a été enregistré."));
         setEditor({ kind: null, id: null });
       } catch (err) {

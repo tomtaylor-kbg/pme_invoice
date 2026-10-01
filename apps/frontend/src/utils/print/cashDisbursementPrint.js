@@ -1,11 +1,12 @@
 import { escapeHtml, formatISODate, formatMoney } from "../formatters";
-import { formatWorkspaceAddress, formatWorkspaceContact, formatWorkspaceLegalInfo } from "./invoicePrintShared";
+import { formatWorkspaceAddress, formatWorkspaceBankInfo, formatWorkspaceContact, formatWorkspaceLegalInfo } from "./invoicePrintShared";
 
 export function buildCashDisbursementPrintHtml({ record, settings = {} }) {
   const companyName = settings.companyName || "Mon entreprise";
   const address = formatWorkspaceAddress(settings);
   const contact = formatWorkspaceContact(settings);
   const legal = formatWorkspaceLegalInfo(settings);
+  const bank = formatWorkspaceBankInfo(settings);
   const category = {
     achats: "Achats et fournitures",
     transport: "Transport",
@@ -26,5 +27,5 @@ export function buildCashDisbursementPrintHtml({ record, settings = {} }) {
 <div class="amount"><span>Montant décaissé</span><strong>${escapeHtml(formatMoney(record.amount, record.currency))}</strong></div>
 <div class="reason"><span>Motif de la sortie</span><strong>${escapeHtml(record.reason)}</strong></div>${record.notes ? `<p class="notes">${escapeHtml(record.notes)}</p>` : ""}
 <section class="signatures"><div class="signature"><span>Signature du bénéficiaire</span></div><div class="signature"><span>Signature du responsable</span></div></section>
-<footer class="footer">${legal ? `<p>${escapeHtml(legal)}</p>` : ""}${settings.website ? `<p>${escapeHtml(settings.website)}</p>` : ""}</footer></main></body></html>`;
+<footer class="footer">${legal ? `<p>${escapeHtml(legal)}</p>` : ""}${bank ? `<p>${escapeHtml(bank)}</p>` : ""}${settings.website ? `<p>${escapeHtml(settings.website)}</p>` : ""}</footer></main></body></html>`;
 }

@@ -5,7 +5,7 @@ const { requireRole } = require("../middleware/requireRole");
 
 function createUsersRouter({ prisma, requireAuth }) {
   const router = express.Router();
-  const allowedRoles = new Set(["user", "admin", "finance", "sales"]);
+  const allowedRoles = new Set(["order_manager", "order_operator", "admin", "receptionist"]);
   router.use(requireAuth, requireRole("admin"));
 
   router.get("/", async (_req, res, next) => {
@@ -22,9 +22,9 @@ function createUsersRouter({ prisma, requireAuth }) {
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
-      const { username, name, email, role = "user", passwordHash = "" } = req.body || {};
+      const { username, name, email, role = "order_operator", passwordHash = "" } = req.body || {};
       if (!allowedRoles.has(role)) {
-        return res.status(400).json({ message: "role must be user, admin, finance or sales" });
+        return res.status(400).json({ message: "role must be order_manager, order_operator, admin or receptionist" });
       }
       res.status(201).json(
         await createUser(prisma, {
@@ -45,7 +45,7 @@ function createUsersRouter({ prisma, requireAuth }) {
       const { id } = req.params;
       const { username, name, email, role, passwordHash } = req.body || {};
       if (role !== undefined && !allowedRoles.has(role)) {
-        return res.status(400).json({ message: "role must be user, admin, finance or sales" });
+        return res.status(400).json({ message: "role must be order_manager, order_operator, admin or receptionist" });
       }
       res.json(
         await updateUser(prisma, id, {

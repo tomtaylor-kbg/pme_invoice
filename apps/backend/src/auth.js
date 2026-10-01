@@ -13,8 +13,13 @@ function hashSessionToken(token) {
 }
 
 function resolveAuthHeader(req) {
-  const header = req.headers.authorization || "";
-  return header.startsWith("Bearer ") ? header.slice(7) : "";
+  const cookies = String(req.headers.cookie || "").split(";").reduce((result, part) => {
+    const separator = part.indexOf("=");
+    if (separator === -1) return result;
+    result[part.slice(0, separator).trim()] = decodeURIComponent(part.slice(separator + 1).trim());
+    return result;
+  }, {});
+  return cookies[process.env.NODE_ENV === "production" ? "__Host-session" : "session"] || "";
 }
 
 async function authenticateUser(prisma, username, password) {
@@ -138,7 +143,16 @@ function attachUser(prisma) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await resolveSession(prisma, token);
+    let user;
+    try {
+      user = await resolveSession(prisma, token);
+    } catch (error) {
+      if (["P1001", "P1002", "P2024", "P2028"].includes(error?.code)) {
+        console.error("Database unavailable while resolving the session", error.meta || error.message);
+        return res.status(503).json({ message: "Base de données temporairement indisponible. Réessayez dans quelques instants." });
+      }
+      return next(error);
+    }
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
     }

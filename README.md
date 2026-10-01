@@ -109,6 +109,7 @@ Copie d’abord `apps/backend/.env.example` vers `apps/backend/.env`, puis ajust
 - `PORT` : port du backend, par défaut `4000`
 - `USERNAME` et `PASSWORD` : compte bootstrap optionnel si la base est vide
 - `NODE_ENV` : active les messages d’erreur détaillés hors production
+- `CORS_ORIGINS` : liste séparée par des virgules des origines frontend autorisées (par exemple `https://app.example.com`). En développement, les URLs locales `localhost:5173` et `127.0.0.1:5173` sont utilisées par défaut.
 
 Le frontend peut aussi utiliser des variables Vite:
 
@@ -119,7 +120,7 @@ Le frontend peut aussi utiliser des variables Vite:
 
 - Les paramètres de l’entreprise, dont son secteur d’activité, sont stockés dans `WorkspaceSetting`
 - Les clients, factures, paiements et compteurs de facture sont persistés via Prisma
-- La configuration d’interface reste dans `localStorage` pour le thème et le jeton de session
+- La configuration d’interface reste dans `localStorage` pour le thème et certains brouillons ; le jeton de session est conservé dans un cookie `HttpOnly`.
 
 ## Routes
 

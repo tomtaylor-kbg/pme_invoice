@@ -1,10 +1,10 @@
 const { serializeUser } = require("../utils/serializers");
 const { normalizePasswordForStorage } = require("../utils/password");
 
-const ALLOWED_ROLES = new Set(["user", "admin", "finance", "sales"]);
+const ALLOWED_ROLES = new Set(["order_manager", "order_operator", "admin", "receptionist"]);
 
 function normalizeRole(role) {
-  return ALLOWED_ROLES.has(role) ? role : "user";
+  return ALLOWED_ROLES.has(role) ? role : "order_operator";
 }
 
 async function listUsers(prisma) {

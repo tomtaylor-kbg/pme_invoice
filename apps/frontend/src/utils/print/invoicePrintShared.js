@@ -15,3 +15,10 @@ export function formatWorkspaceLegalInfo(settings = {}) {
     settings.taxNumber && `N° impôt : ${settings.taxNumber}`
   ].filter(Boolean).join(" · ");
 }
+
+export function formatWorkspaceBankInfo(settings = {}) {
+  return [
+    settings.bankNumber1,
+    settings.bankNumber2
+  ].filter(Boolean).join(" · ");
+}

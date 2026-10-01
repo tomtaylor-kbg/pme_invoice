@@ -357,6 +357,17 @@ async function updateInvoice(prisma, id, data) {
     include: hasPaymentModel(prisma) ? { lines: true, payments: true } : { lines: true }
   });
 
+  const totalPaid = Array.isArray(existingInvoice?.payments)
+    ? existingInvoice.payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+    : 0;
+  const isSettled = existingInvoice?.status === "paid"
+    || (Number(existingInvoice?.total || 0) > 0 && totalPaid >= Number(existingInvoice.total));
+  if (isSettled) {
+    const error = new Error("Une facture déjà réglée ne peut pas être modifiée.");
+    error.code = "INVOICE_SETTLED";
+    throw error;
+  }
+
   const taxRate = data.taxRate !== undefined ? toNumber(data.taxRate, 20) : (existingInvoice ? Number(existingInvoice.taxRate) : 20);
 
   const invoiceData = {
@@ -452,7 +463,7 @@ async function listInvoicePayments(prisma, invoiceId) {
 async function createInvoicePayment(prisma, invoiceId, data = {}) {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
-    select: { id: true }
+    select: { id: true, currency: true }
   });
 
   if (!invoice) {
@@ -460,12 +471,22 @@ async function createInvoicePayment(prisma, invoiceId, data = {}) {
   }
 
   const payment = await prisma.$transaction(async (tx) => {
+    const method = normalizePaymentMethod(data.method);
+    let cashSessionId = data.cashSessionId || null;
+    if (method === "cash") {
+      const activeSession = await tx.cashRegisterSession.findFirst({ where: { userId: data.userId || "", status: "open" } });
+      if (!activeSession) {
+        throw new Error("Ouvrez une session de caisse avant d'enregistrer un paiement en espèces.");
+      }
+      cashSessionId = activeSession.id;
+    }
     const created = await tx.payment.create({
       data: {
         invoiceId,
         userId: data.userId || null,
         amount: normalizePaymentAmount(data.amount),
-        method: normalizePaymentMethod(data.method),
+        method,
+        cashSessionId,
         paidAt: data.paidAt ? new Date(data.paidAt) : new Date(),
         reference: data.reference || null,
         notes: data.notes || null
@@ -481,6 +502,10 @@ async function createInvoicePayment(prisma, invoiceId, data = {}) {
     const receiptCounter = await tx.receiptCounter.upsert({ where: { year }, update: { currentSequence: { increment: 1 } }, create: { year, currentSequence: 1 } });
     await tx.receipt.create({ data: { number: `REC-${year}-${String(receiptCounter.currentSequence).padStart(4, "0")}`, paymentId: created.id, invoiceId, clientId: invoiceAfterPayment.clientId, amount: created.amount, method: created.method, receivedAt: created.paidAt, balanceDue: Math.max(0, Number(invoiceAfterPayment.total || 0) - totalPaid) } });
 
+    if (cashSessionId) {
+      await tx.cashRegisterMovement.create({ data: { sessionId: cashSessionId, userId: data.userId, type: "in", amount: created.amount, currency: invoice.currency, invoiceId, paymentId: created.id, description: `Paiement ${created.method} · facture ${invoiceId}` } });
+    }
+
     return tx.payment.findUnique({ where: { id: created.id }, include: paymentInclude() });
   });
 
@@ -490,7 +515,7 @@ async function createInvoicePayment(prisma, invoiceId, data = {}) {
 async function updateInvoicePayment(prisma, id, data = {}) {
   const existing = await prisma.payment.findUnique({
     where: { id },
-    select: { invoiceId: true }
+    select: { invoiceId: true, amount: true, method: true, cashSessionId: true, userId: true, invoice: { select: { currency: true } } }
   });
 
   if (!existing) {
@@ -498,11 +523,23 @@ async function updateInvoicePayment(prisma, id, data = {}) {
   }
 
   const payment = await prisma.$transaction(async (tx) => {
+    let cashSessionId = existing.cashSessionId;
+    const nextMethod = data.method !== undefined ? normalizePaymentMethod(data.method) : existing.method;
+    if (nextMethod === "cash") {
+      if (!cashSessionId) {
+        const activeSession = await tx.cashRegisterSession.findFirst({ where: { userId: data.userId || existing.userId || "", status: "open" } });
+        if (!activeSession) throw new Error("Ouvrez une session de caisse avant de rattacher ce paiement.");
+        cashSessionId = activeSession.id;
+      }
+    } else {
+      cashSessionId = null;
+    }
     const updated = await tx.payment.update({
       where: { id },
       data: {
         ...(data.amount !== undefined ? { amount: normalizePaymentAmount(data.amount) } : {}),
-        ...(data.method !== undefined ? { method: normalizePaymentMethod(data.method) } : {}),
+        ...(data.method !== undefined ? { method: nextMethod } : {}),
+        cashSessionId,
         ...(data.paidAt !== undefined ? { paidAt: new Date(data.paidAt) } : {}),
         ...(data.reference !== undefined ? { reference: data.reference || null } : {}),
         ...(data.notes !== undefined ? { notes: data.notes || null } : {})
@@ -512,6 +549,15 @@ async function updateInvoicePayment(prisma, id, data = {}) {
 
     await syncInvoicePaymentStatus(tx, existing.invoiceId);
     await tx.receipt.updateMany({ where: { paymentId: id }, data: { amount: updated.amount, method: updated.method, receivedAt: updated.paidAt } });
+
+    const movement = await tx.cashRegisterMovement.findUnique({ where: { paymentId: id } });
+    if (nextMethod === "cash") {
+      const movementData = { sessionId: cashSessionId, userId: data.userId || existing.userId, type: "in", amount: updated.amount, currency: existing.invoice.currency, invoiceId: existing.invoiceId, paymentId: id, description: `Paiement ${updated.method} · facture ${existing.invoiceId}` };
+      if (movement) await tx.cashRegisterMovement.update({ where: { paymentId: id }, data: movementData });
+      else await tx.cashRegisterMovement.create({ data: movementData });
+    } else if (movement) {
+      await tx.cashRegisterMovement.delete({ where: { paymentId: id } });
+    }
 
     return updated;
   });
@@ -530,6 +576,7 @@ async function deleteInvoicePayment(prisma, id) {
   }
 
   await prisma.$transaction(async (tx) => {
+    await tx.cashRegisterMovement.deleteMany({ where: { paymentId: id } });
     await tx.payment.delete({ where: { id } });
     await syncInvoicePaymentStatus(tx, existing.invoiceId);
   });
