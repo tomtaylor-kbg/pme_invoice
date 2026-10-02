@@ -11,7 +11,7 @@ model User {
   id                 String                 @id @default(cuid())
   username           String                 @unique
   name               String
-  email              String                 @unique
+  email              String?                @unique
   role               String                 @default("order_operator")
   status             String                 @default("active")
   passwordHash       String

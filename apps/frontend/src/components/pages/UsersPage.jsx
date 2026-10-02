@@ -89,7 +89,7 @@ export function UsersPage() {
             />
           </label>
           <label>
-            Email
+            Email <span className="field-hint">facultatif</span>
             <input
               type="email"
               value={forms.user.email}

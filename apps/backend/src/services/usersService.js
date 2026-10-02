@@ -34,6 +34,7 @@ async function createUser(prisma, data) {
   const user = await prisma.user.create({
     data: {
       ...data,
+      email: String(data.email || "").trim() || null,
       role: normalizeRole(data.role),
       status: normalizeStatus(data.status),
       passwordHash: normalizePasswordForStorage(data.passwordHash) || ""
@@ -47,6 +48,7 @@ async function updateUser(prisma, id, data) {
     where: { id },
     data: {
       ...data,
+      ...(data.email !== undefined ? { email: String(data.email || "").trim() || null } : {}),
       ...(data.role !== undefined ? { role: normalizeRole(data.role) } : {}),
       ...(data.status !== undefined ? { status: normalizeStatus(data.status) } : {}),
       ...(data.passwordHash !== undefined && data.passwordHash !== "" ? { passwordHash: normalizePasswordForStorage(data.passwordHash) } : {})

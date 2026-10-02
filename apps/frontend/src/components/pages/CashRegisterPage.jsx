@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { addCashMovement, closeCashSession, getActiveCashSession, getDailyCashReport, openCashSession } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
 import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon } from "../ui";
@@ -9,6 +10,7 @@ const currencies = [["EUR", "Euro"], ["USD", "Dollar américain"], ["CDF", "Fran
 
 export function CashRegisterPage() {
   const { token, data, workspaceSettings, notifySuccess, notifyError } = useWorkspace();
+  const navigate = useNavigate();
   const defaultCurrency = workspaceSettings.defaultCurrency || "EUR";
   const [session, setSession] = useState(undefined);
   const [report, setReport] = useState(null);
@@ -73,6 +75,10 @@ export function CashRegisterPage() {
 
   async function saveMovement(event) {
     event.preventDefault();
+    if (movement.type === "out") {
+      navigate("/cash");
+      return;
+    }
     try {
       await addCashMovement(token, { ...movement, sessionId: session.id });
       setMovement({ type: "in", currency: session.currency, amount: "", description: "" });
@@ -115,7 +121,7 @@ export function CashRegisterPage() {
         {!session ? <section className="panel cash-register-empty"><div className="cash-register-empty-icon" aria-hidden="true">₿</div><h2>Ouvrir une session de caisse</h2><p>Définissez le fonds de départ et la devise de cette vacation pour commencer les opérations.</p><button className="primary-button" type="button" onClick={() => setOpeningOpen(true)}>Configurer le fonds de départ</button></section> : <section className="cash-register-grid">
           <section className="panel cash-register-summary"><div><span className="eyebrow">Session multi-devise</span><div className="cash-balance-list">{Object.entries(session.expectedBalances || { [session.currency]: session.expectedBalance }).map(([balanceCurrency, amount]) => <strong key={balanceCurrency}>{money(amount, balanceCurrency)}</strong>)}</div><small>Soldes théoriques par devise</small></div><button className="secondary-button" type="button" onClick={() => setClosingOpen(true)}>Clôturer la caisse</button></section>
           <div className="cash-register-workspace">
-            <form className="panel stack-form cash-movement-editor" onSubmit={saveMovement}><div className="section-header"><div><span className="eyebrow">Opération</span><h2>Nouveau mouvement</h2></div><span className="cash-currency-chip">Mouvement</span></div><label>Type<select value="in" disabled><option value="in">Encaissement</option></select></label><label>Devise<select value={movement.currency} onChange={(event) => setMovement({ ...movement, currency: event.target.value })}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label><label>Montant ({movement.currency})<input type="number" min="0.01" step="0.01" required value={movement.amount} onChange={(event) => setMovement({ ...movement, amount: event.target.value })} /></label><label>Description<input required value={movement.description} onChange={(event) => setMovement({ ...movement, description: event.target.value })} placeholder="Ex. Paiement facture FAC-2026-0001" /></label><button className="primary-button" type="submit">Enregistrer le mouvement</button></form>
+            <form className="panel stack-form cash-movement-editor" onSubmit={saveMovement}><div className="section-header"><div><span className="eyebrow">Opération</span><h2>Nouveau mouvement</h2></div><span className="cash-currency-chip">Mouvement</span></div><label>Type<select value={movement.type} onChange={(event) => setMovement({ ...movement, type: event.target.value })}><option value="in">Encaissement</option><option value="out">Décaissement</option></select></label>{movement.type === "out" && <p className="field-hint">Les décaissements sont enregistrés dans un bon de sortie pour rester liés à la caisse.</p>}<label>Devise<select value={movement.currency} onChange={(event) => setMovement({ ...movement, currency: event.target.value })}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label><label>Montant ({movement.currency})<input type="number" min="0.01" step="0.01" required value={movement.amount} onChange={(event) => setMovement({ ...movement, amount: event.target.value })} /></label><label>Description<input required value={movement.description} onChange={(event) => setMovement({ ...movement, description: event.target.value })} placeholder="Ex. Paiement facture FAC-2026-0001" /></label><button className="primary-button" type="submit">{movement.type === "out" ? "Créer un bon de sortie" : "Enregistrer le mouvement"}</button></form>
             <section className="panel cash-movement-history"><div className="section-header"><div><span className="eyebrow">Session active</span><h2>Mouvements récents</h2></div><span className="cash-currency-chip">{session.currency}</span></div>{(session.movements || []).length ? <div className="cash-movement-list">{(session.movements || []).map((item) => <div key={item.id}><span className={item.type === "in" ? "text-success" : "text-danger"}>{item.type === "in" ? "+" : "−"}{money(item.amount, item.currency)}</span><span>{readableMovementDescription(item)}</span></div>)}</div> : <p className="text-muted">Aucun mouvement dans cette session.</p>}</section>
           </div>
           <section className="panel cash-daily-report"><div className="section-header"><div><span className="eyebrow">Rapport journalier · {report?.date}</span><h2>Synthèse de la journée</h2></div><button className="secondary-button" type="button" onClick={printDailyReport}>Imprimer</button></div><div className="cash-report-totals">{Object.entries(report?.totals || session.expectedBalances || {}).map(([reportCurrency, amount]) => <div key={reportCurrency}><span>{reportCurrency}</span><strong>{money(amount, reportCurrency)}</strong></div>)}</div></section>
