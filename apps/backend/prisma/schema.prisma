@@ -13,6 +13,7 @@ model User {
   name               String
   email              String                 @unique
   role               String                 @default("order_operator")
+  status             String                 @default("active")
   passwordHash       String
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
@@ -46,7 +47,7 @@ model Session {
 model Client {
   id            String         @id @default(cuid())
   firstName     String
-  lastName      String
+  lastName      String?
   email         String
   phone         String?
   company       String?
@@ -175,6 +176,7 @@ model DeliveryNote {
   userId           String?
   orderId          String?
   status           String                @default("draft")
+  currency         String                @default("EUR")
   issueDate        DateTime
   deliveryAddress  String?
   orderReference   String?
@@ -198,6 +200,7 @@ model DeliveryNoteLine {
   id             String       @id @default(cuid())
   deliveryNoteId String
   description    String
+  orderedQuantity Int          @default(0)
   quantity       Int
   unitPrice      Decimal      @default(0)
   unit           String       @default("unité")

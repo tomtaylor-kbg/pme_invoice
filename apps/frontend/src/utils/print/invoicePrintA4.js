@@ -44,8 +44,6 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
     : invoice?.documentType === "proforma"
     ? `Pro forma ${String(invoice.number || "proforma").replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")}.pdf`
     : buildInvoicePdfFilename({ invoice, client });
-  const dateQualifier = isDeliveryNote ? "Livré le" : invoice?.documentType === "proforma" ? "Valable jusqu’au" : "Échéance";
-  const endDate = isDeliveryNote ? invoice?.issueDate : invoice?.documentType === "proforma" ? invoice?.validUntil : invoice?.dueDate;
   const printStatus = isDeliveryNote
     ? ({ draft: "Brouillon", confirmed: "Confirmé", delivered: "Livré", cancelled: "Annulé" })[invoice?.status] || "Bon de livraison"
     : invoice?.documentType === "proforma"
@@ -277,6 +275,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
             <strong>${escapeHtml(companyName)}</strong>
             ${addressLine ? `<span class="highlight">${escapeHtml(addressLine)}</span>` : ""}
             ${contactLine ? `<span>${escapeHtml(contactLine)}</span>` : ""}
+            ${businessSector ? `<span class="sector">${escapeHtml(businessSector)}</span>` : ""}
           </div>
           <div class="title-block">
             <h1>${escapeHtml(documentLabel)}</h1>
@@ -303,8 +302,9 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
                 ${invoice?.deliveredBy ? `<div><span>Livré par</span><strong>${escapeHtml(invoice.deliveredBy)}</strong></div>` : ""}
                 ${invoice?.receivedBy ? `<div><span>Réceptionné par</span><strong>${escapeHtml(invoice.receivedBy)}</strong></div>` : ""}
               ` : `
+                <div><span>Date d’édition</span><strong>${escapeHtml(formatISODate(invoice?.issueDate))}</strong></div>
                 <div><span>Devise</span><strong>${escapeHtml(currency)}</strong></div>
-                ${settings.vatRate = 0  ? `<div><span>TVA par défaut</span><strong>${escapeHtml(settings.vatRate)}%</strong></div>` : ""}
+                ${Number(settings.vatRate) > 0 ? `<div><span>TVA par défaut</span><strong>${escapeHtml(settings.vatRate)}%</strong></div>` : ""}
               `}
               <div><span>Créée par</span><strong>${escapeHtml(createdBy)}</strong></div>
             </div>
@@ -316,8 +316,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
             <tr>
               <th class="num">N°</th>
               <th>Désignation</th>
-              <th class="qty">Qte</th>
-              ${isDeliveryNote ? `<th class="unit">Unité</th>` : `<th class="unit">PU</th><th class="total">PT</th>`}
+              ${isDeliveryNote ? `<th class="qty">Qté commandée</th><th class="qty">Qté livrée</th><th class="unit">Unité</th>` : `<th class="qty">Qte</th><th class="unit">PU</th><th class="total">PT</th>`}
             </tr>
           </thead>
           <tbody>
@@ -327,14 +326,13 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
                   <tr>
                     <td class="num">${index + 1}</td>
                     <td>${escapeHtml(line.description || "")}</td>
-                    <td class="qty">${escapeHtml(line.quantity || 0)}</td>
-                    ${isDeliveryNote ? `<td class="unit">${escapeHtml(line.unit || "unité")}</td>` : `<td class="unit">${escapeHtml(formatMoney(line.unitPrice, currency))}</td><td class="total">${escapeHtml(formatMoney(invoiceLineTotal(line), currency))}</td>`}
+                    ${isDeliveryNote ? `<td class="qty">${escapeHtml(line.orderedQuantity ?? line.quantity ?? 0)}</td><td class="qty">${escapeHtml(line.quantity || 0)}</td><td class="unit">${escapeHtml(line.unit || "unité")}</td>` : `<td class="qty">${escapeHtml(line.quantity || 0)}</td><td class="unit">${escapeHtml(formatMoney(line.unitPrice, currency))}</td><td class="total">${escapeHtml(formatMoney(invoiceLineTotal(line), currency))}</td>`}
                   </tr>
                 `
               )
               .join("") || `
                 <tr>
-                  <td class="num" colspan="${isDeliveryNote ? 4 : 5}">Aucune ligne</td>
+                  <td class="num" colspan="${isDeliveryNote ? 5 : 5}">Aucune ligne</td>
                 </tr>
               `}
           </tbody>

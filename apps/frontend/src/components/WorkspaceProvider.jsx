@@ -137,7 +137,7 @@ function readTheme() {
 function emptyForms() {
   return {
     client: { firstName: "", lastName: "", company: "", email: "", phone: "", city: "", status: "active", clientType: "individual" },
-    user: { username: "", name: "", email: "", role: "order_operator", passwordHash: "" },
+    user: { username: "", name: "", email: "", role: "order_operator", status: "active", passwordHash: "" },
     invoice: {
       number: "",
       clientId: "",
@@ -567,6 +567,7 @@ export function WorkspaceProvider({ children }) {
           name: item.name || "",
           email: item.email || "",
           role: item.role || "order_operator",
+          status: item.status || "active",
           passwordHash: ""
         }
       }));
@@ -691,7 +692,8 @@ export function WorkspaceProvider({ children }) {
           username: forms.user.username,
           name: forms.user.name,
           email: forms.user.email,
-          role: forms.user.role
+          role: forms.user.role,
+          status: forms.user.status
         };
         let savedUser;
         if (editor.kind === "user" && editor.id) {

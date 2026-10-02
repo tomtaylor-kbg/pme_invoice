@@ -13,14 +13,23 @@ export function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [orders, setOrders] = useState([]);
+  const [fullNameDraft, setFullNameDraft] = useState("");
 
   const isEditing = editor.kind === "client" && Boolean(editor.id);
   const isCompany = forms.client.clientType === "company";
-  const fullName = `${forms.client.firstName || ""} ${forms.client.lastName || ""}`.trim();
+  useEffect(() => {
+    if (editor.kind === "client") {
+      setFullNameDraft(`${forms.client.firstName || ""}${forms.client.lastName ? ` ${forms.client.lastName}` : ""}`);
+    }
+  }, [editor.kind, editor.id]);
 
   function updateFullName(value) {
-    const parts = value.trim().split(/\s+/).filter(Boolean);
-    setForms((current) => ({ ...current, client: { ...current.client, firstName: parts.shift() || "", lastName: parts.join(" ") } }));
+    const normalizedValue = value.replace(/\s+/g, " ");
+    const separatorIndex = normalizedValue.indexOf(" ");
+    const firstName = separatorIndex === -1 ? normalizedValue : normalizedValue.slice(0, separatorIndex);
+    const lastName = separatorIndex === -1 ? "" : normalizedValue.slice(separatorIndex + 1).trimStart();
+    setFullNameDraft(normalizedValue);
+    setForms((current) => ({ ...current, client: { ...current.client, firstName, lastName } }));
   }
 
   useEffect(() => {
@@ -162,7 +171,7 @@ export function ClientsPage() {
             </label>
           </> : <label className="client-form-field client-form-span-2">
             Nom complet
-            <input required value={fullName} onChange={(event) => updateFullName(event.target.value)} placeholder="Prénom et nom" />
+            <input required value={fullNameDraft} onChange={(event) => updateFullName(event.target.value)} placeholder="" />
           </label>}
           <label className="client-form-field">
             {isCompany ? "Email du contact" : "Email"}

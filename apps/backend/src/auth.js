@@ -30,6 +30,9 @@ async function authenticateUser(prisma, username, password) {
   });
 
   if (user && verifyPassword(password, user.passwordHash)) {
+    if (user.status !== "active") {
+      return null;
+    }
     if (!isHashedPassword(user.passwordHash)) {
       await prisma.user.update({
         where: { id: user.id },
@@ -64,6 +67,7 @@ async function authenticateUser(prisma, username, password) {
         name: fallbackName || "admin",
         email: fallbackEmail,
         role: "admin",
+        status: "active",
         passwordHash: hashPassword(bootstrapPassword)
       }
     });
@@ -115,12 +119,13 @@ async function resolveSession(prisma, token) {
       email: true,
       username: true,
       role: true,
+      status: true,
       createdAt: true,
       updatedAt: true
     }
   });
 
-  if (!user) {
+  if (!user || user.status !== "active") {
     await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
     return null;
   }

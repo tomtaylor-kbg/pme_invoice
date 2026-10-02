@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "../WorkspaceProvider";
-import { DataLoadingState, SectionHeader, Table } from "../ui";
+import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader, Table } from "../ui";
 import { buildMonthlyRevenueSeries, formatDate, money } from "../../utils/formatters";
+import { getActiveCashSession, openCashSession } from "../../api";
 
 function clientName(invoice) {
   const client = invoice.client || {};
@@ -17,11 +18,17 @@ function invoiceFinancialTone(invoice) {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { data, refresh, beginCreateInvoiceWithPreset, workspaceSettings, user, isHydrating } = useWorkspace();
+  const { token, data, refresh, beginCreateInvoiceWithPreset, workspaceSettings, user, isHydrating } = useWorkspace();
   const canManageCash = user?.role === "admin" || user?.role === "receptionist";
+  const isReceptionist = user?.role === "receptionist";
   const invoices = data.invoices || [];
   const currencies = [...new Set([workspaceSettings.defaultCurrency, "USD", "CDF", ...invoices.map((invoice) => invoice.currency)].filter(Boolean))];
   const [currency, setCurrency] = useState(workspaceSettings.defaultCurrency || currencies[0] || "EUR");
+  const [cashPromptOpen, setCashPromptOpen] = useState(false);
+  const [cashOpeningOpen, setCashOpeningOpen] = useState(false);
+  const [cashOpening, setCashOpening] = useState("");
+  const [cashCurrency, setCashCurrency] = useState(workspaceSettings.defaultCurrency || "EUR");
+  const [cashSaving, setCashSaving] = useState(false);
   const disbursements = data.cashDisbursements || [];
   const matchingInvoices = invoices.filter((invoice) => (invoice.currency || "EUR") === currency);
   const matchingDisbursements = disbursements.filter((record) => (record.currency || "EUR") === currency);
@@ -52,6 +59,27 @@ export function DashboardPage() {
   const receivedShare = billedAmount > 0 ? Math.round(receivedAmount / billedAmount * 100) : 0;
   const receivedShareExact = billedAmount > 0 ? receivedAmount / billedAmount * 100 : 0;
   const currentOutstandingShare = billedAmount > 0 ? currentOutstandingAmount / billedAmount * 100 : 0;
+  useEffect(() => {
+    if (!isReceptionist || !user?.id || isHydrating) return undefined;
+    let cancelled = false;
+    getActiveCashSession(token).then((activeSession) => {
+      if (!cancelled && !activeSession) setCashPromptOpen(true);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [isReceptionist, user?.id, isHydrating, token]);
+
+  async function confirmCashOpening(event) {
+    event.preventDefault();
+    if (cashSaving) return;
+    setCashSaving(true);
+    try {
+      await openCashSession(token, { openingBalance: cashOpening, currency: cashCurrency });
+      setCashOpeningOpen(false);
+      setCashOpening("");
+    } finally {
+      setCashSaving(false);
+    }
+  }
   const activity = useMemo(() => invoices.flatMap((invoice) => {
     const events = [{
       key: `invoice-${invoice.id}`,
@@ -94,6 +122,16 @@ export function DashboardPage() {
       </header>
 
       <div className="page-scroll">
+        <section className="dashboard-shortcuts" aria-label="Raccourcis des tâches récurrentes">
+          <div><span className="eyebrow">Actions rapides</span><h2>Tâches récurrentes</h2></div>
+          <div className="dashboard-shortcuts-list">
+            <button className="primary-button" type="button" onClick={() => { beginCreateInvoiceWithPreset(); navigate("/invoices"); }}>Nouvelle facture</button>
+            <button className="secondary-button" type="button" onClick={() => navigate("/clients")}>Nouveau client</button>
+            <button className="secondary-button" type="button" onClick={() => navigate("/orders")}>Commandes</button>
+            {canManageCash && <button className="secondary-button" type="button" onClick={() => navigate("/cash-register")}>Ouvrir la caisse</button>}
+            {canManageCash && <button className="secondary-button" type="button" onClick={() => navigate("/cash")}>Bon de sortie</button>}
+          </div>
+        </section>
         {isHydrating ? <DataLoadingState label="Chargement du tableau de bord…" className="page-loading-state" /> : <>
         <section className="activity-priorities" aria-label="Priorités financières">
           <button type="button" className="activity-priority outstanding" onClick={() => navigate("/invoices?status=open")}>
@@ -102,8 +140,8 @@ export function DashboardPage() {
           <button type="button" className="activity-priority outstanding" onClick={() => navigate("/invoices?status=open")}>
             <span>Factures ouvertes</span><strong className="financial-outstanding">{openInvoices.length}</strong><small>À suivre</small>
           </button>
-          <button type="button" className="activity-priority overdue" onClick={() => navigate("/invoices?status=overdue")}>
-            <span>Impayées en retard</span><strong className={overdueInvoices.length ? "financial-overdue" : ""}>{overdueInvoices.length}</strong><small>{overdueInvoices.length ? money(overdueBalance, currency) : "Aucune échéance dépassée"}</small>
+          <button type="button" className="activity-priority overdue" onClick={() => navigate("/invoices?status=unpaid")}>
+            <span>Factures impayées</span><strong className={unpaidAmount ? "financial-overdue" : ""}>{openInvoices.length}</strong><small>{openInvoices.length ? money(unpaidAmount, currency) : "Aucune facture impayée"}</small>
           </button>
           {canManageCash && <button type="button" className="activity-priority" onClick={() => navigate("/cash")}>
             <span>Sorties / décaissements</span><strong>{money(disbursedAmount, currency)}</strong><small>{matchingDisbursements.length} sortie{matchingDisbursements.length > 1 ? "s" : ""} en {currency}</small>
@@ -147,7 +185,7 @@ export function DashboardPage() {
 
         {overdueInvoices.length > 0 && <section className="activity-alert">
           <div><strong>{overdueInvoices.length} facture{overdueInvoices.length > 1 ? "s" : ""} en retard</strong><span>Montant restant : {money(overdueInvoices.reduce((sum, invoice) => sum + Number(invoice.balanceDue ?? invoice.total ?? 0), 0), currency)}</span></div>
-          <button className="text-button" type="button" onClick={() => navigate("/invoices?status=overdue", { state: { invoiceAction: { id: overdueInvoices[0].id, mode: "payments" } } })}>Ouvrir une facture en retard</button>
+          <button className="text-button" type="button" onClick={() => navigate("/invoices?status=unpaid", { state: { invoiceAction: { id: overdueInvoices[0].id, mode: "payments" } } })}>Ouvrir une facture impayée</button>
         </section>}
 
         <div className="dashboard-lists-grid">
@@ -175,6 +213,16 @@ export function DashboardPage() {
         </div>
         </>}
       </div>
+      <OverlayDialog open={cashPromptOpen} title="Session de caisse" onClose={() => setCashPromptOpen(false)} topbarActions={<><button className="secondary-button" type="button" onClick={() => setCashPromptOpen(false)}>Non</button><button className="primary-button" type="button" onClick={() => { setCashPromptOpen(false); setCashOpeningOpen(true); }}>Oui, ouvrir</button></>}>
+        <div className="cash-opening-intro">Aucune session de caisse n’est ouverte pour votre journée. Voulez-vous ouvrir la caisse maintenant ?</div>
+      </OverlayDialog>
+      <OverlayDialog open={cashOpeningOpen} title="Ouvrir une session de caisse" onClose={() => setCashOpeningOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="dashboard-cash-opening-form" disabled={cashSaving}>Ouvrir la caisse</OverlayActionButton>}>
+        <form id="dashboard-cash-opening-form" className="stack-form cash-opening-form" onSubmit={confirmCashOpening}>
+          <div className="cash-opening-intro">Définissez le fonds de départ et la devise de la session.</div>
+          <label>Devise<select value={cashCurrency} onChange={(event) => setCashCurrency(event.target.value)}><option value="EUR">EUR — Euro</option><option value="USD">USD — Dollar américain</option><option value="CDF">CDF — Franc congolais</option></select></label>
+          <label>Fonds de départ ({cashCurrency})<input autoFocus type="number" min="0" step="0.01" required value={cashOpening} onChange={(event) => setCashOpening(event.target.value)} /></label>
+        </form>
+      </OverlayDialog>
     </div>
   );
 }

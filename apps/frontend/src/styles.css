@@ -492,6 +492,22 @@ body[data-theme="light"] .error-banner {
   min-width: 0;
 }
 
+.nav-item-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: #dc2626;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .nav-item:hover {
   border-color: var(--border);
   background: rgba(148, 163, 184, 0.06);
@@ -2120,6 +2136,13 @@ body[data-theme="light"] .hero.list-page-header {
 .setup-logo-preview img { max-width: 150px; max-height: 70px; object-fit: contain; }
 .setup-actions { display: flex; justify-content: flex-end; }
 .setup-actions .primary-button { min-height: 46px; padding: 0 22px; border-radius: 12px; font-weight: 650; }
+.not-found-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--app-background); }
+.not-found-card { width: min(100%, 560px); padding: clamp(28px, 6vw, 56px); border: 1px solid var(--border); border-radius: 22px; background: var(--panel); box-shadow: 0 20px 60px rgba(0, 0, 0, .14); text-align: center; }
+.not-found-code { display: block; color: var(--accent-color); font-size: clamp(4rem, 16vw, 7rem); font-weight: 800; line-height: .9; letter-spacing: -.08em; }
+.not-found-card h1 { margin: 18px 0 10px; font-size: clamp(1.5rem, 4vw, 2.15rem); }
+.not-found-card p { margin: 0; color: var(--muted); }
+.not-found-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.not-found-actions a { display: inline-flex; align-items: center; text-decoration: none; }
 .audit-lines-wrap { display: grid; gap: 10px; }
 .audit-lines-wrap h3 { margin: 0; font-size: 0.96rem; }
 .audit-lines-table td, .audit-lines-table th { white-space: nowrap; }
@@ -2165,6 +2188,9 @@ body[data-theme="light"] .hero.list-page-header {
 .activity-alert > div { display: grid; gap: 4px; }
 .activity-alert span { color: var(--muted); font-size: 0.88rem; }
 .dashboard-lists-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); align-items: start; gap: 16px; margin-top: 20px; }
+.dashboard-shortcuts { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--surface-radius); background: var(--panel); }
+.dashboard-shortcuts h2 { margin: 4px 0 0; font-size: 1.05rem; }
+.dashboard-shortcuts-list { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .activity-feed-panel, .dashboard-disbursements-panel { min-width: 0; margin-top: 0; }
 .dashboard-disbursements-table table { min-width: 520px; }
 .dashboard-disbursements-table td:last-child { min-width: 0; white-space: nowrap; }
@@ -2402,6 +2428,7 @@ body[data-theme="light"] .hero.list-page-header {
 .cash-form-wide { grid-column: 1 / -1; }
 .invoices-table td .badge, .clients-table td .badge { white-space: nowrap; }
 .invoices-table .badge.paid { background: rgba(22, 163, 74, 0.14); color: var(--success); }
+.invoices-table .badge.unpaid { background: rgba(220, 38, 38, 0.14); color: var(--danger); }
 .invoices-table .badge.sent { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); }
 .invoices-table .badge.draft { background: rgba(148, 163, 184, 0.12); color: var(--muted); }
 .invoices-table .badge.overdue { background: rgba(220, 38, 38, 0.14); color: var(--danger); }
@@ -2513,6 +2540,9 @@ tbody tr:hover {
 .user-role.role-receptionist { background: rgba(37, 99, 235, 0.12); color: var(--accent-color); }
 .user-role.role-order_manager { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
 .user-role.role-order_operator { background: rgba(14, 116, 144, 0.12); color: #0e7490; }
+.user-status { justify-self: start; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 650; }
+.user-status-active { background: rgba(22, 163, 74, 0.12); color: #15803d; }
+.user-status-inactive { background: rgba(220, 38, 38, 0.12); color: var(--danger); }
 .order-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 0.78rem; }
 .order-card-meta .badge { font-size: 0.68rem; }
 .badge.priority-low { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
@@ -3412,6 +3442,9 @@ body[data-theme="light"] .entity-card.invoice {
 }
 
 @media (max-width: 720px) {
+  .dashboard-shortcuts { align-items: stretch; flex-direction: column; }
+  .dashboard-shortcuts-list { justify-content: stretch; }
+  .dashboard-shortcuts-list button { flex: 1 1 140px; }
   .order-detail-grid { grid-template-columns: 1fr; }
   .kanban-board { grid-template-columns: 1fr; }
   .cash-register-summary, .inline-form, .form-row { align-items: stretch; flex-direction: column; }
@@ -3799,5 +3832,27 @@ body[data-theme="light"] .entity-card.invoice {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+/* Règle unique de dimensionnement des onglets de navigation. */
+.nav-item,
+.sidebar-collapsed .nav-item {
+  box-sizing: border-box;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 1100px) {
+  .nav-item,
+  .sidebar-collapsed .nav-item {
+    flex: 0 0 158px;
+    width: 158px;
+    min-width: 158px;
+    max-width: 158px;
   }
 }

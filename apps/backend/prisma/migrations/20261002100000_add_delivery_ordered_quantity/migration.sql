@@ -1,0 +1,1 @@
+ALTER TABLE "DeliveryNoteLine" ADD COLUMN "orderedQuantity" INTEGER NOT NULL DEFAULT 0;

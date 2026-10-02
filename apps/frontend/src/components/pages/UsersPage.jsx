@@ -2,6 +2,7 @@ import { useWorkspace } from "../WorkspaceProvider";
 import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader } from "../ui";
 
 const roleLabels = { admin: "Administrateur", receptionist: "Réceptionniste", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
+const statusLabels = { active: "Actif", inactive: "Inactif" };
 
 export function UsersPage() {
   const { data, forms, setForms, editor, beginCreateUser, beginEditUser, saveUser, removeUser, loading, closeEditor } = useWorkspace();
@@ -38,6 +39,7 @@ export function UsersPage() {
                   </div>
                 </div>
                 <span className={`user-role role-${item.role}`}>{roleLabels[item.role] || roleLabels.order_operator}</span>
+                <span className={`user-status user-status-${item.status === "inactive" ? "inactive" : "active"}`}>{statusLabels[item.status] || statusLabels.active}</span>
                 <div className="user-card-actions">
                   <button type="button" className="text-button" onClick={() => beginEditUser(item)}>Modifier</button>
                   <button type="button" className="text-button danger" onClick={() => removeUser(item.id)} disabled={loading}>Supprimer</button>
@@ -110,6 +112,19 @@ export function UsersPage() {
               <option value="order_operator">Opérateur de commande</option>
               <option value="admin">Administrateur</option>
               <option value="receptionist">Réceptionniste</option>
+            </select>
+          </label>
+          <label>
+            Statut
+            <select
+              value={forms.user.status}
+              onChange={(event) => setForms((current) => ({
+                ...current,
+                user: { ...current.user, status: event.target.value }
+              }))}
+            >
+              <option value="active">Actif</option>
+              <option value="inactive">Inactif</option>
             </select>
           </label>
           <label>

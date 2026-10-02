@@ -2,9 +2,14 @@ const { serializeUser } = require("../utils/serializers");
 const { normalizePasswordForStorage } = require("../utils/password");
 
 const ALLOWED_ROLES = new Set(["order_manager", "order_operator", "admin", "receptionist"]);
+const ALLOWED_STATUSES = new Set(["active", "inactive"]);
 
 function normalizeRole(role) {
   return ALLOWED_ROLES.has(role) ? role : "order_operator";
+}
+
+function normalizeStatus(status) {
+  return ALLOWED_STATUSES.has(status) ? status : "active";
 }
 
 async function listUsers(prisma) {
@@ -16,6 +21,7 @@ async function listUsers(prisma) {
       name: true,
       email: true,
       role: true,
+      status: true,
       createdAt: true,
       updatedAt: true
     }
@@ -29,6 +35,7 @@ async function createUser(prisma, data) {
     data: {
       ...data,
       role: normalizeRole(data.role),
+      status: normalizeStatus(data.status),
       passwordHash: normalizePasswordForStorage(data.passwordHash) || ""
     }
   });
@@ -41,6 +48,7 @@ async function updateUser(prisma, id, data) {
     data: {
       ...data,
       ...(data.role !== undefined ? { role: normalizeRole(data.role) } : {}),
+      ...(data.status !== undefined ? { status: normalizeStatus(data.status) } : {}),
       ...(data.passwordHash !== undefined && data.passwordHash !== "" ? { passwordHash: normalizePasswordForStorage(data.passwordHash) } : {})
     }
   });

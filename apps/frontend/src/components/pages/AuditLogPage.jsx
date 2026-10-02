@@ -18,6 +18,7 @@ function DetailField({ label, children }) {
 function LogDetails({ record }) {
   const details = record.details || {};
   const currency = details.currency || "EUR";
+  const paymentMethods = { cash: "Espèces", card: "Carte bancaire", bank_transfer: "Virement bancaire", mobile_money: "Mobile money", check: "Chèque", other: "Autre" };
 
   if (!Object.keys(details).length) {
     return <div className="empty-card-state">Les détails de cette ancienne entrée n’étaient pas conservés.{record.entityId ? ` Identifiant : ${record.entityId}` : ""}</div>;
@@ -60,6 +61,16 @@ function LogDetails({ record }) {
     </dl>;
   }
 
+  if (record.entity === "Paiement") {
+    return <dl className="audit-detail-grid">
+      <DetailField label="Montant">{money(details.amount, currency)}</DetailField>
+      <DetailField label="Moyen de paiement">{paymentMethods[details.method] || details.method}</DetailField>
+      <DetailField label="Date du paiement">{details.paidAt ? formatTimestamp(details.paidAt) : null}</DetailField>
+      <DetailField label="Référence">{details.reference}</DetailField>
+      <DetailField label="Notes">{details.notes}</DetailField>
+    </dl>;
+  }
+
   return <dl className="audit-detail-grid">
     {Object.entries(details).map(([key, value]) => <DetailField key={key} label={key}>
       {typeof value === "object" ? JSON.stringify(value) : String(value)}
@@ -86,11 +97,11 @@ export function AuditLogPage() {
     return () => { active = false; };
   }, [token]);
 
-  const columns = isAdmin ? ["Horodatage", "Utilisateur", "Action", "Élément", "Détail", ""] : ["Horodatage", "Action", "Élément", "Détail", ""];
+  const columns = isAdmin ? ["Horodatage", "Utilisateur", "Action", "Détail", ""] : ["Horodatage", "Action", "Détail", ""];
   const rows = records.map((record) => {
     const row = [formatTimestamp(record.createdAt)];
     if (isAdmin) row.push(<span title={record.actorEmail}>{record.actorName || record.actorEmail || "Compte supprimé"}</span>);
-    row.push(record.action, record.entity, record.description, <button type="button" className="text-button" onClick={() => setSelectedRecord(record)}>Voir</button>);
+    row.push(record.action, record.description, <button type="button" className="text-button" onClick={() => setSelectedRecord(record)}>Voir</button>);
     return row;
   });
 
@@ -117,7 +128,6 @@ export function AuditLogPage() {
           <dl className="audit-detail-grid">
             <DetailField label="Horodatage">{formatTimestamp(selectedRecord.createdAt)}</DetailField>
             <DetailField label="Action">{selectedRecord.action}</DetailField>
-            <DetailField label="Élément">{selectedRecord.entityId || "—"}</DetailField>
             {isAdmin && <DetailField label="Utilisateur">{selectedRecord.actorName} · {selectedRecord.actorEmail}</DetailField>}
           </dl>
           <LogDetails record={selectedRecord} />

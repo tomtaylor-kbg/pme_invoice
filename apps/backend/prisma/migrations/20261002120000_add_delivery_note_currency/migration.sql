@@ -1,0 +1,2 @@
+ALTER TABLE "DeliveryNote"
+ADD COLUMN "currency" TEXT NOT NULL DEFAULT 'EUR';

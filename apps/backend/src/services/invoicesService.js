@@ -306,7 +306,7 @@ async function createInvoice(prisma, data) {
       const nameParts = String(data.manualClientName).trim().replace(/\s+/g, " ").split(" ");
       const firstName = nameParts.shift() || "Client";
       const lastName = nameParts.join(" ") || "Ponctuel";
-      const email = String(data.manualClientEmail || "").trim() || `ponctuel-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@local.invalid`;
+      const email = String(data.manualClientEmail || "").trim();
       const client = await tx.client.create({
         data: {
           firstName,
@@ -463,7 +463,7 @@ async function listInvoicePayments(prisma, invoiceId) {
 async function createInvoicePayment(prisma, invoiceId, data = {}) {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
-    select: { id: true, currency: true }
+    select: { id: true, number: true, currency: true }
   });
 
   if (!invoice) {
@@ -503,7 +503,7 @@ async function createInvoicePayment(prisma, invoiceId, data = {}) {
     await tx.receipt.create({ data: { number: `REC-${year}-${String(receiptCounter.currentSequence).padStart(4, "0")}`, paymentId: created.id, invoiceId, clientId: invoiceAfterPayment.clientId, amount: created.amount, method: created.method, receivedAt: created.paidAt, balanceDue: Math.max(0, Number(invoiceAfterPayment.total || 0) - totalPaid) } });
 
     if (cashSessionId) {
-      await tx.cashRegisterMovement.create({ data: { sessionId: cashSessionId, userId: data.userId, type: "in", amount: created.amount, currency: invoice.currency, invoiceId, paymentId: created.id, description: `Paiement ${created.method} · facture ${invoiceId}` } });
+      await tx.cashRegisterMovement.create({ data: { sessionId: cashSessionId, userId: data.userId, type: "in", amount: created.amount, currency: invoice.currency, invoiceId, paymentId: created.id, description: `Paiement ${created.method} · facture ${invoice.number}` } });
     }
 
     return tx.payment.findUnique({ where: { id: created.id }, include: paymentInclude() });
@@ -515,7 +515,7 @@ async function createInvoicePayment(prisma, invoiceId, data = {}) {
 async function updateInvoicePayment(prisma, id, data = {}) {
   const existing = await prisma.payment.findUnique({
     where: { id },
-    select: { invoiceId: true, amount: true, method: true, cashSessionId: true, userId: true, invoice: { select: { currency: true } } }
+    select: { invoiceId: true, amount: true, method: true, cashSessionId: true, userId: true, invoice: { select: { number: true, currency: true } } }
   });
 
   if (!existing) {
@@ -552,7 +552,7 @@ async function updateInvoicePayment(prisma, id, data = {}) {
 
     const movement = await tx.cashRegisterMovement.findUnique({ where: { paymentId: id } });
     if (nextMethod === "cash") {
-      const movementData = { sessionId: cashSessionId, userId: data.userId || existing.userId, type: "in", amount: updated.amount, currency: existing.invoice.currency, invoiceId: existing.invoiceId, paymentId: id, description: `Paiement ${updated.method} · facture ${existing.invoiceId}` };
+      const movementData = { sessionId: cashSessionId, userId: data.userId || existing.userId, type: "in", amount: updated.amount, currency: existing.invoice.currency, invoiceId: existing.invoiceId, paymentId: id, description: `Paiement ${updated.method} · facture ${existing.invoice.number}` };
       if (movement) await tx.cashRegisterMovement.update({ where: { paymentId: id }, data: movementData });
       else await tx.cashRegisterMovement.create({ data: movementData });
     } else if (movement) {

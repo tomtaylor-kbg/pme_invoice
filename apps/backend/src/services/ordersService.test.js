@@ -108,6 +108,34 @@ test("createOrder crée une commande en attente sans opérateur", async () => {
   assert.equal(result.number, "CMD-2026-0001");
 });
 
+test("createOrder crée automatiquement un client ponctuel sans email", async () => {
+  const created = orderFixture({ status: "pending", operator: null });
+  let createdClientData;
+  let createdOrderData;
+  const tx = {
+    client: {
+      create: async ({ data }) => {
+        createdClientData = data;
+        return { id: "client-ponctuel" };
+      }
+    },
+    orderCounter: { upsert: async () => ({ currentSequence: 9 }) },
+    order: {
+      create: async ({ data }) => { createdOrderData = data; return created; },
+      findUnique: async () => created
+    },
+    orderEvent: { create: async () => ({}) }
+  };
+  const prisma = { $transaction: async (callback) => callback(tx) };
+
+  await createOrder(prisma, { manualClientName: "Client comptoir", lines: [{ description: "Affiche", quantity: 1, unitPrice: 100 }] }, "reception-1");
+
+  assert.equal(createdClientData.firstName, "Client");
+  assert.equal(createdClientData.lastName, "comptoir");
+  assert.equal(createdClientData.email, "");
+  assert.equal(createdOrderData.clientId, "client-ponctuel");
+});
+
 test("le gestionnaire ne reçoit pas les montants à la création", async () => {
   const created = orderFixture({ creator: { name: "Gestionnaire", email: "manager@example.test", role: "order_manager" } });
   const tx = {

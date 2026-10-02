@@ -1,4 +1,4 @@
-import { escapeHtml, formatISODate, formatMoney } from "../formatters";
+import { escapeHtml, formatISODate, formatMoney, invoicePaymentStatusLabel } from "../formatters";
 import { formatWorkspaceAddress, formatWorkspaceBankInfo, formatWorkspaceContact, formatWorkspaceLegalInfo } from "./invoicePrintShared";
 
 function clientName(client = {}) {
@@ -20,7 +20,6 @@ export function buildClientPrintHtml({ client = {}, settings = {}, orders = [], 
   const clientOrders = orders.filter((order) => order.clientId === client.id || order.client?.id === client.id);
   const clientInvoices = invoices.filter((invoice) => invoice.clientId === client.id || invoice.client?.id === client.id);
   const orderStatus = { pending: "En attente", processing: "En cours", ready: "Prête", invoiced: "Facturée" };
-  const invoiceStatus = { draft: "Brouillon", sent: "Envoyée", paid: "Payée", overdue: "En retard" };
 
   return `<!doctype html>
 <html lang="fr">
@@ -116,7 +115,7 @@ export function buildClientPrintHtml({ client = {}, settings = {}, orders = [], 
 
         <section class="relations">
           <h2>Factures du client</h2>
-          ${clientInvoices.length ? `<table><thead><tr><th>N° facture</th><th>Date</th><th>Statut</th><th>Total</th></tr></thead><tbody>${clientInvoices.map((invoice) => `<tr><td>${escapeHtml(invoice.number || "—")}</td><td>${escapeHtml(formatISODate(invoice.issueDate))}</td><td>${escapeHtml(invoiceStatus[invoice.status] || invoice.status || "—")}</td><td>${escapeHtml(formatMoney(invoice.total, invoice.currency || "EUR"))}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">Aucune facture enregistrée.</div>`}
+          ${clientInvoices.length ? `<table><thead><tr><th>N° facture</th><th>Date</th><th>Statut</th><th>Total</th></tr></thead><tbody>${clientInvoices.map((invoice) => `<tr><td>${escapeHtml(invoice.number || "—")}</td><td>${escapeHtml(formatISODate(invoice.issueDate))}</td><td>${escapeHtml(invoicePaymentStatusLabel(invoice))}</td><td>${escapeHtml(formatMoney(invoice.total, invoice.currency || "EUR"))}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">Aucune facture enregistrée.</div>`}
         </section>
 
         <div class="notes">Cette fiche récapitule les informations enregistrées dans la base clients.</div>

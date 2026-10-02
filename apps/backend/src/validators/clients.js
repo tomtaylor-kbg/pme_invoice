@@ -6,8 +6,8 @@ function validateClientCreate(body = {}) {
   if (clientType === "company" && !String(company || "").trim()) {
     return "company is required for an entity";
   }
-  if (clientType === "individual" && (!String(firstName || "").trim() || !String(lastName || "").trim())) {
-    return "firstName and lastName are required for an individual";
+  if (clientType === "individual" && !String(firstName || "").trim()) {
+    return "firstName is required for an individual";
   }
   return null;
 }

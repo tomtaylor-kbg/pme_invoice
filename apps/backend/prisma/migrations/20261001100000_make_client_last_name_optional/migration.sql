@@ -1,0 +1,1 @@
+ALTER TABLE "Client" ALTER COLUMN "lastName" DROP NOT NULL;

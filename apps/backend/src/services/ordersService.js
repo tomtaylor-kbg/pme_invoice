@@ -68,16 +68,33 @@ async function createOrder(prisma, data, userOrId) {
   const userId = typeof userOrId === "string" ? userOrId : userOrId?.id;
   const hideAmount = ["order_operator", "order_manager"].includes(userOrId?.role);
   const lines = normalizeLines(data.lines);
-  if (!data.clientId) throw new Error("Client obligatoire.");
+  if (!data.clientId && !String(data.manualClientName || "").trim()) throw new Error("Un client ou un nom de client ponctuel est obligatoire.");
   if (!lines.length) throw new Error("La commande doit contenir au moins une ligne.");
   const issueDate = data.issueDate ? new Date(data.issueDate) : new Date();
   const year = issueDate.getUTCFullYear();
   const created = await prisma.$transaction(async (tx) => {
+    let clientId = data.clientId || null;
+    if (!clientId && String(data.manualClientName || "").trim()) {
+      const nameParts = String(data.manualClientName).trim().replace(/\s+/g, " ").split(" ");
+      const firstName = nameParts.shift() || "Client";
+      const lastName = nameParts.join(" ") || null;
+      const company = String(data.manualClientCompany || "").trim();
+      const client = await tx.client.create({
+        data: {
+          firstName,
+          lastName,
+          email: String(data.manualClientEmail || "").trim(),
+          company: company || null,
+          clientType: company ? "company" : "individual"
+        }
+      });
+      clientId = client.id;
+    }
     const counter = await tx.orderCounter.upsert({ where: { year }, update: { currentSequence: { increment: 1 } }, create: { year, currentSequence: 1 } });
     const created = await tx.order.create({
       data: {
         number: `CMD-${year}-${String(counter.currentSequence).padStart(4, "0")}`,
-        clientId: data.clientId,
+        clientId,
         userId: userId || null,
         proformaId: data.proformaId || null,
         managerId: data.managerId || userId || null,

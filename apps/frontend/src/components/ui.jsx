@@ -4,8 +4,8 @@ import {
   money,
   personLabel,
   clientTypeLabel,
-  statusToLabel,
   invoicePaymentStatusLabel,
+  invoiceSettlementStatus,
   invoiceDisplayLabel
 } from "../utils/formatters";
 
@@ -262,7 +262,7 @@ export function InvoiceCard({ invoice, onEdit, onDelete, onPayments, onPrint, lo
           <p>{personLabel(invoice.client) || invoice.client?.displayName || invoice.client?.company || "-"}</p>
         </div>
         <span className="entity-badge invoice-badge-stack">
-          <span>{statusToLabel(invoice.status)}</span>
+          <span className={invoiceSettlementStatus(invoice)}>{invoicePaymentStatusLabel(invoice)}</span>
           <span>{paymentStatus}</span>
         </span>
       </div>

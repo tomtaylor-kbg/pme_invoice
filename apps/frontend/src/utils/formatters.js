@@ -85,15 +85,13 @@ export function invoicePaymentStatusLabel(invoice = {}) {
   const total = toMoneyValue(invoice.total);
   const paid = toMoneyValue(invoice.amountPaid);
 
-  if (total <= 0 || paid <= 0) {
-    return "Non payée";
-  }
+  return total > 0 && paid >= total ? "Payée" : "Impayée";
+}
 
-  if (paid >= total) {
-    return "Réglée";
-  }
-
-  return "Partiellement payée";
+export function invoiceSettlementStatus(invoice = {}) {
+  const total = toMoneyValue(invoice.total);
+  const paid = toMoneyValue(invoice.amountPaid);
+  return total > 0 && paid >= total ? "paid" : "unpaid";
 }
 
 export function invoiceLinesTotal(lines = []) {
@@ -244,7 +242,7 @@ export function buildInvoicesCsv(invoices = []) {
         [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ").trim() || invoice.client?.company || "",
         invoice.client?.company || "",
         invoice.creator?.name || invoice.creator?.email || "",
-        statusToLabel(invoice.status || "draft"),
+        invoicePaymentStatusLabel(invoice),
         currency,
         formatISODate(invoice.issueDate),
         formatISODate(invoice.dueDate),

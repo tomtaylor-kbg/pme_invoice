@@ -14,6 +14,7 @@ import { DeliveryNotesPage } from "./pages/DeliveryNotesPage";
 import { SetupPage } from "./pages/SetupPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { CashRegisterPage } from "./pages/CashRegisterPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { DataLoadingState } from "./ui";
 
 function LoginRoute() {
@@ -96,7 +97,7 @@ export function AppRoutes() {
           </Route>
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

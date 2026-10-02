@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useWorkspace } from "./WorkspaceProvider";
 import { ToastViewport } from "./ui";
+import { getOrders } from "../api";
 
 export const navItems = [
   {
@@ -82,12 +83,24 @@ const roleLabels = {
 };
 
 export function AppLayout() {
-  const { user, logout, theme, toggleTheme, toasts, dismissToast, workspaceSettings } = useWorkspace();
+  const { token, user, logout, theme, toggleTheme, toasts, dismissToast, workspaceSettings } = useWorkspace();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("facturation_sidebar") === "collapsed");
+  const [pendingOrderCount, setPendingOrderCount] = useState(0);
   const displayName = user?.name?.trim() || user?.email?.trim() || "Utilisateur connecté";
   const displayRole = user?.role || "order_operator";
   const roleLabel = roleLabels[displayRole] || roleLabels.order_operator;
   const isDark = theme === "dark";
+  useEffect(() => {
+    let active = true;
+    if (!token || !user) {
+      setPendingOrderCount(0);
+      return () => { active = false; };
+    }
+    getOrders(token)
+      .then((orders) => { if (active) setPendingOrderCount(orders.filter((order) => order.status === "pending").length); })
+      .catch(() => { if (active) setPendingOrderCount(0); });
+    return () => { active = false; };
+  }, [token, user?.id, user?.role]);
   const visibleKeys = displayRole === "admin"
     ? new Set(navItems.map((item) => item.key))
     : displayRole === "receptionist"
@@ -146,7 +159,7 @@ export function AppLayout() {
               <span className="nav-item-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" className="nav-item-svg">{item.icon}</svg>
               </span>
-              <span className="nav-item-label">{item.label}</span>
+              <span className="nav-item-label">{item.label}{item.key === "orders" && pendingOrderCount > 0 && <span className="nav-item-count" aria-label={`${pendingOrderCount} commande${pendingOrderCount > 1 ? "s" : ""} en attente`}>{pendingOrderCount > 99 ? "99+" : pendingOrderCount}</span>}</span>
             </NavLink>)}
           </div>)}
         </nav>

@@ -5,7 +5,7 @@ import { useWorkspace } from "../WorkspaceProvider";
 const CURRENCIES = ["CDF", "USD", "EUR"];
 
 export function SetupPage() {
-  const { user, workspaceSettings, saveWorkspaceSettingsNow, notifySuccess, logout } = useWorkspace();
+  const { token, user, workspaceSettings, saveWorkspaceSettingsNow, notifySuccess, logout } = useWorkspace();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [formSettings, setFormSettings] = useState(workspaceSettings);
@@ -16,6 +16,7 @@ export function SetupPage() {
     if (user && !workspaceSettings.setupCompleted) setFormSettings(workspaceSettings);
   }, [user?.id]);
 
+  if (!token) return <Navigate to="/login" replace />;
   if (workspaceSettings.setupCompleted) return <Navigate to="/dashboard" replace />;
 
   function update(field, value) {
@@ -95,10 +96,16 @@ export function SetupPage() {
             <label>Préfixe des factures<input required maxLength="12" value={formSettings.invoicePrefix} onChange={(event) => update("invoicePrefix", event.target.value.toUpperCase())} /></label>
             <label>Délai de paiement (jours)<input type="number" min="0" max="365" value={formSettings.paymentTermsDays} onChange={(event) => update("paymentTermsDays", event.target.value)} /></label>
             <label>RCCM<input maxLength="100" value={formSettings.rccm} onChange={(event) => update("rccm", event.target.value)} /></label>
-            <label>Numéro bancaire 1<input maxLength="100" value={formSettings.bankNumber1} onChange={(event) => update("bankNumber1", event.target.value)} /></label>
-            <label>Numéro bancaire 2<input maxLength="100" value={formSettings.bankNumber2} onChange={(event) => update("bankNumber2", event.target.value)} /></label>
             <label>Id.Nat<input maxLength="100" value={formSettings.idNat} onChange={(event) => update("idNat", event.target.value)} /></label>
             <label className="setup-form-wide">Numéro fiscal<input maxLength="100" value={formSettings.taxNumber} onChange={(event) => update("taxNumber", event.target.value)} /></label>
+          </div>
+        </section>
+
+        <section className="setup-section">
+          <h2>Informations bancaires</h2>
+          <div className="tools-form-grid">
+            <label>Numéro bancaire<input maxLength="100" value={formSettings.bankNumber1} onChange={(event) => update("bankNumber1", event.target.value)} /></label>
+            <label>Numéro bancaire complémentaire<input maxLength="100" value={formSettings.bankNumber2} onChange={(event) => update("bankNumber2", event.target.value)} /></label>
           </div>
         </section>
 

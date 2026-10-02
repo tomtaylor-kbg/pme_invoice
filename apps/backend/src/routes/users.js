@@ -22,9 +22,12 @@ function createUsersRouter({ prisma, requireAuth }) {
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
-      const { username, name, email, role = "order_operator", passwordHash = "" } = req.body || {};
+      const { username, name, email, role = "order_operator", status = "active", passwordHash = "" } = req.body || {};
       if (!allowedRoles.has(role)) {
         return res.status(400).json({ message: "role must be order_manager, order_operator, admin or receptionist" });
+      }
+      if (!["active", "inactive"].includes(status)) {
+        return res.status(400).json({ message: "status must be active or inactive" });
       }
       res.status(201).json(
         await createUser(prisma, {
@@ -32,6 +35,7 @@ function createUsersRouter({ prisma, requireAuth }) {
           name,
           email,
           role,
+          status,
           passwordHash
         })
       );
@@ -43,9 +47,12 @@ function createUsersRouter({ prisma, requireAuth }) {
   router.patch("/:id", async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { username, name, email, role, passwordHash } = req.body || {};
+      const { username, name, email, role, status, passwordHash } = req.body || {};
       if (role !== undefined && !allowedRoles.has(role)) {
         return res.status(400).json({ message: "role must be order_manager, order_operator, admin or receptionist" });
+      }
+      if (status !== undefined && !["active", "inactive"].includes(status)) {
+        return res.status(400).json({ message: "status must be active or inactive" });
       }
       res.json(
         await updateUser(prisma, id, {
@@ -53,6 +60,7 @@ function createUsersRouter({ prisma, requireAuth }) {
           ...(name !== undefined ? { name } : {}),
           ...(email !== undefined ? { email } : {}),
           ...(role !== undefined ? { role } : {}),
+          ...(status !== undefined ? { status } : {}),
           ...(passwordHash !== undefined ? { passwordHash } : {})
         })
       );

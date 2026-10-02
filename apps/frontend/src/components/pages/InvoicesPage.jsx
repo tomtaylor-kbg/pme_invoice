@@ -17,14 +17,14 @@ import {
   invoicePaymentTotal,
   invoiceDisplayLabel,
   invoicePaymentStatusLabel,
+  invoiceSettlementStatus,
   paymentMethodLabel,
   downloadTextFile,
   localDateStamp,
   formatDate,
   money,
   suggestInvoiceNumber,
-  toMoneyValue,
-  statusToLabel
+  toMoneyValue
 } from "../../utils/formatters";
 import { buildInvoicePrintHtml } from "../../utils/print/invoicePrintA4";
 import { buildThermalInvoiceHtml } from "../../utils/print/invoicePrintThermal";
@@ -112,9 +112,10 @@ export function InvoicesPage() {
   }, [searchParams]);
 
   const filteredInvoices = data.invoices.filter((invoice) => {
-    const isOpen = invoice.status !== "draft" && invoice.status !== "paid" && Number(invoice.balanceDue ?? invoice.total ?? 0) > 0;
+    const settlementStatus = invoiceSettlementStatus(invoice);
+    const isOpen = settlementStatus === "unpaid";
     if (statusFilter === "open" && !isOpen) return false;
-    if (statusFilter !== "all" && statusFilter !== "open" && invoice.status !== statusFilter) {
+    if (statusFilter !== "all" && statusFilter !== "open" && settlementStatus !== statusFilter) {
       return false;
     }
     if (clientFilter !== "all" && invoice.clientId !== clientFilter) {
@@ -275,11 +276,9 @@ export function InvoicesPage() {
                   }}
                 >
                   <option value="all">Tous les statuts</option>
-                  <option value="open">Factures ouvertes</option>
-                  <option value="draft">Brouillon</option>
-                  <option value="sent">Envoyée</option>
-                  <option value="paid">Payée</option>
-                  <option value="overdue">En retard</option>
+                  <option value="open">Factures impayées</option>
+                  <option value="unpaid">Impayées</option>
+                  <option value="paid">Payées</option>
                 </select>
                 </label>
                 <label className="filter-field">
@@ -303,7 +302,7 @@ export function InvoicesPage() {
             {isHydrating ? <DataLoadingState label="Chargement des factures…" className="page-loading-state" /> : filteredInvoices.length > 0 ? <div className="panel entity-list-panel"><Table className="entity-list-table invoices-table" columns={["Facture / Client", "Date", "Statut", "Paiement", "Total", "Encaissé", "Reste dû", "Actions"]} rows={filteredInvoices.map((invoice) => [
               <div className="table-primary-cell"><strong>{invoiceDisplayLabel(invoice)}</strong><small>{invoice.client?.clientType === "company" ? invoice.client.company : [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ") || invoice.client?.company || "Client"}</small>{(invoice.deliveryNotes || []).map((note) => <small key={note.id} className="document-link-label">BL lié : {note.number}</small>)}</div>,
               formatDate(invoice.issueDate),
-              <span className={`badge ${String(invoice.status || "").toLowerCase()}`}>{statusToLabel(invoice.status)}</span>,
+              <span className={`badge ${invoiceSettlementStatus(invoice)}`}>{invoicePaymentStatusLabel(invoice)}</span>,
               invoicePaymentStatusLabel(invoice),
               <strong>{money(invoice.total, invoice.currency)}</strong>,
               money(invoice.amountPaid ?? 0, invoice.currency),
@@ -401,21 +400,6 @@ export function InvoicesPage() {
             </select>
           </label></>}
           <label className="invoice-form-field">
-            Statut
-            <select
-              value={forms.invoice.status}
-              onChange={(event) => setForms((current) => ({
-                ...current,
-                invoice: { ...current.invoice, status: event.target.value }
-              }))}
-            >
-              <option value="draft">Brouillon</option>
-              <option value="sent">Envoyée</option>
-              <option value="paid">Payée</option>
-              <option value="overdue">En retard</option>
-            </select>
-          </label>
-          <label className="invoice-form-field">
             Devise
             <select
               value={forms.invoice.currency}
@@ -443,24 +427,13 @@ export function InvoicesPage() {
             />
           </label>
           <label className="invoice-form-field">
-            Date d'émission
+            Date d’édition
             <input
               type="date"
               value={forms.invoice.issueDate}
               onChange={(event) => setForms((current) => ({
                 ...current,
                 invoice: { ...current.invoice, issueDate: event.target.value }
-              }))}
-            />
-          </label>
-          <label className="invoice-form-field">
-            Échéance
-            <input
-              type="date"
-              value={forms.invoice.dueDate}
-              onChange={(event) => setForms((current) => ({
-                ...current,
-                invoice: { ...current.invoice, dueDate: event.target.value }
               }))}
             />
           </label>

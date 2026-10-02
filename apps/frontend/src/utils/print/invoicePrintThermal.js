@@ -83,7 +83,7 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
 
       <div class="divider"></div>
       <section class="meta">
-        <div class="meta-row"><span>Date</span><strong>${escapeHtml(formatISODate(invoice?.issueDate))}</strong></div>
+        <div class="meta-row"><span>Date d’édition</span><strong>${escapeHtml(formatISODate(invoice?.issueDate))}</strong></div>
         <div class="meta-row"><span>Client</span><strong>${escapeHtml(clientName)}</strong></div>
         ${client?.company && client.company !== clientName ? `<div class="meta-row"><span>Société</span><strong>${escapeHtml(client.company)}</strong></div>` : ""}
         ${client?.phone ? `<div class="meta-row"><span>Téléphone</span><strong>${escapeHtml(client.phone)}</strong></div>` : ""}

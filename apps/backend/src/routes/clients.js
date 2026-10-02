@@ -23,8 +23,8 @@ function createClientsRouter({ prisma, requireAuth }) {
       const { firstName, lastName, company, email, phone, city, status = "active", clientType = "individual" } = req.body || {};
       res.status(201).json(
         await createClient(prisma, {
-          firstName: firstName || "",
-          lastName: lastName || "",
+          firstName: String(firstName || "").trim(),
+          lastName: String(lastName || "").trim(),
           company,
           email: email || "",
           phone: phone || null,
@@ -51,8 +51,8 @@ function createClientsRouter({ prisma, requireAuth }) {
       }
       res.json(
         await updateClient(prisma, id, {
-          ...(firstName !== undefined ? { firstName } : {}),
-          ...(lastName !== undefined ? { lastName } : {}),
+          ...(firstName !== undefined ? { firstName: String(firstName).trim() } : {}),
+          ...(lastName !== undefined ? { lastName: String(lastName).trim() } : {}),
           ...(company !== undefined ? { company } : {}),
           ...(email !== undefined ? { email } : {}),
           ...(phone !== undefined ? { phone: phone || null } : {}),
