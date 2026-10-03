@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { addCashMovement, closeCashSession, getActiveCashSession, getDailyCashReport, openCashSession } from "../../api";
+import { addCashMovement, closeCashSession, getActiveCashSession, getCashCarryForward, getDailyCashReport, openCashSession } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
 import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon } from "../ui";
 import { money } from "../../utils/formatters";
@@ -14,9 +14,11 @@ export function CashRegisterPage() {
   const defaultCurrency = workspaceSettings.defaultCurrency || "EUR";
   const [session, setSession] = useState(undefined);
   const [report, setReport] = useState(null);
+  const [carryForward, setCarryForward] = useState(null);
   const [openingOpen, setOpeningOpen] = useState(false);
   const [closingOpen, setClosingOpen] = useState(false);
   const [opening, setOpening] = useState("");
+  const [openingBalances, setOpeningBalances] = useState({});
   const [currency, setCurrency] = useState(currencies.some(([value]) => value === defaultCurrency) ? defaultCurrency : "EUR");
   const [closingBalances, setClosingBalances] = useState({});
   const [movement, setMovement] = useState({ type: "in", currency: defaultCurrency, amount: "", description: "" });
@@ -27,9 +29,13 @@ export function CashRegisterPage() {
     setLoading(true);
     setLoadError("");
     try {
-      const [activeSession, dailyReport] = await Promise.all([getActiveCashSession(token), getDailyCashReport(token)]);
+      const [activeSession, dailyReport, previousClosing] = await Promise.all([getActiveCashSession(token), getDailyCashReport(token), getCashCarryForward(token)]);
       setSession(activeSession);
       setReport(dailyReport);
+      setCarryForward(previousClosing);
+      if (!activeSession && previousClosing?.balances) {
+        setOpeningBalances(Object.fromEntries(Object.entries(previousClosing.balances).map(([key, amount]) => [key, String(amount)])));
+      }
       if (activeSession) {
         setCurrency(activeSession.currency);
         setClosingBalances(Object.fromEntries(Object.entries(activeSession.expectedBalances || { [activeSession.currency]: activeSession.expectedBalance }).map(([key, amount]) => [key, String(amount)])));
@@ -49,9 +55,10 @@ export function CashRegisterPage() {
   async function openRegister(event) {
     event.preventDefault();
     try {
-      await openCashSession(token, { openingBalance: opening, currency });
+      await openCashSession(token, { openingBalance: openingBalances[currency] || opening || 0, openingBalances, currency });
       setOpeningOpen(false);
       setOpening("");
+      setOpeningBalances({});
       await refresh();
       notifySuccess("Caisse ouverte", `Session active en ${currency}.`);
     } catch (error) {
@@ -128,7 +135,7 @@ export function CashRegisterPage() {
         </section>}
       </div>
 
-      <OverlayDialog open={openingOpen} title="Ouvrir une session de caisse" onClose={() => setOpeningOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-opening-form">Ouvrir la caisse</OverlayActionButton>}><form id="cash-opening-form" className="stack-form cash-opening-form" onSubmit={openRegister}><div className="cash-opening-intro">Le fonds de départ sera enregistré dans la devise choisie et servira de base au rapprochement de fin de session.</div><label>Devise<select value={currency} onChange={(event) => setCurrency(event.target.value)}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label><label>Fonds de départ ({currency})<input autoFocus type="number" min="0" step="0.01" required value={opening} onChange={(event) => setOpening(event.target.value)} placeholder="0,00" /></label></form></OverlayDialog>
+      <OverlayDialog open={openingOpen} title="Ouvrir une session de caisse" onClose={() => setOpeningOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-opening-form">Ouvrir la caisse</OverlayActionButton>}><form id="cash-opening-form" className="stack-form cash-opening-form" onSubmit={openRegister}><div className="cash-opening-intro">{carryForward?.sourceDate ? `Report de la clôture du ${carryForward.sourceDate} repris automatiquement par devise. Vérifiez ou ajustez les fonds de départ.` : "Aucun report précédent trouvé. Saisissez les fonds de départ par devise."}</div><label>Devise principale<select value={currency} onChange={(event) => setCurrency(event.target.value)}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label>{currencies.map(([value]) => <label key={value}>Report / fonds de départ ({value})<input autoFocus={value === currency} type="number" min="0" step="0.01" value={openingBalances[value] ?? (value === currency ? opening : "0")} onChange={(event) => setOpeningBalances((current) => ({ ...current, [value]: event.target.value }))} placeholder="0,00" /></label>)}</form></OverlayDialog>
       <OverlayDialog open={closingOpen && Boolean(session)} title="Clôturer la caisse" onClose={() => setClosingOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-closing-form">Confirmer la clôture</OverlayActionButton>}>{session && <form id="cash-closing-form" className="stack-form cash-opening-form" onSubmit={closeRegister}><div className="cash-opening-intro">Saisissez le montant réellement compté pour chaque devise. La session du jour sera définitivement clôturée et le rapport journalier pourra être imprimé.</div>{Object.keys(session.expectedBalances || { [session.currency]: session.expectedBalance }).map((balanceCurrency) => <label key={balanceCurrency}>Fonds final ({balanceCurrency})<input autoFocus={balanceCurrency === session.currency} type="number" min="0" step="0.01" required value={closingBalances[balanceCurrency] || ""} onChange={(event) => setClosingBalances((current) => ({ ...current, [balanceCurrency]: event.target.value }))} /></label>)}</form>}</OverlayDialog>
     </div>
   );

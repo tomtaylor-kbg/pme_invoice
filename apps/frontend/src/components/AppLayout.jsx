@@ -66,6 +66,12 @@ export const navItems = [
     icon: <path d="M4 7h16v13H4zM7 4h10M8 11h8M8 15h4" />
   },
   {
+    key: "cash-reports",
+    label: "Rapports de caisse",
+    path: "/cash-reports",
+    icon: <path d="M5 20V10m7 10V4m7 16v-7M3 20h18" />
+  },
+  {
     key: "users",
     label: "Utilisateurs",
     path: "/users",
@@ -78,6 +84,7 @@ export const navItems = [
 const roleLabels = {
   admin: "Administrateur",
   receptionist: "Réceptionniste",
+  accountant: "Comptable",
   order_manager: "Gestionnaire des commandes",
   order_operator: "Opérateur de commande"
 };
@@ -85,7 +92,7 @@ const roleLabels = {
 export function AppLayout() {
   const { token, user, logout, theme, toggleTheme, toasts, dismissToast, workspaceSettings } = useWorkspace();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("facturation_sidebar") === "collapsed");
-  const [pendingOrderCount, setPendingOrderCount] = useState(0);
+  const [activeOrderCount, setActiveOrderCount] = useState(0);
   const displayName = user?.name?.trim() || user?.email?.trim() || "Utilisateur connecté";
   const displayRole = user?.role || "order_operator";
   const roleLabel = roleLabels[displayRole] || roleLabels.order_operator;
@@ -93,18 +100,20 @@ export function AppLayout() {
   useEffect(() => {
     let active = true;
     if (!token || !user) {
-      setPendingOrderCount(0);
+      setActiveOrderCount(0);
       return () => { active = false; };
     }
     getOrders(token)
-      .then((orders) => { if (active) setPendingOrderCount(orders.filter((order) => order.status === "pending").length); })
-      .catch(() => { if (active) setPendingOrderCount(0); });
+      .then((orders) => { if (active) setActiveOrderCount(orders.filter((order) => ["assigned", "processing", "blocked"].includes(order.status)).length); })
+      .catch(() => { if (active) setActiveOrderCount(0); });
     return () => { active = false; };
   }, [token, user?.id, user?.role]);
   const visibleKeys = displayRole === "admin"
     ? new Set(navItems.map((item) => item.key))
     : displayRole === "receptionist"
-      ? new Set(["dashboard", "invoices", "orders", "delivery-notes", "clients", "cash", "cash-register"])
+      ? new Set(["dashboard", "invoices", "orders", "delivery-notes", "clients", "cash", "cash-register", "cash-reports"])
+      : displayRole === "accountant"
+        ? new Set(["cash-reports"])
       : displayRole === "order_manager"
         ? new Set(["orders", "clients", "delivery-notes"])
         : new Set(["orders"]);
@@ -113,7 +122,7 @@ export function AppLayout() {
     { label: "Espace de travail", keys: ["dashboard"] },
     { label: "Commercial", keys: ["invoices", "proformas", "orders", "delivery-notes", "clients"] },
     { label: "Suivi", keys: ["logs"] },
-    { label: "Caisse", keys: ["cash", "cash-register"] },
+    { label: "Caisse", keys: ["cash", "cash-register", "cash-reports"] },
     { label: "Administration", keys: ["users"] }
   ].map((group) => ({ ...group, items: visibleNavItems.filter((item) => group.keys.includes(item.key)) }))
     .filter((group) => group.items.length > 0);
@@ -159,7 +168,7 @@ export function AppLayout() {
               <span className="nav-item-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" className="nav-item-svg">{item.icon}</svg>
               </span>
-              <span className="nav-item-label">{item.label}{item.key === "orders" && pendingOrderCount > 0 && <span className="nav-item-count" aria-label={`${pendingOrderCount} commande${pendingOrderCount > 1 ? "s" : ""} en attente`}>{pendingOrderCount > 99 ? "99+" : pendingOrderCount}</span>}</span>
+              <span className="nav-item-label">{item.label}{item.key === "orders" && activeOrderCount > 0 && <span className="nav-item-count" aria-label={`${activeOrderCount} commande${activeOrderCount > 1 ? "s" : ""} active${activeOrderCount > 1 ? "s" : ""}`}>{activeOrderCount > 99 ? "99+" : activeOrderCount}</span>}</span>
             </NavLink>)}
           </div>)}
         </nav>

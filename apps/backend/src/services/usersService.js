@@ -1,7 +1,7 @@
 const { serializeUser } = require("../utils/serializers");
 const { normalizePasswordForStorage } = require("../utils/password");
 
-const ALLOWED_ROLES = new Set(["order_manager", "order_operator", "admin", "receptionist"]);
+const ALLOWED_ROLES = new Set(["order_manager", "order_operator", "admin", "receptionist", "accountant"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
 
 function normalizeRole(role) {

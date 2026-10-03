@@ -14,6 +14,7 @@ import { DeliveryNotesPage } from "./pages/DeliveryNotesPage";
 import { SetupPage } from "./pages/SetupPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { CashRegisterPage } from "./pages/CashRegisterPage";
+import { CashReportsPage } from "./pages/CashReportsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { DataLoadingState } from "./ui";
 
@@ -57,7 +58,7 @@ function RequireRoles({ allowedRoles, children }) {
     return null;
   }
   if (!allowedRoles.includes(user?.role)) {
-    return <Navigate to={["order_manager", "order_operator"].includes(user?.role) ? "/orders" : "/dashboard"} replace />;
+    return <Navigate to={user?.role === "accountant" ? "/cash-reports" : ["order_manager", "order_operator"].includes(user?.role) ? "/orders" : "/dashboard"} replace />;
   }
   return children;
 }
@@ -71,7 +72,7 @@ function RequireSetupComplete() {
 
 function HomeRedirect() {
   const { user } = useWorkspace();
-  return <Navigate to={["order_manager", "order_operator"].includes(user?.role) ? "/orders" : "/dashboard"} replace />;
+  return <Navigate to={user?.role === "accountant" ? "/cash-reports" : ["order_manager", "order_operator"].includes(user?.role) ? "/orders" : "/dashboard"} replace />;
 }
 
 export function AppRoutes() {
@@ -93,6 +94,7 @@ export function AppRoutes() {
           <Route path="/delivery-notes" element={<RequireRoles allowedRoles={["admin", "receptionist", "order_manager"]}><DeliveryNotesPage /></RequireRoles>} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/cash-register" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashRegisterPage /></RequireRoles>} />
+          <Route path="/cash-reports" element={<RequireRoles allowedRoles={["admin", "receptionist", "accountant"]}><CashReportsPage /></RequireRoles>} />
           <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashDisbursementsPage /></RequireRoles>} />
           </Route>
         </Route>

@@ -12,6 +12,22 @@ const actionLabels = { created: "Créée", assigned: "Affectée", started: "Dém
 const currencies = ["EUR", "USD", "CDF"];
 function blankLine() { return { description: "", quantity: "1", unit: "unité", unitPrice: "" }; }
 
+function OrderOverview({ orders, isOperator, onRefresh, loading }) {
+  const counts = orders.reduce((result, order) => {
+    result[order.status] = (result[order.status] || 0) + 1;
+    return result;
+  }, {});
+  const active = (counts.assigned || 0) + (counts.processing || 0) + (counts.blocked || 0);
+  const stats = [
+    ["Total", orders.length, "total"],
+    ...(isOperator ? [] : [["En attente", counts.pending || 0, "pending"]]),
+    ["Assignées", counts.assigned || 0, "assigned"],
+    ["En cours", counts.processing || 0, "processing"],
+    ["Bloquées", counts.blocked || 0, "blocked"]
+  ];
+  return <section className="order-overview" aria-label="Résumé des commandes"><div className="order-overview-heading"><div><span className="eyebrow">Vue opérationnelle</span><strong>{active} commande{active > 1 ? "s" : ""} active{active > 1 ? "s" : ""}</strong></div><button className="secondary-button small" type="button" onClick={() => onRefresh(true)} disabled={loading}>{loading ? "Actualisation…" : "Actualiser"}</button></div><div className="order-overview-stats">{stats.map(([label, value, tone]) => <div className={`order-overview-stat ${tone}`} key={tone}><span>{label}</span><strong>{value}</strong></div>)}</div></section>;
+}
+
 export function OrdersPage() {
   const { token, data, user, workspaceSettings, notifySuccess, notifyError, refresh: refreshWorkspace } = useWorkspace();
   const isManager = ["admin", "receptionist", "order_manager"].includes(user?.role);
@@ -93,6 +109,7 @@ export function OrdersPage() {
 
   return <div className="page-shell workspace-page">
     <header className="hero list-page-header"><div><span className="eyebrow">Atelier</span><h1>{isOperator ? "Mes commandes" : "Commandes"}</h1><p>{isOperator ? "Consultez et faites avancer les commandes qui vous sont affectées." : "Pilotez les commandes de la réception jusqu’à la facturation."}</p></div>{isManager && <div className="hero-actions"><button className="primary-button" type="button" onClick={() => setOpen(true)}>Nouvelle commande</button></div>}</header>
+    <OrderOverview orders={orders} isOperator={isOperator} onRefresh={refresh} loading={loading} />
     <div className="page-scroll"><div className="filters-panel list-filters order-filters"><div className="filters-grid"><label className="filter-field search">Rechercher<input className="filter-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="N° commande, client, travail…" /></label><label className="filter-field">Statut<select className="filter-select" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}><option value="all">Tous les statuts</option>{columns.map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label><label className="filter-field">Priorité<select className="filter-select" value={filterPriority} onChange={(event) => setFilterPriority(event.target.value)}><option value="all">Toutes</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>{isManager && <label className="filter-field">Opérateur<select className="filter-select" value={filterOperator} onChange={(event) => setFilterOperator(event.target.value)}><option value="all">Tous</option>{operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name || operator.email}</option>)}</select></label>}</div></div><section className="kanban-board">{columns.map(([status, label]) => <div className="kanban-column" key={status}><div className="section-header"><h2>{label}</h2><span className="badge">{grouped[status].length}</span></div>{loading ? <DataLoadingState label="Chargement…" /> : grouped[status].map((order) => <article className="kanban-card" key={order.id}><div className="kanban-card-head"><strong>{order.number}</strong><span>{order.client?.company || order.client?.displayName || "Client"}</span></div><div className="order-card-meta"><span className={`badge priority-${order.priority || "normal"}`}>{priorityLabels[order.priority] || "Normale"}</span><span>{order.dueDate ? `Échéance : ${order.dueDate.slice(0, 10)}` : "Sans échéance"}</span></div>{isManager && <label className="kanban-operator">Opérateur<select value={order.operator?.id || ""} onChange={(event) => assignOperator(order, event.target.value)}><option value="">Non attribué</option>{operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name || operator.email}</option>)}</select></label>}<p>{order.lines.map((line) => `${line.quantity} × ${line.description}`).join(" · ")}</p>{order.status === "blocked" && <p className="order-blocked-reason">Blocage : {order.blockedReason || "Motif non renseigné"}</p>}{canViewOrderAmount && <div className="kanban-card-total">{money(order.total, order.currency)}</div>}<div className="kanban-card-actions"><button className="text-button" type="button" onClick={() => setSelectedOrder(order)}>Détail</button>{renderActions(order)}</div></article>)}</div>)}</section></div>
     <OverlayDialog open={open} title="Nouvelle commande" onClose={() => setOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="order-form" disabled={saving}>Créer la commande</OverlayActionButton>}>
       <form id="order-form" className="stack-form invoice-form-grid" onSubmit={save}>

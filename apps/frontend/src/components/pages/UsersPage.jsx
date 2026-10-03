@@ -1,7 +1,7 @@
 import { useWorkspace } from "../WorkspaceProvider";
 import { OverlayActionButton, OverlayDialog, OverlaySaveIcon, SectionHeader } from "../ui";
 
-const roleLabels = { admin: "Administrateur", receptionist: "Réceptionniste", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
+const roleLabels = { admin: "Administrateur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
 const statusLabels = { active: "Actif", inactive: "Inactif" };
 
 export function UsersPage() {
@@ -112,6 +112,7 @@ export function UsersPage() {
               <option value="order_operator">Opérateur de commande</option>
               <option value="admin">Administrateur</option>
               <option value="receptionist">Réceptionniste</option>
+              <option value="accountant">Comptable</option>
             </select>
           </label>
           <label>

@@ -143,7 +143,10 @@ export function getOrderOperators(token) { return request("/api/orders/operators
 
 export function getActiveCashSession(token) { return request("/api/cash-register/active", { token }); }
 export function getCashSessions(token) { return request("/api/cash-register/sessions", { token }); }
+export function getCashCarryForward(token) { return request("/api/cash-register/sessions/carry-forward", { token }); }
 export function getDailyCashReport(token, date) { return request(`/api/cash-register/reports/daily${date ? `?date=${encodeURIComponent(date)}` : ""}`, { token }); }
+export function getMonthlyCashReport(token, month) { return request(`/api/cash-register/reports/monthly${month ? `?month=${encodeURIComponent(month)}` : ""}`, { token }); }
+export function getCashReportHistory(token) { return request("/api/cash-register/reports/history", { token }); }
 export function openCashSession(token, data) { return request("/api/cash-register/sessions", { token, method: "POST", body: data }); }
 export function closeCashSession(token, id, data) { return request(`/api/cash-register/sessions/${id}/close`, { token, method: "POST", body: data }); }
 export function addCashMovement(token, data) { return request("/api/cash-register/movements", { token, method: "POST", body: data }); }

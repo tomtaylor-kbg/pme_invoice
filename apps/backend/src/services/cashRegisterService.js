@@ -63,9 +63,18 @@ async function listSessions(prisma, userId) {
   return sessions.map(serializeSession);
 }
 
+async function getCarryForward(prisma, userId) {
+  const previous = await prisma.cashRegisterSession.findFirst({ where: { userId, status: "closed" }, orderBy: [{ businessDate: "desc" }, { closedAt: "desc" }], select: { businessDate: true, currency: true, closingBalance: true, closingBalances: true } });
+  if (!previous) return { sourceDate: null, balances: {} };
+  const balances = previous.closingBalances && typeof previous.closingBalances === "object"
+    ? Object.fromEntries(Object.entries(previous.closingBalances).map(([currency, amount]) => [String(currency).toUpperCase(), Number(amount || 0)]))
+    : { [previous.currency || "EUR"]: Number(previous.closingBalance || 0) };
+  return { sourceDate: businessDateLabel(previous.businessDate), balances };
+}
+
 async function getDailyReport(prisma, user, value = new Date()) {
   const day = businessDate(value);
-  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: day, ...(user.role === "admin" ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
+  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: day, ...(["admin", "accountant"].includes(user.role) ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
   const report = { date: businessDateLabel(day), sessions: sessions.map(serializeSession), totals: {} };
   for (const session of report.sessions) {
     for (const [currency, amount] of Object.entries(session.expectedBalances || {})) {
@@ -73,6 +82,45 @@ async function getDailyReport(prisma, user, value = new Date()) {
     }
   }
   return report;
+}
+
+async function getMonthlyReport(prisma, user, value = new Date()) {
+  const raw = String(value || "").slice(0, 7);
+  const match = /^(\d{4})-(\d{2})$/.exec(raw);
+  const year = match ? Number(match[1]) : new Date().getUTCFullYear();
+  const month = match ? Number(match[2]) - 1 : new Date().getUTCMonth();
+  const start = new Date(Date.UTC(year, month, 1));
+  const end = new Date(Date.UTC(year, month + 1, 1));
+  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: { gte: start, lt: end }, ...(["admin", "accountant"].includes(user.role) ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
+  const report = { period: `${year}-${String(month + 1).padStart(2, "0")}`, sessions: sessions.map(serializeSession), inTotals: {}, outTotals: {}, netTotals: {} };
+  for (const session of report.sessions) {
+    for (const movement of session.movements || []) {
+      const currency = movement.currency || session.currency || "EUR";
+      const amount = Number(movement.amount || 0);
+      const target = movement.type === "in" ? report.inTotals : report.outTotals;
+      target[currency] = Number(target[currency] || 0) + amount;
+      report.netTotals[currency] = Number(report.netTotals[currency] || 0) + (movement.type === "in" ? amount : -amount);
+    }
+  }
+  return report;
+}
+
+async function getReportHistory(prisma, user) {
+  const sessions = await prisma.cashRegisterSession.findMany({
+    where: { status: "closed", ...(["admin", "accountant"].includes(user.role) ? {} : { userId: user.id }) },
+    orderBy: [{ businessDate: "desc" }, { closedAt: "desc" }],
+    take: 90,
+    select: { id: true, businessDate: true, currency: true, closingBalance: true, closingBalances: true, openedAt: true, closedAt: true, operator: { select: { id: true, name: true, email: true } } }
+  });
+  return sessions.map((session) => ({
+    id: session.id,
+    date: businessDateLabel(session.businessDate),
+    currency: session.currency || "EUR",
+    closingBalances: session.closingBalances && typeof session.closingBalances === "object" ? session.closingBalances : { [session.currency || "EUR"]: Number(session.closingBalance || 0) },
+    openedAt: session.openedAt.toISOString(),
+    closedAt: session.closedAt?.toISOString() || null,
+    operator: session.operator
+  }));
 }
 
 async function closeSession(prisma, id, userId, data = {}) {
@@ -100,4 +148,4 @@ async function addMovement(prisma, userId, data = {}) {
   return { ...movement, amount: Number(movement.amount), createdAt: movement.createdAt.toISOString() };
 }
 
-module.exports = { getActiveSession, openSession, listSessions, getDailyReport, closeSession, addMovement };
+module.exports = { getActiveSession, openSession, listSessions, getCarryForward, getDailyReport, getMonthlyReport, getReportHistory, closeSession, addMovement };

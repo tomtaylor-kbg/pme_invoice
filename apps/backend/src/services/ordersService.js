@@ -111,7 +111,7 @@ async function createOrder(prisma, data, userOrId) {
       },
       include: orderInclude()
     });
-    const roleLabels = { admin: "Administrateur", receptionist: "Réceptionniste", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
+    const roleLabels = { admin: "Administrateur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
     const creatorName = created.creator?.name || created.creator?.email || "Utilisateur";
     const creatorRole = roleLabels[created.creator?.role] || "Utilisateur";
     await tx.orderEvent.create({ data: { orderId: created.id, userId: userId || null, action: "created", toStatus: created.status, note: `Créée par ${creatorRole} - ${creatorName}` } });

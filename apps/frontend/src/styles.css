@@ -691,6 +691,18 @@ body[data-theme="light"] .error-banner {
 .kanban-card-total { font-weight: 700; }
 .kanban-card-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .kanban-card-actions .small { min-height: 36px; padding: 7px 10px; font-size: 0.78rem; }
+.order-overview { display: grid; gap: 14px; margin: 0 0 16px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); }
+.order-overview-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.order-overview-heading > div { display: grid; gap: 3px; }
+.order-overview-heading strong { font-size: 1.05rem; }
+.order-overview-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.order-overview-stat { display: grid; gap: 4px; min-width: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-strong); }
+.order-overview-stat span { color: var(--muted); font-size: .74rem; font-weight: 700; }
+.order-overview-stat strong { font-size: 1.35rem; }
+.order-overview-stat.assigned strong { color: #0e7490; }
+.order-overview-stat.processing strong { color: var(--accent-color); }
+.order-overview-stat.blocked strong { color: var(--danger); }
+.order-overview-stat.pending strong { color: var(--warning); }
 .cash-register-grid { display: grid; width: 100%; max-width: none; gap: 16px; }
 .cash-register-grid > .panel { width: 100%; }
 .cash-register-workspace { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
@@ -699,6 +711,24 @@ body[data-theme="light"] .error-banner {
 .cash-report-totals > div { display: grid; gap: 4px; min-width: 150px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel-strong); }
 .cash-report-totals span { color: var(--muted); font-size: .76rem; font-weight: 700; }
 .cash-report-totals strong { font-size: 1.15rem; }
+.report-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+.report-period-tabs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-strong); }
+.report-period-tabs button { min-height: 36px; padding: 0 16px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; font: inherit; font-weight: 650; cursor: pointer; }
+.report-period-tabs button.active { color: var(--text); background: var(--panel); box-shadow: 0 2px 8px rgba(15, 23, 42, .08); }
+.report-period-fields { display: flex; gap: 12px; }
+.report-period-fields label { display: grid; gap: 6px; color: var(--muted); font-size: .78rem; font-weight: 650; }
+.report-period-fields input { min-height: 38px; }
+.report-meta-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.report-meta-grid > div { display: grid; gap: 5px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-strong); }
+.report-meta-grid span { color: var(--muted); font-size: .75rem; font-weight: 700; text-transform: uppercase; }
+.report-meta-grid strong { font-size: 1.25rem; }
+.report-sessions { margin-top: 16px; }
+.report-currency-note { display: block; margin-top: 5px; color: var(--muted); }
+.report-session-table { display: grid; overflow-x: auto; }
+.report-session-row { display: grid; grid-template-columns: 1fr 1.4fr .8fr 1fr; gap: 16px; min-width: 620px; padding: 11px 4px; border-bottom: 1px solid var(--border); align-items: center; }
+.report-session-row:last-child { border-bottom: 0; }
+.report-session-head { color: var(--muted); font-size: .72rem; font-weight: 750; text-transform: uppercase; }
+.report-session-row > :last-child { text-align: right; }
 .cash-register-workspace > .panel { min-width: 0; min-height: 100%; padding: 22px; }
 .cash-register-empty { display: grid; place-items: center; gap: 10px; min-height: 360px; padding: 48px 24px; text-align: center; }
 .cash-register-empty h2, .cash-register-empty p { margin: 0; }
@@ -2538,6 +2568,7 @@ tbody tr:hover {
 .user-role { justify-self: start; padding: 4px 8px; border-radius: 4px; background: rgba(100, 116, 139, 0.15); color: var(--text); font-size: 0.78rem; }
 .user-role.role-admin { background: rgba(220, 38, 38, 0.12); color: var(--danger); }
 .user-role.role-receptionist { background: rgba(37, 99, 235, 0.12); color: var(--accent-color); }
+.user-role.role-accountant { background: rgba(5, 150, 105, 0.12); color: #047857; }
 .user-role.role-order_manager { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
 .user-role.role-order_operator { background: rgba(14, 116, 144, 0.12); color: #0e7490; }
 .user-status { justify-self: start; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 650; }
@@ -3447,8 +3478,14 @@ body[data-theme="light"] .entity-card.invoice {
   .dashboard-shortcuts-list button { flex: 1 1 140px; }
   .order-detail-grid { grid-template-columns: 1fr; }
   .kanban-board { grid-template-columns: 1fr; }
+  .order-overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .order-overview-stat:first-child { grid-column: 1 / -1; }
   .cash-register-summary, .inline-form, .form-row { align-items: stretch; flex-direction: column; }
   .cash-register-workspace { grid-template-columns: 1fr; }
+  .report-toolbar { align-items: stretch; flex-direction: column; }
+  .report-period-fields { width: 100%; }
+  .report-period-fields label, .report-period-fields input { width: 100%; }
+  .report-meta-grid { grid-template-columns: 1fr; }
   .inline-form input { width: auto; }
   .setup-section .tools-form-grid { grid-template-columns: 1fr; }
   .setup-form-wide { grid-column: auto; }

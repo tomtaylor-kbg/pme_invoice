@@ -3,7 +3,7 @@ import { useWorkspace } from "../WorkspaceProvider";
 
 export function NotFoundPage() {
   const { token, user } = useWorkspace();
-  const homePath = user?.role === "order_manager" || user?.role === "order_operator" ? "/orders" : "/dashboard";
+  const homePath = user?.role === "accountant" ? "/cash-reports" : user?.role === "order_manager" || user?.role === "order_operator" ? "/orders" : "/dashboard";
 
   return (
     <main className="not-found-page">
