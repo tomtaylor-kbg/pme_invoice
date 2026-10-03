@@ -50,7 +50,11 @@ async function openSession(prisma, userId, data = {}) {
   if (current) throw new Error("Une session de caisse est déjà ouverte.");
   const day = businessDate(data.businessDate || new Date());
   const existingDay = await prisma.cashRegisterSession.findFirst({ where: { userId, businessDate: day } });
-  if (existingDay) throw new Error(`La caisse de la journée ${businessDateLabel(day)} est déjà clôturée.`);
+  if (existingDay) {
+    const error = new Error(`La caisse de la journée ${businessDateLabel(day)} est déjà clôturée. Aucun mouvement ne peut être ajouté à cette journée.`);
+    error.code = "CASH_SESSION_CLOSED";
+    throw error;
+  }
   const currency = String(data.currency || "EUR").trim().toUpperCase();
   const openingBalance = Number(data.openingBalance || 0);
   const openingBalances = data.openingBalances && typeof data.openingBalances === "object" ? data.openingBalances : { [currency]: openingBalance };
@@ -140,7 +144,12 @@ async function closeSession(prisma, id, userId, data = {}) {
 
 async function addMovement(prisma, userId, data = {}) {
   const session = await prisma.cashRegisterSession.findFirst({ where: { id: data.sessionId, userId, status: "open" } });
-  if (!session) throw new Error("Aucune session de caisse ouverte.");
+  if (!session) {
+    const closedToday = await prisma.cashRegisterSession.findFirst({ where: { userId, status: "closed", businessDate: businessDate(new Date()) }, select: { businessDate: true } });
+    const error = new Error(closedToday ? `La caisse de la journée ${businessDateLabel(closedToday.businessDate)} est déjà clôturée. Ouvrez une nouvelle journée pour enregistrer un mouvement.` : "Aucune session de caisse ouverte.");
+    error.code = closedToday ? "CASH_SESSION_CLOSED" : "CASH_SESSION_REQUIRED";
+    throw error;
+  }
   if (data.type === "out") throw new Error("Les sorties doivent être enregistrées via un bon de décaissement.");
   const type = "in";
   const currency = String(data.currency || session.currency || "EUR").trim().toUpperCase();

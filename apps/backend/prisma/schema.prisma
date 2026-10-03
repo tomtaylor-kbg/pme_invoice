@@ -401,6 +401,10 @@ model CashDisbursement {
   userId        String?
   amount        Decimal
   currency      String               @default("EUR")
+  kind          String               @default("disbursement")
+  settlementAmount   Decimal?
+  settlementCurrency String?
+  exchangeRate  Decimal?
   category      String
   beneficiary   String
   reason        String

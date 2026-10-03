@@ -23,7 +23,7 @@ function createWorkspaceSettingsRouter({ prisma, requireAuth }) {
   router.patch("/", requireAuth, async (req, res, next) => {
     try {
       if (!canManageWorkspaceSettings(req.user)) {
-        return res.status(403).json({ message: "Forbidden" });
+        return res.status(403).json({ message: "Accès réservé à l’administrateur." });
       }
 
       const logoDataUrl = String(req.body?.logoDataUrl || "");

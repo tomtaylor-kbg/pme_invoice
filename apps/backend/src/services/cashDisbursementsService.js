@@ -7,9 +7,17 @@ function cashDisbursementNumber(year, sequence) {
 }
 
 function normalizeCashDisbursement(data = {}) {
+  const kind = data.kind === "external_deposit" ? "external_deposit" : "disbursement";
+  const amount = toNumber(data.amount, 0);
+  const exchangeRate = kind === "external_deposit" ? toNumber(data.exchangeRate, 0) : null;
+  const settlementAmount = kind === "external_deposit" ? toNumber(data.settlementAmount, 0) : null;
   return {
-    amount: new Prisma.Decimal(toNumber(data.amount, 0).toFixed(2)),
+    amount: new Prisma.Decimal(amount.toFixed(2)),
     currency: String(data.currency || "EUR").trim().toUpperCase(),
+    kind,
+    settlementAmount: settlementAmount ? new Prisma.Decimal(settlementAmount.toFixed(2)) : null,
+    settlementCurrency: kind === "external_deposit" ? "USD" : null,
+    exchangeRate: exchangeRate ? new Prisma.Decimal(exchangeRate.toFixed(6)) : null,
     category: String(data.category || "autre").trim(),
     beneficiary: String(data.beneficiary || "").trim(),
     reason: String(data.reason || "").trim(),
@@ -31,7 +39,14 @@ async function createCashDisbursement(prisma, data, userId) {
   const year = normalized.paidAt.getUTCFullYear();
   const created = await prisma.$transaction(async (tx) => {
     const session = await tx.cashRegisterSession.findFirst({ where: { userId: userId || "", status: "open" } });
-    if (!session) throw new Error("Ouvrez une session de caisse avant d'enregistrer une sortie.");
+    if (!session) {
+      const today = new Date();
+      const businessDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+      const closedToday = await tx.cashRegisterSession.findFirst({ where: { userId: userId || "", status: "closed", businessDate }, select: { businessDate: true } });
+      const error = new Error(closedToday ? "La caisse du jour est déjà clôturée. Aucun décaissement ou versement ne peut être ajouté." : "Ouvrez une session de caisse avant d'enregistrer une sortie.");
+      error.code = closedToday ? "CASH_SESSION_CLOSED" : "CASH_SESSION_REQUIRED";
+      throw error;
+    }
     const counter = await tx.cashDisbursementCounter.upsert({
       where: { year },
       create: { year, currentSequence: 1 },
@@ -46,7 +61,10 @@ async function createCashDisbursement(prisma, data, userId) {
       },
       include: { recorder: true }
     });
-    await tx.cashRegisterMovement.create({ data: { sessionId: session.id, userId, type: "out", amount: normalized.amount, currency: normalized.currency, cashDisbursementId: created.id, description: normalized.reason } });
+    const movementDescription = normalized.kind === "external_deposit"
+      ? `${normalized.reason} · Versement externe ${normalized.settlementAmount.toString()} USD · Taux ${normalized.exchangeRate.toString()}`
+      : normalized.reason;
+    await tx.cashRegisterMovement.create({ data: { sessionId: session.id, userId, type: "out", amount: normalized.amount, currency: normalized.currency, cashDisbursementId: created.id, description: movementDescription } });
     return created;
   });
   return serializeCashDisbursement(created);
@@ -60,7 +78,10 @@ async function updateCashDisbursement(prisma, id, data) {
       data: normalized,
       include: { recorder: true }
     });
-    await tx.cashRegisterMovement.updateMany({ where: { cashDisbursementId: id }, data: { amount: normalized.amount, currency: normalized.currency, description: normalized.reason } });
+    const movementDescription = normalized.kind === "external_deposit"
+      ? `${normalized.reason} · Versement externe ${normalized.settlementAmount.toString()} USD · Taux ${normalized.exchangeRate.toString()}`
+      : normalized.reason;
+    await tx.cashRegisterMovement.updateMany({ where: { cashDisbursementId: id }, data: { amount: normalized.amount, currency: normalized.currency, description: movementDescription } });
     return result;
   });
   return serializeCashDisbursement(updated);

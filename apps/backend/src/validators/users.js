@@ -1,19 +1,19 @@
 function validateUserCreate(body = {}) {
   const { username, name, email, passwordHash, role, status } = body;
   if (!username || !name) {
-    return "username and name are required";
+    return "Le nom d’utilisateur et le nom complet sont obligatoires.";
   }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
-    return "email must be a valid email address";
+    return "L’adresse e-mail n’est pas valide.";
   }
   if (!passwordHash || String(passwordHash).trim() === "") {
-    return "passwordHash is required";
+    return "Le mot de passe est obligatoire.";
   }
   if (role !== undefined && !["order_manager", "order_operator", "admin", "receptionist", "accountant"].includes(role)) {
-    return "role must be order_manager, order_operator, admin, receptionist or accountant";
+    return "Le rôle sélectionné n’est pas valide.";
   }
   if (status !== undefined && !["active", "inactive"].includes(status)) {
-    return "status must be active or inactive";
+    return "Le statut doit être actif ou inactif.";
   }
   return null;
 }

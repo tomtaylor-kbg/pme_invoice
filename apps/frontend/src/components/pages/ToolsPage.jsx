@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useWorkspace } from "../WorkspaceProvider";
 import { OverlayDialog } from "../ui";
-import { todayISO, formatISODate, money, suggestInvoiceNumber } from "../../utils/formatters";
+import { createClient } from "../../api";
+import { buildClientsCsv, downloadTextFile, todayISO, formatISODate, money, suggestInvoiceNumber } from "../../utils/formatters";
 import { formatWorkspaceAddress, formatWorkspaceContact, formatWorkspaceLegalInfo } from "../../utils/print/invoicePrintShared";
 
 const TABS = [
@@ -36,6 +37,15 @@ const TABS = [
         <line x1="10" y1="9" x2="8" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     )
+  },
+  {
+    id: "data",
+    label: "Données clients",
+    icon: (
+      <svg viewBox="0 0 24 24" className="tools-tab-icon" aria-hidden="true">
+        <path d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
   }
 ];
 
@@ -57,8 +67,62 @@ function calculateDueDate(issueDateIso, termDays) {
   }
 }
 
+function parseCsvLine(line) {
+  const cells = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === '"' && line[index + 1] === '"' && quoted) {
+      cell += '"';
+      index += 1;
+    } else if (character === '"') {
+      quoted = !quoted;
+    } else if (character === ";" && !quoted) {
+      cells.push(cell.trim());
+      cell = "";
+    } else {
+      cell += character;
+    }
+  }
+  cells.push(cell.trim());
+  return cells;
+}
+
+function parseClientsCsv(text) {
+  const lines = String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim());
+  if (lines.length < 2) throw new Error("Le fichier CSV ne contient aucun client.");
+  const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
+  const indexOf = (...names) => names.map((name) => headers.indexOf(name)).find((index) => index >= 0) ?? -1;
+  const indexes = {
+    firstName: indexOf("prénom", "prenom"),
+    lastName: indexOf("nom"),
+    type: indexOf("type"),
+    company: indexOf("société", "societe"),
+    email: indexOf("email"),
+    phone: indexOf("téléphone", "telephone"),
+    city: indexOf("ville"),
+    status: indexOf("statut")
+  };
+  if (indexes.firstName < 0 || indexes.lastName < 0) throw new Error("Colonnes obligatoires absentes : Prénom et Nom.");
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    const type = values[indexes.type]?.toLowerCase();
+    return {
+      firstName: values[indexes.firstName] || "",
+      lastName: values[indexes.lastName] || "",
+      clientType: type === "personne morale" || type === "company" ? "company" : "individual",
+      company: indexes.company >= 0 ? values[indexes.company] || "" : "",
+      email: indexes.email >= 0 ? values[indexes.email] || "" : "",
+      phone: indexes.phone >= 0 ? values[indexes.phone] || "" : "",
+      city: indexes.city >= 0 ? values[indexes.city] || "" : "",
+      status: indexes.status >= 0 && values[indexes.status]?.toLowerCase() === "inactif" ? "inactive" : "active"
+    };
+  });
+}
+
 export function ToolsPage() {
-  const { user, workspaceSettings, setWorkspaceSettings, resetWorkspaceSettings, data } = useWorkspace();
+  const { user, token, workspaceSettings, setWorkspaceSettings, resetWorkspaceSettings, data, refresh, notifySuccess, notifyError } = useWorkspace();
   const [activeTab, setActiveTab] = useState("company");
   const [previewFormat, setPreviewFormat] = useState("a4"); // "a4" | "thermal"
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
@@ -67,6 +131,8 @@ export function ToolsPage() {
   const [saveStatus, setSaveStatus] = useState("saved");
   const saveTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
+  const clientImportRef = useRef(null);
+  const [clientImporting, setClientImporting] = useState(false);
   const lastActiveVatRef = useRef(workspaceSettings.vatRate && Number(workspaceSettings.vatRate) > 0 ? workspaceSettings.vatRate : "20");
 
   const canReset = user?.role === "admin";
@@ -121,6 +187,45 @@ export function ToolsPage() {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) processLogoFile(file);
+  }
+
+  function exportClients() {
+    downloadTextFile(`clients-${todayISO()}.csv`, buildClientsCsv(data.clients || []), "text/csv;charset=utf-8");
+  }
+
+  function importClients(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setClientImporting(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const clients = parseClientsCsv(reader.result);
+        if (clients.length > 1000) throw new Error("Le fichier est limité à 1 000 clients par import.");
+        const existing = new Set((data.clients || []).map((client) => `${String(client.email || "").trim().toLowerCase()}|${String(client.firstName || "").trim().toLowerCase()}|${String(client.lastName || "").trim().toLowerCase()}`));
+        let imported = 0;
+        let skipped = 0;
+        for (const client of clients) {
+          const key = `${client.email.trim().toLowerCase()}|${client.firstName.trim().toLowerCase()}|${client.lastName.trim().toLowerCase()}`;
+          if (existing.has(key) || (!client.firstName.trim() && !client.company.trim())) {
+            skipped += 1;
+            continue;
+          }
+          await createClient(token, client);
+          existing.add(key);
+          imported += 1;
+        }
+        await refresh();
+        notifySuccess("Import clients terminé", `${imported} client(s) importé(s), ${skipped} ignoré(s).`);
+      } catch (error) {
+        notifyError("Import clients impossible", error.message || "Le fichier CSV est invalide.");
+      } finally {
+        setClientImporting(false);
+      }
+    };
+    reader.onerror = () => { setClientImporting(false); notifyError("Import clients impossible", "Le fichier n’a pas pu être lu."); };
+    reader.readAsText(file, "UTF-8");
   }
 
   // Preview derivations
@@ -663,6 +768,34 @@ export function ToolsPage() {
                       </strong>
                     </div>
                   </div>
+                </article>
+              </div>
+            )}
+
+            {/* TAB 4: Données clients */}
+            {activeTab === "data" && (
+              <div className="tools-tab-content">
+                <article className="tools-card">
+                  <div className="tools-card-head">
+                    <div>
+                      <h3>Importer et exporter les clients</h3>
+                      <p>Utilisez un fichier CSV pour transférer vos fiches clients. Les mots de passe et données sensibles ne sont jamais concernés.</p>
+                    </div>
+                  </div>
+                  <div className="tools-data-actions">
+                    <div className="tools-data-action">
+                      <strong>Exporter les clients</strong>
+                      <span>{data.clients?.length || 0} fiche(s) disponible(s)</span>
+                      <button type="button" className="secondary-button" onClick={exportClients}>Télécharger le CSV</button>
+                    </div>
+                    <div className="tools-data-action">
+                      <strong>Importer des clients</strong>
+                      <span>CSV séparé par des points-virgules · Prénom et Nom obligatoires</span>
+                      <input ref={clientImportRef} className="tools-file-input" type="file" accept=".csv,text/csv" onChange={importClients} />
+                      <button type="button" className="primary-button" onClick={() => clientImportRef.current?.click()} disabled={clientImporting}>{clientImporting ? "Import en cours…" : "Choisir un fichier CSV"}</button>
+                    </div>
+                  </div>
+                  <p className="dialog-note"><strong>Conseil :</strong> exportez d’abord un fichier pour récupérer le modèle exact des colonnes. Les clients déjà présents sont ignorés.</p>
                 </article>
               </div>
             )}

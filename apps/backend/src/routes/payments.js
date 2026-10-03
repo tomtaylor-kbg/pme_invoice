@@ -16,7 +16,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
     try {
       const payments = await listInvoicePayments(prisma, req.params.invoiceId);
       if (!payments) {
-        return res.status(404).json({ message: "Invoice not found" });
+        return res.status(404).json({ message: "Facture introuvable." });
       }
       res.json(payments);
     } catch (error) {
@@ -37,7 +37,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
       });
 
       if (!payment) {
-        return res.status(404).json({ message: "Invoice not found" });
+        return res.status(404).json({ message: "Facture introuvable." });
       }
 
       res.status(201).json(payment);
@@ -55,7 +55,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
 
       const payment = await updateInvoicePayment(prisma, req.params.id, { ...(req.body || {}), userId: req.user?.id });
       if (!payment) {
-        return res.status(404).json({ message: "Payment not found" });
+        return res.status(404).json({ message: "Paiement introuvable." });
       }
 
       res.json(payment);
@@ -68,7 +68,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
     try {
       const deleted = await deleteInvoicePayment(prisma, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Payment not found" });
+        return res.status(404).json({ message: "Paiement introuvable." });
       }
       res.status(204).send();
     } catch (error) {
@@ -79,7 +79,7 @@ function createPaymentsRouter({ prisma, requireAuth }) {
   router.get("/payments/:id/receipt", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
     try {
       const receipt = await getPaymentReceipt(prisma, req.params.id);
-      if (!receipt) return res.status(404).json({ message: "Receipt not found" });
+      if (!receipt) return res.status(404).json({ message: "Reçu introuvable." });
       res.json(receipt);
     } catch (error) { next(error); }
   });

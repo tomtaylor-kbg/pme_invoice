@@ -1,13 +1,13 @@
 function validateClientCreate(body = {}) {
   const { firstName, lastName, email, company, clientType = "individual" } = body;
   if (!["individual", "company"].includes(clientType)) {
-    return "clientType must be individual or company";
+    return "Le type de client doit être une personne ou une entité.";
   }
   if (clientType === "company" && !String(company || "").trim()) {
-    return "company is required for an entity";
+    return "Le nom de l’entité est obligatoire.";
   }
   if (clientType === "individual" && !String(firstName || "").trim()) {
-    return "firstName is required for an individual";
+    return "Le prénom ou nom complet est obligatoire pour une personne.";
   }
   return null;
 }

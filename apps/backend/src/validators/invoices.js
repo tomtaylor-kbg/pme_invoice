@@ -21,14 +21,14 @@ function validateInvoiceLine(line, index) {
 function validateInvoiceCreate(body = {}) {
   const { clientId, manualClientName, manualClientEmail, issueDate, dueDate, lines } = body;
   if ((!clientId && !String(manualClientName || "").trim()) || !issueDate || !dueDate) {
-    return "A client name, issueDate and dueDate are required";
+    return "Le client, la date d’édition et la date d’échéance sont obligatoires.";
   }
   if (manualClientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(manualClientEmail).trim())) {
-    return "manualClientEmail must be a valid email address";
+    return "L’adresse e-mail du client n’est pas valide.";
   }
   if (lines !== undefined) {
     if (!Array.isArray(lines)) {
-      return "lines must be an array";
+      return "Les lignes de facture sont invalides.";
     }
     for (let index = 0; index < lines.length; index += 1) {
       const lineError = validateInvoiceLine(lines[index], index);

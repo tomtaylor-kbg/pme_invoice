@@ -2,19 +2,19 @@ function validatePaymentBody(body = {}, { requireAmount = true } = {}) {
   const { amount, method, paidAt } = body;
 
   if (requireAmount && (amount === undefined || amount === null || String(amount).trim() === "")) {
-    return "amount is required";
+    return "Le montant est obligatoire.";
   }
 
   if (amount !== undefined && Number.isNaN(Number(amount))) {
-    return "amount must be a number";
+    return "Le montant doit être numérique.";
   }
 
   if (method !== undefined && !["cash", "card", "bank_transfer", "mobile_money", "check", "other"].includes(String(method))) {
-    return "method must be cash, card, bank_transfer, mobile_money, check or other";
+    return "Le mode de paiement sélectionné n’est pas valide.";
   }
 
   if (paidAt !== undefined && Number.isNaN(new Date(paidAt).getTime())) {
-    return "paidAt must be a valid date";
+    return "La date de paiement n’est pas valide.";
   }
 
   return null;

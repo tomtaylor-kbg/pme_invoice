@@ -85,6 +85,8 @@ function serializeCashDisbursement(record) {
   return {
     ...record,
     amount: Number(record.amount),
+    settlementAmount: record.settlementAmount === null || record.settlementAmount === undefined ? null : Number(record.settlementAmount),
+    exchangeRate: record.exchangeRate === null || record.exchangeRate === undefined ? null : Number(record.exchangeRate),
     paidAt: record.paidAt.toISOString(),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),

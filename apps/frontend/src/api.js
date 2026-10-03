@@ -13,7 +13,7 @@ async function request(path, { token, method = "GET", body } = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.message || "Request failed");
+    throw new Error(payload.message || "La requête n’a pas pu aboutir.");
   }
 
   return payload;

@@ -27,7 +27,7 @@ function createCashDisbursementsRouter({ prisma, requireAuth }) {
   router.patch("/:id", async (req, res, next) => {
     try {
       const current = await prisma.cashDisbursement.findUnique({ where: { id: req.params.id } });
-      if (!current) return res.status(404).json({ message: "Cash disbursement not found" });
+      if (!current) return res.status(404).json({ message: "Bon de sortie introuvable." });
       const merged = {
         ...current,
         ...req.body,

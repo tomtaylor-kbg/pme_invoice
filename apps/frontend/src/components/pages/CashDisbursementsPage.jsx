@@ -14,8 +14,8 @@ const categories = [
   ["autre", "Autre"]
 ];
 
-function emptyForm(currency = "EUR") {
-  return { amount: "", currency, category: "achats", beneficiary: "", reason: "", paidAt: todayISO(), notes: "" };
+function emptyForm(currency = "EUR", kind = "disbursement") {
+  return { kind, amount: "", currency, settlementAmount: "", settlementCurrency: "USD", exchangeRate: kind === "external_deposit" && currency === "USD" ? "1" : "", category: kind === "external_deposit" ? "autre" : "achats", beneficiary: "", reason: "", paidAt: todayISO(), notes: "" };
 }
 
 export function CashDisbursementsPage() {
@@ -54,9 +54,9 @@ export function CashDisbursementsPage() {
     return result;
   }, {});
 
-  function beginCreate() {
+  function beginCreate(kind = "disbursement") {
     setSelected(null);
-    setForm(emptyForm(workspaceSettings.defaultCurrency || "EUR"));
+    setForm(emptyForm(workspaceSettings.defaultCurrency || "EUR", kind));
     setEditorOpen(true);
   }
 
@@ -64,8 +64,12 @@ export function CashDisbursementsPage() {
     setSelected(record);
     setEditorOpen(true);
     setForm({
+      kind: record.kind || "disbursement",
       amount: String(record.amount),
       currency: record.currency,
+      settlementAmount: record.settlementAmount === null || record.settlementAmount === undefined ? "" : String(record.settlementAmount),
+      settlementCurrency: record.settlementCurrency || "USD",
+      exchangeRate: record.exchangeRate === null || record.exchangeRate === undefined ? "" : String(record.exchangeRate),
       category: record.category,
       beneficiary: record.beneficiary,
       reason: record.reason,
@@ -127,7 +131,8 @@ export function CashDisbursementsPage() {
       <header className="hero list-page-header">
         <div><span className="eyebrow">Caisse</span><h1>Sorties de caisse</h1></div>
         <div className="hero-actions">
-          <button className="primary-button list-action-button" type="button" onClick={beginCreate}>Nouveau bon de sortie</button>
+          <button className="primary-button list-action-button" type="button" onClick={() => beginCreate("disbursement")}>Nouveau bon de sortie</button>
+          <button className="secondary-button" type="button" onClick={() => beginCreate("external_deposit")}>Nouveau versement USD</button>
           <button className="secondary-button" type="button" onClick={exportCsv}>Export CSV</button>
         </div>
       </header>
@@ -150,8 +155,8 @@ export function CashDisbursementsPage() {
             formatISODate(record.paidAt.slice(0, 10)),
             record.beneficiary,
             categories.find(([value]) => value === record.category)?.[1] || record.category,
-            <span className="cash-reason-cell">{record.reason}</span>,
-            <strong>{money(record.amount, record.currency)}</strong>,
+            <span className="cash-reason-cell">{record.kind === "external_deposit" ? `Versement externe · ${money(record.settlementAmount, "USD")} · taux ${record.exchangeRate}` : record.reason}</span>,
+            <strong>{money(record.amount, record.currency)}{record.kind === "external_deposit" && <small className="cash-settlement-total">→ {money(record.settlementAmount, "USD")}</small>}</strong>,
             record.recorder?.name || record.recorder?.email || "—",
             <div className="table-row-actions"><TableAction icon="print" label="Imprimer" onClick={() => print(record)} /><TableAction icon="edit" label="Modifier" onClick={() => beginEdit(record)} /><TableAction icon="delete" label="Supprimer" danger onClick={() => remove(record)} /></div>
           ])} /></div> : <div className="empty-card-state">Aucun bon de sortie à afficher.</div>}
@@ -160,14 +165,15 @@ export function CashDisbursementsPage() {
 
       <OverlayDialog
         open={editorOpen}
-        title={selected ? `Modifier le bon ${selected.number}` : "Nouveau bon de sortie"}
+        title={selected ? `${form.kind === "external_deposit" ? "Modifier le versement" : "Modifier le bon"} ${selected.number}` : form.kind === "external_deposit" ? "Nouveau versement externe" : "Nouveau bon de sortie"}
         onClose={() => { setSelected(null); setEditorOpen(false); }}
-        topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-disbursement-form" disabled={saving}>{selected ? "Enregistrer" : "Créer le bon"}</OverlayActionButton>}
+        topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-disbursement-form" disabled={saving}>{selected ? "Enregistrer" : form.kind === "external_deposit" ? "Enregistrer le versement" : "Créer le bon"}</OverlayActionButton>}
       >
         <form id="cash-disbursement-form" className="stack-form cash-form-grid" onSubmit={save}>
-          <label>Date de sortie<input type="date" required value={form.paidAt} onChange={(event) => setForm((current) => ({ ...current, paidAt: event.target.value }))} /></label>
-          <label>Montant<input type="number" min="0.01" step="0.01" required value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} /></label>
+          <label>{form.kind === "external_deposit" ? "Date du versement" : "Date de sortie"}<input type="date" required value={form.paidAt} onChange={(event) => setForm((current) => ({ ...current, paidAt: event.target.value }))} /></label>
+          <label>{form.kind === "external_deposit" ? "Montant retiré de la caisse" : "Montant"}<input type="number" min="0.01" step="0.01" required value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} /></label>
           <label>Devise<select value={form.currency} onChange={(event) => setForm((current) => ({ ...current, currency: event.target.value }))}><option value="EUR">EUR</option><option value="USD">USD</option><option value="CDF">CDF</option></select></label>
+          {form.kind === "external_deposit" && <><label>Montant versé<select value={form.settlementCurrency} disabled><option value="USD">USD — Dollar américain</option></select><input type="number" min="0.01" step="0.01" required value={form.settlementAmount} onChange={(event) => setForm((current) => ({ ...current, settlementAmount: event.target.value }))} /></label><label>Taux de change <span className="field-hint">1 USD = montant en {form.currency}</span><input type="number" min="0.000001" step="0.000001" required value={form.exchangeRate} onChange={(event) => setForm((current) => ({ ...current, exchangeRate: event.target.value }))} placeholder={form.currency === "USD" ? "1" : "2300"} /></label></>}
           <label>Catégorie<select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}>{categories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="cash-form-wide">Bénéficiaire<input required maxLength={160} value={form.beneficiary} onChange={(event) => setForm((current) => ({ ...current, beneficiary: event.target.value }))} /></label>
           <label className="cash-form-wide">Motif de la sortie<input required maxLength={240} value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} /></label>

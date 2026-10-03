@@ -43,7 +43,7 @@ export function CashRegisterPage() {
       }
     } catch (error) {
       setLoadError(error.message || "La caisse est momentanément indisponible.");
-      notifyError("Caisse indisponible", error.message);
+      notifyError("Caisse indisponible", error.message || "La caisse est momentanément indisponible.");
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export function CashRegisterPage() {
       await refresh();
       notifySuccess("Caisse ouverte", `Session active en ${currency}.`);
     } catch (error) {
-      notifyError("Ouverture impossible", error.message);
+      notifyError("Ouverture impossible", error.message || "La session de caisse n’a pas pu être ouverte.");
     }
   }
 
@@ -76,7 +76,7 @@ export function CashRegisterPage() {
       await refresh();
       notifySuccess("Caisse clôturée", "Le rapprochement a été enregistré.");
     } catch (error) {
-      notifyError("Clôture impossible", error.message);
+      notifyError("Clôture impossible", error.message || "La session de caisse n’a pas pu être clôturée.");
     }
   }
 
@@ -92,7 +92,7 @@ export function CashRegisterPage() {
       await refresh();
       notifySuccess("Mouvement enregistré", `${money(Number(movement.amount), movement.currency)} · ${movement.type === "in" ? "Encaissement" : "Sortie"}`);
     } catch (error) {
-      notifyError("Mouvement non enregistré", error.message);
+      notifyError("Mouvement non enregistré", error.message || "Le mouvement n’a pas pu être enregistré.");
     }
   }
 

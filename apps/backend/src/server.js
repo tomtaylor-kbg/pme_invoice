@@ -20,7 +20,7 @@ const corsOrigins = allowedCorsOrigins.length
 const requireAuth = attachUser(prisma);
 const requireAdmin = (req, res, next) => {
   if (req.user?.role !== "admin") {
-    return res.status(403).json({ message: "Forbidden" });
+    return res.status(403).json({ message: "Accès réservé à l’administrateur." });
   }
 
   return next();
