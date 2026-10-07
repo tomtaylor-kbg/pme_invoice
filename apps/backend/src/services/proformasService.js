@@ -11,7 +11,6 @@ function serializeProforma(proforma) {
     validUntil: proforma.validUntil.toISOString(),
     createdAt: proforma.createdAt.toISOString(),
     updatedAt: proforma.updatedAt.toISOString(),
-    creator: proforma.creator ? { id: proforma.creator.id, name: proforma.creator.name, email: proforma.creator.email, role: proforma.creator.role } : null,
     lines: (proforma.lines || []).map((line) => ({
       ...line,
       unitPrice: Number(line.unitPrice),
@@ -47,7 +46,7 @@ async function resolveClient(tx, data) {
 async function listProformas(prisma) {
   const records = await prisma.proforma.findMany({
     orderBy: { createdAt: "desc" },
-    include: { client: true, creator: true, lines: true, convertedInvoice: true }
+    include: { client: true, lines: true, convertedInvoice: true }
   });
   return records.map(serializeProforma);
 }
@@ -82,7 +81,7 @@ async function createProforma(prisma, data, userId) {
           unitPrice: new Prisma.Decimal(Math.max(0, toNumber(line.unitPrice)))
         })) }
       },
-      include: { client: true, creator: true, lines: true }
+    include: { client: true, lines: true }
     });
   });
   return serializeProforma(proforma);
@@ -117,7 +116,7 @@ async function updateProforma(prisma, id, data) {
         unitPrice: new Prisma.Decimal(Math.max(0, toNumber(line.unitPrice)))
       })) });
     }
-    const result = await tx.proforma.findUnique({ where: { id }, include: { client: true, creator: true, lines: true } });
+    const result = await tx.proforma.findUnique({ where: { id }, include: { client: true, lines: true } });
     return serializeProforma(result);
   });
 }

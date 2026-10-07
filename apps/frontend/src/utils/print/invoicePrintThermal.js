@@ -11,7 +11,7 @@ import {
 } from "../formatters";
 import { formatWorkspaceAddress, formatWorkspaceBankInfo, formatWorkspaceContact, formatWorkspaceLegalInfo } from "./invoicePrintShared";
 
-export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {} }) {
+export function buildThermalInvoiceHtml({ invoice, client, settings = {} }) {
   const currency = invoice?.currency || "EUR";
   const lines = (Array.isArray(invoice?.lines) ? invoice.lines : []).filter(
     (line) => String(line?.description || "").trim() || Number(line?.quantity || 0) > 0 || Number(line?.unitPrice || 0) > 0
@@ -32,9 +32,7 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
   const bankInfo = formatWorkspaceBankInfo(settings);
   const logo = String(settings.logoDataUrl || "");
   const filename = buildInvoicePdfFilename({ invoice, client }).replace(/\.pdf$/i, "");
-  const directorName = creator?.name || creator?.email || "Session courante";
-  const roleLabels = { admin: "Administrateur", director: "Directeur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
-  const signerRole = roleLabels[creator?.role] || "Responsable";
+  const directorName = "Directeur";
 
   return `<!doctype html>
 <html lang="fr">
@@ -93,7 +91,6 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
         <div class="meta-row"><span>Client</span><strong>${escapeHtml(clientName)}</strong></div>
         ${client?.company && client.company !== clientName ? `<div class="meta-row"><span>Société</span><strong>${escapeHtml(client.company)}</strong></div>` : ""}
         ${client?.phone ? `<div class="meta-row"><span>Téléphone</span><strong>${escapeHtml(client.phone)}</strong></div>` : ""}
-        ${creator?.name ? `<div class="meta-row"><span>Conseiller</span><strong>${escapeHtml(creator.name)}</strong></div>` : ""}
       </section>
 
       <div class="divider"></div>
@@ -122,7 +119,7 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
       </section>
 
       ${invoice?.notes ? `<div class="divider"></div><p class="small">${escapeHtml(invoice.notes)}</p>` : ""}
-      <section class="signature"><div class="seal">Signature et sceau</div><strong>${escapeHtml(directorName)}</strong><span>${escapeHtml(signerRole)}</span></section>
+      <section class="signature"><div class="seal">Signature et sceau</div><strong>${escapeHtml(directorName)}</strong></section>
       <footer class="footer small">Merci de votre confiance${legalInfo ? `<br>${escapeHtml(legalInfo)}` : ""}${bankInfo ? `<br>${escapeHtml(bankInfo)}` : ""}
     </main>
   </body>

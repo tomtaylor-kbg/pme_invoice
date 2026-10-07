@@ -489,6 +489,10 @@ body[data-theme="light"] .error-banner {
 }
 
 .nav-item-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
   min-width: 0;
 }
 
@@ -507,6 +511,9 @@ body[data-theme="light"] .error-banner {
   font-weight: 800;
   line-height: 1;
 }
+.nav-item-status { display: inline-block; width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 14%, transparent); }
+.nav-item-status.open { background: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, .16); }
+.nav-item-status.closed { background: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, .14); }
 
 .nav-item:hover {
   border-color: var(--border);
@@ -716,7 +723,7 @@ body[data-theme="light"] .error-banner {
 .order-table-work span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-table-work small { white-space: normal; }
 .order-table-operator { min-width: 140px; min-height: 34px; padding: 6px 8px; font-size: .78rem; }
-.order-table-actions { min-width: 210px; flex-wrap: wrap; }
+.order-table-actions { min-width: 150px; flex-wrap: wrap; justify-content: flex-end; }
 .order-status-pending { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
 .order-status-assigned { color: #0e7490; background: color-mix(in srgb, #0e7490 12%, transparent); }
 .order-status-processing { color: var(--accent-color); background: var(--accent-soft); }

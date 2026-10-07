@@ -211,6 +211,9 @@ const tableActionPaths = {
   invoice: <><path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 12h7M9 16h5" /></>,
   payments: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h3" /></>,
   receipt: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" /><path d="M9 8h6M9 12h6M9 16h3" /></>,
+  play: <><path d="m8 5 11 7-11 7V5Z" /></>,
+  check: <><path d="m5 12 4 4L19 6" /></>,
+  block: <><circle cx="12" cy="12" r="8.5" /><path d="m6 6 12 12" /></>,
   delete: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" /></>
 };
 
@@ -270,7 +273,7 @@ export function InvoiceCard({ invoice, onEdit, onDelete, onPayments, onPrint, lo
       <div className="invoice-card-summary">
         <div>
           <span>Créée par</span>
-          <strong>{invoice.creator?.name || invoice.creator?.email || "session courante"}</strong>
+          <strong>Directeur</strong>
         </div>
         <div>
           <span>Montant</span>

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useWorkspace } from "./WorkspaceProvider";
 import { ToastViewport } from "./ui";
-import { getOrders } from "../api";
+import { getActiveCashSession, getNeedRequests, getOrders } from "../api";
+import { invoiceSettlementStatus } from "../utils/formatters";
 
 export const navItems = [
   {
@@ -103,9 +104,11 @@ const roleLabels = {
 };
 
 export function AppLayout() {
-  const { token, user, logout, theme, toggleTheme, toasts, dismissToast, workspaceSettings } = useWorkspace();
+  const { token, user, data, logout, theme, toggleTheme, toasts, dismissToast, workspaceSettings } = useWorkspace();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("facturation_sidebar") === "collapsed");
   const [activeOrderCount, setActiveOrderCount] = useState(0);
+  const [pendingNeedCount, setPendingNeedCount] = useState(0);
+  const [cashSessionOpen, setCashSessionOpen] = useState(false);
   const displayName = user?.name?.trim() || user?.email?.trim() || "Utilisateur connecté";
   const displayRole = user?.role || "order_operator";
   const roleLabel = roleLabels[displayRole] || roleLabels.order_operator;
@@ -114,13 +117,26 @@ export function AppLayout() {
     let active = true;
     if (!token || !user) {
       setActiveOrderCount(0);
+      setPendingNeedCount(0);
+      setCashSessionOpen(false);
       return () => { active = false; };
     }
-    getOrders(token)
-      .then((orders) => { if (active) setActiveOrderCount(orders.filter((order) => ["assigned", "processing", "blocked"].includes(order.status)).length); })
-      .catch(() => { if (active) setActiveOrderCount(0); });
+    const canSeeNeeds = ["admin", "director", "receptionist"].includes(user.role);
+    Promise.all([
+      getOrders(token),
+      canSeeNeeds ? getNeedRequests(token) : Promise.resolve([]),
+      canSeeNeeds ? getActiveCashSession(token) : Promise.resolve(null)
+    ])
+      .then(([orders, needs, activeSession]) => {
+        if (!active) return;
+        setActiveOrderCount(orders.filter((order) => ["assigned", "processing", "blocked"].includes(order.status)).length);
+        setPendingNeedCount(needs.filter((record) => record.status === "submitted").length);
+        setCashSessionOpen(Boolean(activeSession));
+      })
+      .catch(() => { if (active) { setActiveOrderCount(0); setPendingNeedCount(0); setCashSessionOpen(false); } });
     return () => { active = false; };
-  }, [token, user?.id, user?.role]);
+  }, [token, user?.id, user?.role, data.invoices.length]);
+  const unpaidInvoiceCount = data.invoices.filter((invoice) => invoiceSettlementStatus(invoice) === "unpaid").length;
   const visibleKeys = ["admin", "director"].includes(displayRole)
     ? new Set(navItems.map((item) => item.key))
     : displayRole === "receptionist"
@@ -181,7 +197,7 @@ export function AppLayout() {
               <span className="nav-item-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" className="nav-item-svg">{item.icon}</svg>
               </span>
-              <span className="nav-item-label">{item.label}{item.key === "orders" && activeOrderCount > 0 && <span className="nav-item-count" aria-label={`${activeOrderCount} commande${activeOrderCount > 1 ? "s" : ""} active${activeOrderCount > 1 ? "s" : ""}`}>{activeOrderCount > 99 ? "99+" : activeOrderCount}</span>}</span>
+              <span className="nav-item-label">{item.label}{item.key === "invoices" && unpaidInvoiceCount > 0 && <span className="nav-item-count" aria-label={`${unpaidInvoiceCount} facture${unpaidInvoiceCount > 1 ? "s" : ""} impayée${unpaidInvoiceCount > 1 ? "s" : ""}`}>{unpaidInvoiceCount > 99 ? "99+" : unpaidInvoiceCount}</span>}{item.key === "orders" && activeOrderCount > 0 && <span className="nav-item-count" aria-label={`${activeOrderCount} commande${activeOrderCount > 1 ? "s" : ""} active${activeOrderCount > 1 ? "s" : ""}`}>{activeOrderCount > 99 ? "99+" : activeOrderCount}</span>}{item.key === "need-requests" && pendingNeedCount > 0 && <span className="nav-item-count" aria-label={`${pendingNeedCount} état${pendingNeedCount > 1 ? "s" : ""} de besoins non validé${pendingNeedCount > 1 ? "s" : ""}`}>{pendingNeedCount > 99 ? "99+" : pendingNeedCount}</span>}{item.key === "cash-register" && <span className={`nav-item-status ${cashSessionOpen ? "open" : "closed"}`} aria-label={cashSessionOpen ? "Caisse ouverte" : "Caisse fermée"} title={cashSessionOpen ? "Caisse ouverte" : "Caisse fermée"} />}</span>
             </NavLink>)}
           </div>)}
         </nav>

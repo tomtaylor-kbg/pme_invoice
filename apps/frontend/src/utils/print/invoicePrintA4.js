@@ -22,11 +22,12 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
   const totalHT = invoiceLinesTotal(lines);
   const taxAmount = isVatActive ? totalHT * (taxRate / 100) : 0;
   const totalTTC = totalHT + taxAmount;
-  const createdBy = creator?.name || creator?.email || "Session courante";
-  const directorName = creator?.name || creator?.email || "Session courante";
+  const directorName = "Directeur";
   const roleLabels = { admin: "Administrateur", director: "Directeur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
-  const signerRole = roleLabels[creator?.role] || "Responsable";
-  const clientLabel = [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim() || client?.company || "Client";
+  const editedByName = creator?.name || creator?.email || "Utilisateur";
+  const editedByRole = roleLabels[String(creator?.role || "").toLowerCase()] || "Utilisateur";
+  const clientCandidates = [client?.displayName, [client?.firstName, client?.lastName].filter((value) => value && !["null", "undefined", "ponctuel"].includes(String(value).toLowerCase())).join(" ").trim(), client?.company];
+  const clientLabel = clientCandidates.find((value) => value && !["null", "undefined", "ponctuel"].includes(String(value).trim().toLowerCase())) || "Client";
   const clientCompany = client?.company || "";
   const clientEmail = client?.email || "";
   const clientPhone = client?.phone || "";
@@ -314,7 +315,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
                 <div><span>Devise</span><strong>${escapeHtml(currency)}</strong></div>
                 ${Number(settings.vatRate) > 0 ? `<div><span>TVA par défaut</span><strong>${escapeHtml(settings.vatRate)}%</strong></div>` : ""}
               `}
-              <div><span>Créée par</span><strong>${escapeHtml(createdBy)}</strong></div>
+              <div><span>Éditée par</span><strong>${escapeHtml(editedByName)} - ${escapeHtml(editedByRole)}</strong></div>
             </div>
           </div>
         </div>
@@ -368,7 +369,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
         </div>`}
 
         ${invoice?.notes ? `<div class="notes">${escapeHtml(invoice.notes)}</div>` : ""}
-        ${!isDeliveryNote ? `<section class="signature-block"><div class="signature-box"><div class="seal">Signature et sceau</div><strong>${escapeHtml(directorName)}</strong><span>${escapeHtml(signerRole)}</span></div></section>` : ""}
+        ${!isDeliveryNote ? `<section class="signature-block"><div class="signature-box"><div class="seal">Signature et sceau</div><strong>${escapeHtml(directorName)}</strong></div></section>` : ""}
         <footer class="footer-note"><span>${escapeHtml(companyName)}</span>${legalLine ? `<span class="legal">${escapeHtml(legalLine)}</span>` : ""}${bankLine ? `<span class="legal bank">${escapeHtml(bankLine)}</span>` : ""}</footer>
       </div>
     </div>

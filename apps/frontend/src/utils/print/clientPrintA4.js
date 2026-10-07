@@ -35,7 +35,7 @@ export function buildClientPrintHtml({ client = {}, settings = {}, orders = [], 
       .preview-toolbar button { padding: 8px 12px; border: 0; border-radius: 5px; color: #fff; background: #1d4ed8; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
       .preview-toolbar .return-button { border: 1px solid #cbd5e1; color: #334155; background: #f1f5f9; }
       .page { width: 100%; max-width: 210mm; margin: 0 auto; }
-      .sheet { min-height: 265mm; display: flex; flex-direction: column; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; }
+      .sheet { min-height: 265mm; display: flex; flex-direction: column; padding: 20px; border: 1px solid #e2e8f0; border-radius: 18px; }
       .top { display: grid; justify-items: center; gap: 14px; margin-bottom: 24px; padding: 8px 0 20px; border-bottom: 2px solid #0f172a; text-align: center; }
       .brand { display: grid; justify-items: center; gap: 5px; width: 100%; }
       .brand-copy { display: grid; justify-items: center; gap: 4px; }
@@ -48,7 +48,7 @@ export function buildClientPrintHtml({ client = {}, settings = {}, orders = [], 
       .title-block h1 { margin: 0; font-size: 18px; text-transform: uppercase; }
       .title-block p { margin: 5px 0 0; color: #64748b; }
       .identity { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
-      .card { padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; }
+      .card { padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; }
       .card h2 { margin: 0 0 10px; color: #64748b; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
       .field { display: flex; justify-content: space-between; gap: 14px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; }
       .field:last-child { border-bottom: 0; }
@@ -56,7 +56,7 @@ export function buildClientPrintHtml({ client = {}, settings = {}, orders = [], 
       .field strong { text-align: right; overflow-wrap: anywhere; }
       .status { display: inline-block; padding: 3px 8px; border-radius: 999px; color: #166534; background: #dcfce7; font-size: 10px; font-weight: 700; }
       .status.inactive { color: #991b1b; background: #fee2e2; }
-      .notes { margin-top: 18px; padding: 14px; border: 1px dashed #cbd5e1; border-radius: 12px; color: #334155; line-height: 1.6; }
+      .notes { margin-top: 18px; padding: 14px; border: 1px dashed #cbd5e1; border-radius: 14px; background: #f8fafc; color: #334155; line-height: 1.6; }
       .relations { margin-top: 20px; }
       .relations h2 { margin: 0 0 8px; color: #64748b; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
       table { width: 100%; border-collapse: collapse; font-size: 10px; }

@@ -39,6 +39,7 @@ export function InvoicesPage() {
     setForms,
     editor,
     beginCreateInvoiceWithPreset,
+    beginEditInvoice,
     beginManagePayments,
     beginEditPayment,
     saveInvoice,
@@ -84,7 +85,6 @@ export function InvoicesPage() {
     return [client.displayName, client.company, client.email, client.phone].some((value) => String(value || "").toLocaleLowerCase("fr-FR").includes(query));
   });
   const hasInvoiceClient = forms.invoice.clientMode === "manual" ? Boolean(forms.invoice.manualClientName.trim()) : Boolean(forms.invoice.clientId);
-  const selectedCreator = data.users.find((item) => item.id === forms.invoice.userId) || user || null;
   const canAddInvoiceLine = (() => {
     const lastLine = invoiceLines[invoiceLines.length - 1] || createInvoiceLineDraft();
     const description = String(lastLine.description || "").trim();
@@ -186,7 +186,7 @@ export function InvoicesPage() {
     const a4PrintHtml = buildInvoicePrintHtml({
       invoice: sourceInvoice,
       client: invoice ? invoice.client : selectedClient,
-      creator: invoice ? invoice.creator : selectedCreator,
+      creator: invoice?.creator || user,
       settings: workspaceSettings
     });
     const previewWindow = window.open("", "_blank");
@@ -208,7 +208,6 @@ export function InvoicesPage() {
     printWindow.document.write(buildThermalInvoiceHtml({
       invoice,
       client: invoice.client,
-      creator: invoice.creator,
       settings: workspaceSettings
     }));
     printWindow.document.close();
@@ -307,7 +306,7 @@ export function InvoicesPage() {
               <strong>{money(invoice.total, invoice.currency)}</strong>,
               money(invoice.amountPaid ?? 0, invoice.currency),
               money(invoice.balanceDue ?? invoice.total ?? 0, invoice.currency),
-              <div className="table-row-actions"><TableAction icon="open" label="Ouvrir" onClick={() => openInvoicePdf(invoice)} /><TableAction icon="payments" label="Paiements" onClick={() => beginManagePayments(invoice)} /><TableAction icon="print" label="Ticket" onClick={() => printThermalTicket(invoice)} />{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeInvoice(invoice.id)} disabled={loading} />}</div>
+              <div className="table-row-actions"><TableAction icon="open" label="Ouvrir" onClick={() => openInvoicePdf(invoice)} />{invoiceSettlementStatus(invoice) !== "paid" && <TableAction icon="edit" label="Modifier" onClick={() => beginEditInvoice(invoice)} />}<TableAction icon="payments" label="Paiements" onClick={() => beginManagePayments(invoice)} /><TableAction icon="print" label="Ticket" onClick={() => printThermalTicket(invoice)} />{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeInvoice(invoice.id)} disabled={loading} />}</div>
             ])} /></div> : <div className="empty-card-state">Aucune facture ne correspond à vos critères.</div>}
         </section>
       </div>
