@@ -312,6 +312,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
                 ${invoice?.receivedBy ? `<div><span>Réceptionné par</span><strong>${escapeHtml(invoice.receivedBy)}</strong></div>` : ""}
               ` : `
                 <div><span>Date d’édition</span><strong>${escapeHtml(formatISODate(invoice?.issueDate))}</strong></div>
+                ${invoice?.documentType === "proforma" && (invoice?.validUntil || invoice?.dueDate) ? `<div><span>Date d’échéance</span><strong>${escapeHtml(formatISODate(invoice.validUntil || invoice.dueDate))}</strong></div>` : ""}
                 <div><span>Devise</span><strong>${escapeHtml(currency)}</strong></div>
                 ${Number(settings.vatRate) > 0 ? `<div><span>TVA par défaut</span><strong>${escapeHtml(settings.vatRate)}%</strong></div>` : ""}
               `}

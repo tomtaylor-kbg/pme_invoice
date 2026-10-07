@@ -85,7 +85,9 @@ export function invoicePaymentStatusLabel(invoice = {}) {
   const total = toMoneyValue(invoice.total);
   const paid = toMoneyValue(invoice.amountPaid);
 
-  return total > 0 && paid >= total ? "Payée" : "Impayée";
+  if (total > 0 && paid >= total) return "Payée";
+  if (paid > 0) return "Partielle";
+  return "Impayée";
 }
 
 export function invoiceSettlementStatus(invoice = {}) {
