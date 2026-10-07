@@ -11,6 +11,7 @@ function serializeProforma(proforma) {
     validUntil: proforma.validUntil.toISOString(),
     createdAt: proforma.createdAt.toISOString(),
     updatedAt: proforma.updatedAt.toISOString(),
+    creator: proforma.creator ? { id: proforma.creator.id, name: proforma.creator.name, email: proforma.creator.email, role: proforma.creator.role } : null,
     lines: (proforma.lines || []).map((line) => ({
       ...line,
       unitPrice: Number(line.unitPrice),

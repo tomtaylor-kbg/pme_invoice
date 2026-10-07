@@ -84,7 +84,7 @@ export function AuditLogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const isAdmin = user?.role === "admin";
+  const isAdmin = ["admin", "director"].includes(user?.role);
 
   useEffect(() => {
     let active = true;

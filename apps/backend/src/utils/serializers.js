@@ -39,6 +39,7 @@ function serializeInvoice(invoice) {
     dueDate: invoice.dueDate.toISOString(),
     createdAt: invoice.createdAt.toISOString(),
     updatedAt: invoice.updatedAt.toISOString(),
+    creator: invoice.creator ? { id: invoice.creator.id, name: invoice.creator.name, email: invoice.creator.email, role: invoice.creator.role } : null,
     lines: (invoice.lines || []).map((line) => ({
       ...line,
       unitPrice: Number(line.unitPrice),

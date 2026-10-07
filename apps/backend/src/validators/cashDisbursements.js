@@ -1,6 +1,7 @@
 const CATEGORIES = ["achats", "transport", "salaires", "loyer", "entretien", "autre"];
 
 function validateCashDisbursement(data = {}) {
+  if (data.kind === "external_deposit") return "Les versements se gèrent désormais dans le module Versements.";
   const amount = Number(data.amount);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999999.99) return "Le montant doit être positif et valide.";
   if (!String(data.currency || "").match(/^[A-Z]{3}$/)) return "La devise doit être un code ISO à trois lettres.";

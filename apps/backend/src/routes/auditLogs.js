@@ -5,7 +5,7 @@ function createAuditLogsRouter({ prisma, requireAuth }) {
 
   router.get("/", requireAuth, async (req, res, next) => {
     try {
-      const where = req.user?.role === "admin" ? {} : { userId: req.user.id };
+      const where = ["admin", "director"].includes(req.user?.role) ? {} : { userId: req.user.id };
       const records = await prisma.auditLog.findMany({
         where,
         take: 500,

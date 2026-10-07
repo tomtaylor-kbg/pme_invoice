@@ -60,6 +60,18 @@ export const navItems = [
     icon: <path d="M3 7h18v13H3zM3 10h18M7 4h10M16 14h2" />
   },
   {
+    key: "cash-deposits",
+    label: "Versements",
+    path: "/cash-deposits",
+    icon: <path d="M4 6h16v12H4zM8 10h8M8 14h5" />
+  },
+  {
+    key: "need-requests",
+    label: "États de besoins",
+    path: "/need-requests",
+    icon: <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" />
+  },
+  {
     key: "cash-register",
     label: "Caisse",
     path: "/cash-register",
@@ -83,6 +95,7 @@ export const navItems = [
 
 const roleLabels = {
   admin: "Administrateur",
+  director: "Directeur",
   receptionist: "Réceptionniste",
   accountant: "Comptable",
   order_manager: "Gestionnaire des commandes",
@@ -108,10 +121,10 @@ export function AppLayout() {
       .catch(() => { if (active) setActiveOrderCount(0); });
     return () => { active = false; };
   }, [token, user?.id, user?.role]);
-  const visibleKeys = displayRole === "admin"
+  const visibleKeys = ["admin", "director"].includes(displayRole)
     ? new Set(navItems.map((item) => item.key))
     : displayRole === "receptionist"
-      ? new Set(["dashboard", "invoices", "orders", "delivery-notes", "clients", "cash", "cash-register", "cash-reports"])
+      ? new Set(["dashboard", "invoices", "orders", "delivery-notes", "clients", "need-requests", "cash", "cash-deposits", "cash-register", "cash-reports"])
       : displayRole === "accountant"
         ? new Set(["cash-reports"])
       : displayRole === "order_manager"
@@ -122,7 +135,7 @@ export function AppLayout() {
     { label: "Espace de travail", keys: ["dashboard"] },
     { label: "Commercial", keys: ["invoices", "proformas", "orders", "delivery-notes", "clients"] },
     { label: "Suivi", keys: ["logs"] },
-    { label: "Caisse", keys: ["cash", "cash-register", "cash-reports"] },
+    { label: "Caisse", keys: ["need-requests", "cash", "cash-deposits", "cash-register", "cash-reports"] },
     { label: "Administration", keys: ["users"] }
   ].map((group) => ({ ...group, items: visibleNavItems.filter((item) => group.keys.includes(item.key)) }))
     .filter((group) => group.items.length > 0);
@@ -184,7 +197,7 @@ export function AppLayout() {
               <p>{roleLabel}</p>
             </div>
             <div className="topbar-actions">
-              {displayRole === "admin" && <NavLink to="/tools" className={({ isActive }) => `topbar-action${isActive ? " active" : ""}`} title="Paramètres">
+              {["admin", "director"].includes(displayRole) && <NavLink to="/tools" className={({ isActive }) => `topbar-action${isActive ? " active" : ""}`} title="Paramètres">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8 3.5-1.8-.7a6.7 6.7 0 0 0-.5-1.2l.8-1.8-1.8-1.8-1.8.8a6.7 6.7 0 0 0-1.2-.5L13 5h-2l-.7 1.8a6.7 6.7 0 0 0-1.2.5l-1.8-.8-1.8 1.8.8 1.8a6.7 6.7 0 0 0-.5 1.2L4 12v2l1.8.7c.1.4.3.8.5 1.2l-.8 1.8 1.8 1.8 1.8-.8c.4.2.8.4 1.2.5L11 21h2l.7-1.8c.4-.1.8-.3 1.2-.5l1.8.8 1.8-1.8-.8-1.8c.2-.4.4-.8.5-1.2L20 14v-2Z" /></svg>
                 <span>Paramètres</span>
               </NavLink>}

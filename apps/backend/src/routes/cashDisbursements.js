@@ -10,7 +10,7 @@ const {
 
 function createCashDisbursementsRouter({ prisma, requireAuth }) {
   const router = express.Router();
-  router.use(requireAuth, requireRole("admin", "receptionist"));
+  router.use(requireAuth, requireRole("admin", "director", "receptionist"));
 
   router.get("/", async (_req, res, next) => {
     try { res.json(await listCashDisbursements(prisma)); } catch (error) { next(error); }

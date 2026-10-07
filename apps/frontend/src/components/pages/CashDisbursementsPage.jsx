@@ -132,7 +132,6 @@ export function CashDisbursementsPage() {
         <div><span className="eyebrow">Caisse</span><h1>Sorties de caisse</h1></div>
         <div className="hero-actions">
           <button className="primary-button list-action-button" type="button" onClick={() => beginCreate("disbursement")}>Nouveau bon de sortie</button>
-          <button className="secondary-button" type="button" onClick={() => beginCreate("external_deposit")}>Nouveau versement USD</button>
           <button className="secondary-button" type="button" onClick={exportCsv}>Export CSV</button>
         </div>
       </header>

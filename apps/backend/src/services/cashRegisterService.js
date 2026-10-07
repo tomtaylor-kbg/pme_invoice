@@ -38,7 +38,7 @@ function serializeSession(session) {
   };
 }
 
-const include = { operator: true, movements: { orderBy: { createdAt: "desc" } } };
+const include = { operator: true, movements: { orderBy: { createdAt: "asc" }, include: { cashDisbursement: { select: { kind: true } }, cashDeposit: { select: { number: true, status: true } } } } };
 
 async function getActiveSession(prisma, userId) {
   const session = await prisma.cashRegisterSession.findFirst({ where: { userId, status: "open" }, include });
@@ -78,11 +78,18 @@ async function getCarryForward(prisma, userId) {
 
 async function getDailyReport(prisma, user, value = new Date()) {
   const day = businessDate(value);
-  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: day, ...(["admin", "accountant"].includes(user.role) ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
-  const report = { date: businessDateLabel(day), sessions: sessions.map(serializeSession), totals: {} };
+  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: day, ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
+  const report = { date: businessDateLabel(day), sessions: sessions.map(serializeSession), totals: {}, inTotals: {}, outTotals: {}, depositTotals: {}, netTotals: {} };
   for (const session of report.sessions) {
     for (const [currency, amount] of Object.entries(session.expectedBalances || {})) {
       report.totals[currency] = Number(report.totals[currency] || 0) + Number(amount || 0);
+    }
+    for (const movement of session.movements || []) {
+      const currency = movement.currency || session.currency || "EUR";
+      const amount = Number(movement.amount || 0);
+      const target = movement.type === "in" ? report.inTotals : (movement.cashDepositId || movement.cashDisbursement?.kind === "external_deposit") ? report.depositTotals : report.outTotals;
+      target[currency] = Number(target[currency] || 0) + amount;
+      report.netTotals[currency] = Number(report.netTotals[currency] || 0) + (movement.type === "in" ? amount : -amount);
     }
   }
   return report;
@@ -95,13 +102,13 @@ async function getMonthlyReport(prisma, user, value = new Date()) {
   const month = match ? Number(match[2]) - 1 : new Date().getUTCMonth();
   const start = new Date(Date.UTC(year, month, 1));
   const end = new Date(Date.UTC(year, month + 1, 1));
-  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: { gte: start, lt: end }, ...(["admin", "accountant"].includes(user.role) ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
-  const report = { period: `${year}-${String(month + 1).padStart(2, "0")}`, sessions: sessions.map(serializeSession), inTotals: {}, outTotals: {}, netTotals: {} };
+  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: { gte: start, lt: end }, ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
+  const report = { period: `${year}-${String(month + 1).padStart(2, "0")}`, sessions: sessions.map(serializeSession), inTotals: {}, outTotals: {}, depositTotals: {}, netTotals: {} };
   for (const session of report.sessions) {
     for (const movement of session.movements || []) {
       const currency = movement.currency || session.currency || "EUR";
       const amount = Number(movement.amount || 0);
-      const target = movement.type === "in" ? report.inTotals : report.outTotals;
+      const target = movement.type === "in" ? report.inTotals : (movement.cashDepositId || movement.cashDisbursement?.kind === "external_deposit") ? report.depositTotals : report.outTotals;
       target[currency] = Number(target[currency] || 0) + amount;
       report.netTotals[currency] = Number(report.netTotals[currency] || 0) + (movement.type === "in" ? amount : -amount);
     }
@@ -111,7 +118,7 @@ async function getMonthlyReport(prisma, user, value = new Date()) {
 
 async function getReportHistory(prisma, user) {
   const sessions = await prisma.cashRegisterSession.findMany({
-    where: { status: "closed", ...(["admin", "accountant"].includes(user.role) ? {} : { userId: user.id }) },
+    where: { status: "closed", ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) },
     orderBy: [{ businessDate: "desc" }, { closedAt: "desc" }],
     take: 90,
     select: { id: true, businessDate: true, currency: true, closingBalance: true, closingBalances: true, openedAt: true, closedAt: true, operator: { select: { id: true, name: true, email: true } } }

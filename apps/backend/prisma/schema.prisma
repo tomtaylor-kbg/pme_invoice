@@ -21,6 +21,8 @@ model User {
   proformas          Proforma[]             @relation("CreatedProformas")
   payments           Payment[]              @relation("RecordedPayments")
   cashDisbursements  CashDisbursement[]     @relation("RecordedCashDisbursements")
+  cashDeposits       CashDeposit[]          @relation("CreatedCashDeposits")
+  needRequests       NeedRequest[]          @relation("CreatedNeedRequests")
   openedCashSessions CashRegisterSession[]  @relation("CashSessionOperator")
   cashMovements      CashRegisterMovement[] @relation("CashMovementOperator")
   deliveryNotes      DeliveryNote[]
@@ -302,6 +304,7 @@ model CashRegisterSession {
   movements         CashRegisterMovement[]
   payments          Payment[]
   cashDisbursements CashDisbursement[]
+  cashDeposits      CashDeposit[]
 
   @@index([userId, status])
   @@index([status, openedAt])
@@ -319,15 +322,18 @@ model CashRegisterMovement {
   invoiceId          String?
   paymentId          String?             @unique
   cashDisbursementId String?             @unique
+  cashDepositId      String?             @unique
   createdAt          DateTime            @default(now())
   session            CashRegisterSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   operator           User                @relation("CashMovementOperator", fields: [userId], references: [id], onDelete: Cascade)
   payment            Payment?            @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   cashDisbursement   CashDisbursement?   @relation(fields: [cashDisbursementId], references: [id], onDelete: Cascade)
+  cashDeposit        CashDeposit?        @relation(fields: [cashDepositId], references: [id], onDelete: Cascade)
 
   @@index([sessionId, createdAt])
   @@index([invoiceId])
   @@index([cashDisbursementId])
+  @@index([cashDepositId])
 }
 
 model DeliveryInvoiceLink {
@@ -416,9 +422,84 @@ model CashDisbursement {
   cashSessionId String?
   cashSession   CashRegisterSession? @relation(fields: [cashSessionId], references: [id], onDelete: SetNull)
   cashMovement  CashRegisterMovement?
+  needRequestId String?              @unique
+  needRequest   NeedRequest?         @relation(fields: [needRequestId], references: [id], onDelete: SetNull)
 }
 
 model CashDisbursementCounter {
+  year            Int      @id
+  currentSequence Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model CashDeposit {
+  id            String                 @id @default(cuid())
+  number        String                 @unique
+  userId        String?
+  cashSessionId String?
+  amount        Decimal
+  currency      String                 @default("EUR")
+  destination   String
+  reason        String
+  reference     String?
+  status        String                 @default("draft")
+  validatedAt   DateTime?
+  cancelledAt   DateTime?
+  notes         String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  creator       User?                  @relation("CreatedCashDeposits", fields: [userId], references: [id], onDelete: SetNull)
+  cashSession   CashRegisterSession?   @relation(fields: [cashSessionId], references: [id], onDelete: SetNull)
+  cashMovement  CashRegisterMovement?
+
+  @@index([status, createdAt])
+  @@index([cashSessionId])
+}
+
+model CashDepositCounter {
+  year            Int      @id
+  currentSequence Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model NeedRequest {
+  id             String             @id @default(cuid())
+  number         String             @unique
+  userId         String?
+  department     String
+  purpose        String
+  priority       String             @default("normal")
+  status         String             @default("draft")
+  issueDate      DateTime
+  total          Decimal            @default(0)
+  currency       String             @default("EUR")
+  notes          String?
+  submittedAt    DateTime?
+  validatedAt    DateTime?
+  rejectedReason String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  creator        User?              @relation("CreatedNeedRequests", fields: [userId], references: [id], onDelete: SetNull)
+  lines          NeedRequestLine[]
+  cashDisbursement CashDisbursement?
+
+  @@index([status])
+  @@index([issueDate])
+}
+
+model NeedRequestLine {
+  id          String      @id @default(cuid())
+  needRequestId String
+  description String
+  quantity    Int
+  unit        String      @default("unité")
+  unitPrice   Decimal
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  needRequest NeedRequest @relation(fields: [needRequestId], references: [id], onDelete: Cascade)
+}
+
+model NeedRequestCounter {
   year            Int      @id
   currentSequence Int      @default(0)
   updatedAt       DateTime @updatedAt

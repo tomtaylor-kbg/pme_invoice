@@ -23,6 +23,9 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
   const taxAmount = isVatActive ? totalHT * (taxRate / 100) : 0;
   const totalTTC = totalHT + taxAmount;
   const createdBy = creator?.name || creator?.email || "Session courante";
+  const directorName = creator?.name || creator?.email || "Session courante";
+  const roleLabels = { admin: "Administrateur", director: "Directeur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
+  const signerRole = roleLabels[creator?.role] || "Responsable";
   const clientLabel = [client?.firstName, client?.lastName].filter(Boolean).join(" ").trim() || client?.company || "Client";
   const clientCompany = client?.company || "";
   const clientEmail = client?.email || "";
@@ -244,6 +247,11 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
       }
       .footer-note span { display: block; }
       .footer-note .legal { margin-top: 3px; font-size: 10px; }
+      .signature-block { display: flex; justify-content: flex-end; margin-top: 34px; page-break-inside: avoid; }
+      .signature-box { width: 72mm; min-height: 32mm; padding: 10px; border: 1px solid #cbd5e1; text-align: center; }
+      .signature-box .seal { height: 15mm; margin-bottom: 5px; border-bottom: 1px dashed #94a3b8; color: #94a3b8; font-size: 10px; }
+      .signature-box strong, .signature-box span { display: block; }
+      .signature-box span { margin-top: 4px; font-size: 10px; color: #475569; }
       .badge {
         display: inline-block;
         padding: 4px 11px;
@@ -360,6 +368,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
         </div>`}
 
         ${invoice?.notes ? `<div class="notes">${escapeHtml(invoice.notes)}</div>` : ""}
+        ${!isDeliveryNote ? `<section class="signature-block"><div class="signature-box"><div class="seal">Signature et sceau</div><strong>${escapeHtml(directorName)}</strong><span>${escapeHtml(signerRole)}</span></div></section>` : ""}
         <footer class="footer-note"><span>${escapeHtml(companyName)}</span>${legalLine ? `<span class="legal">${escapeHtml(legalLine)}</span>` : ""}${bankLine ? `<span class="legal bank">${escapeHtml(bankLine)}</span>` : ""}</footer>
       </div>
     </div>

@@ -19,7 +19,7 @@ function invoiceFinancialTone(invoice) {
 export function DashboardPage() {
   const navigate = useNavigate();
   const { token, data, refresh, beginCreateInvoiceWithPreset, workspaceSettings, user, isHydrating } = useWorkspace();
-  const canManageCash = user?.role === "admin" || user?.role === "receptionist";
+  const canManageCash = ["admin", "director", "receptionist"].includes(user?.role);
   const isReceptionist = user?.role === "receptionist";
   const invoices = data.invoices || [];
   const currencies = [...new Set([workspaceSettings.defaultCurrency, "USD", "CDF", ...invoices.map((invoice) => invoice.currency)].filter(Boolean))];

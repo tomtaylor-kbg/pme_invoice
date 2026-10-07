@@ -2,7 +2,7 @@ const { Prisma } = require("@prisma/client");
 
 const ORDER_STATUSES = new Set(["pending", "assigned", "processing", "blocked", "completed", "validated", "delivered", "invoiced", "cancelled"]);
 const ORDER_CURRENCIES = new Set(["EUR", "USD", "CDF"]);
-const MANAGER_ROLES = new Set(["admin", "receptionist", "order_manager"]);
+const MANAGER_ROLES = new Set(["admin", "director", "receptionist", "order_manager"]);
 const OPERATOR_TRANSITIONS = {
   assigned: new Set(["processing"]),
   processing: new Set(["blocked", "completed"]),
@@ -111,7 +111,7 @@ async function createOrder(prisma, data, userOrId) {
       },
       include: orderInclude()
     });
-    const roleLabels = { admin: "Administrateur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
+    const roleLabels = { admin: "Administrateur", director: "Directeur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
     const creatorName = created.creator?.name || created.creator?.email || "Utilisateur";
     const creatorRole = roleLabels[created.creator?.role] || "Utilisateur";
     await tx.orderEvent.create({ data: { orderId: created.id, userId: userId || null, action: "created", toStatus: created.status, note: `Créée par ${creatorRole} - ${creatorName}` } });

@@ -7,8 +7,8 @@ import { getOrders } from "../../api";
 
 export function ClientsPage() {
   const { token, data, forms, setForms, editor, beginCreateClient, beginEditClient, saveClient, removeClient, loading, closeEditor, user, workspaceSettings } = useWorkspace();
-  const canEditRecords = user?.role === "admin";
-  const canDeleteRecords = user?.role === "admin";
+  const canEditRecords = ["admin", "director"].includes(user?.role);
+  const canDeleteRecords = ["admin", "director"].includes(user?.role);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

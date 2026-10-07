@@ -19,7 +19,7 @@ const corsOrigins = allowedCorsOrigins.length
   : ["http://localhost:5173", "http://127.0.0.1:5173"];
 const requireAuth = attachUser(prisma);
 const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== "admin") {
+  if (!["admin", "director"].includes(req.user?.role)) {
     return res.status(403).json({ message: "Accès réservé à l’administrateur." });
   }
 

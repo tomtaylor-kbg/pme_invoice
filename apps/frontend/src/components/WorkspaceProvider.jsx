@@ -444,8 +444,8 @@ export function WorkspaceProvider({ children }) {
         getClients(currentToken),
         getWorkspaceSettings(currentToken).catch(() => null)
       ]);
-      const invoices = ["admin", "receptionist"].includes(me?.role) ? await getInvoices(currentToken) : [];
-      const users = me?.role === "admin" ? await getUsers(currentToken) : [];
+      const invoices = ["admin", "director", "receptionist"].includes(me?.role) ? await getInvoices(currentToken) : [];
+      const users = ["admin", "director"].includes(me?.role) ? await getUsers(currentToken) : [];
       const serverSettings = normalizeWorkspaceSettings(workspaceSettingsPayload?.settings || workspaceSettingsPayload || defaultWorkspaceSettings());
       const legacySettings = legacyWorkspaceSettingsRef.current;
       const shouldRestoreLegacy = Boolean(workspaceSettingsPayload?.created && legacySettings && !workspaceSettingsEqual(legacySettings, defaultWorkspaceSettings()));

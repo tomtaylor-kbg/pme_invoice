@@ -691,7 +691,7 @@ body[data-theme="light"] .error-banner {
 .kanban-card-total { font-weight: 700; }
 .kanban-card-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .kanban-card-actions .small { min-height: 36px; padding: 7px 10px; font-size: 0.78rem; }
-.order-overview { display: grid; gap: 14px; margin: 0 0 16px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); }
+.order-overview { display: grid; gap: 14px; margin: 0 0 16px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); box-shadow: 0 8px 24px rgba(2, 6, 23, 0.06); }
 .order-overview-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .order-overview-heading > div { display: grid; gap: 3px; }
 .order-overview-heading strong { font-size: 1.05rem; }
@@ -703,6 +703,31 @@ body[data-theme="light"] .error-banner {
 .order-overview-stat.processing strong { color: var(--accent-color); }
 .order-overview-stat.blocked strong { color: var(--danger); }
 .order-overview-stat.pending strong { color: var(--warning); }
+.order-overview-inline { display: flex; align-items: center; gap: 10px; }
+.order-overview-inline .order-overview-stats { grid-template-columns: repeat(5, minmax(54px, auto)); gap: 6px; }
+.order-overview-inline .order-overview-stat { padding: 7px 9px; border-radius: 8px; }
+.order-overview-inline .order-overview-stat span { font-size: .66rem; }
+.order-overview-inline .order-overview-stat strong { font-size: 1.05rem; }
+.orders-table-panel { overflow: hidden; padding: 0; }
+.orders-table-panel table { min-width: 1180px; }
+.orders-table-panel th, .orders-table-panel td { vertical-align: middle; }
+.orders-table-panel td:nth-child(3) { min-width: 220px; }
+.order-table-work { display: grid; gap: 3px; min-width: 190px; color: var(--muted); font-size: .82rem; }
+.order-table-work span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-table-work small { white-space: normal; }
+.order-table-operator { min-width: 140px; min-height: 34px; padding: 6px 8px; font-size: .78rem; }
+.order-table-actions { min-width: 210px; flex-wrap: wrap; }
+.order-status-pending { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
+.order-status-assigned { color: #0e7490; background: color-mix(in srgb, #0e7490 12%, transparent); }
+.order-status-processing { color: var(--accent-color); background: var(--accent-soft); }
+.order-status-blocked { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.order-status-completed, .order-status-validated, .order-status-delivered, .order-status-invoiced { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
+.orders-table-panel .entity-list-table { margin: 0; }
+.orders-table-panel .entity-list-table table { min-width: 1180px; }
+.orders-table-panel .entity-list-table th:first-child,
+.orders-table-panel .entity-list-table td:first-child { padding-left: 20px; }
+.orders-table-panel .entity-list-table th:last-child,
+.orders-table-panel .entity-list-table td:last-child { padding-right: 20px; }
 .cash-register-grid { display: grid; width: 100%; max-width: none; gap: 16px; }
 .cash-register-grid > .panel { width: 100%; }
 .cash-register-workspace { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
@@ -711,6 +736,17 @@ body[data-theme="light"] .error-banner {
 .cash-report-totals > div { display: grid; gap: 4px; min-width: 150px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel-strong); }
 .cash-report-totals span { color: var(--muted); font-size: .76rem; font-weight: 700; }
 .cash-report-totals strong { font-size: 1.15rem; }
+.cash-report-summary { overflow-x: auto; }
+.cash-report-summary-head, .cash-report-summary-row { display: grid; grid-template-columns: 1fr 1.2fr 1.2fr 1.35fr; gap: 16px; min-width: 560px; align-items: center; padding: 12px 14px; }
+.cash-report-summary-head { color: var(--muted); font-size: .72rem; font-weight: 750; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+.cash-report-summary-row { border-bottom: 1px solid var(--border); }
+.cash-report-summary-row:last-child { border-bottom: 0; }
+.cash-report-summary-row > span, .cash-report-summary-row > strong:not(:first-child) { text-align: right; }
+.cash-report-balance { font-size: 1.2rem; }
+.report-operation-table { display: grid; overflow-x: auto; }
+.report-operation-row { display: grid; grid-template-columns: .35fr 1.1fr 2.6fr 1.2fr; gap: 16px; min-width: 700px; padding: 11px 4px; border-bottom: 1px solid var(--border); align-items: center; }
+.report-operation-row > :last-child { text-align: right; }
+.report-operation-row:last-child { border-bottom: 0; }
 .report-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .report-period-tabs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-strong); }
 .report-period-tabs button { min-height: 36px; padding: 0 16px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; font: inherit; font-weight: 650; cursor: pointer; }
@@ -2432,6 +2468,11 @@ body[data-theme="light"] .hero.list-page-header {
 }
 
 .entity-list-panel { min-width: 0; padding: 20px; }
+.entity-list-panel > .table-shell { overflow: auto; border: 0; border-radius: 0; }
+.entity-list-panel > .table-shell table { min-width: 900px; }
+.entity-list-panel > .table-shell th { position: sticky; top: 0; z-index: 1; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; background: transparent; }
+.entity-list-panel > .table-shell th, .entity-list-panel > .table-shell td { padding: 11px 12px; }
+.entity-list-panel > .table-shell tbody tr:hover { background: rgba(148, 163, 184, 0.06); }
 .entity-list-panel .entity-list-table { margin-top: 0; }
 .entity-list-table { margin-top: 4px; }
 .entity-list-table.table-shell { overflow: auto; border: 0; border-radius: 0; }
@@ -2572,6 +2613,7 @@ tbody tr:hover {
 .user-card-copy span { color: var(--muted); font-size: 0.84rem; }
 .user-role { justify-self: start; padding: 4px 8px; border-radius: 4px; background: rgba(100, 116, 139, 0.15); color: var(--text); font-size: 0.78rem; }
 .user-role.role-admin { background: rgba(220, 38, 38, 0.12); color: var(--danger); }
+.user-role.role-director { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
 .user-role.role-receptionist { background: rgba(37, 99, 235, 0.12); color: var(--accent-color); }
 .user-role.role-accountant { background: rgba(5, 150, 105, 0.12); color: #047857; }
 .user-role.role-order_manager { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
@@ -3491,6 +3533,8 @@ body[data-theme="light"] .entity-card.invoice {
   .report-period-fields { width: 100%; }
   .report-period-fields label, .report-period-fields input { width: 100%; }
   .report-meta-grid { grid-template-columns: 1fr; }
+  .cash-report-summary-head, .cash-report-summary-row { gap: 10px; padding-inline: 8px; }
+  .report-operation-row { gap: 10px; }
   .inline-form input { width: auto; }
   .setup-section .tools-form-grid { grid-template-columns: 1fr; }
   .setup-form-wide { grid-column: auto; }
@@ -3844,6 +3888,14 @@ body[data-theme="light"] .entity-card.invoice {
   .panel,
   .stat-card,
   .entity-list-panel { border-radius: 16px; }
+  .order-overview { margin-bottom: 12px; padding: 12px; }
+  .order-overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .order-overview-stat { padding: 10px 11px; }
+  .order-overview-stat strong { font-size: 1.15rem; }
+  .order-overview-inline { align-items: stretch; flex: 1 1 100%; flex-wrap: wrap; }
+  .order-overview-inline .order-overview-stats { flex: 1 1 100%; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .order-overview-inline .secondary-button { align-self: flex-start; }
+  .orders-table-panel { padding: 0; }
   .entity-list-panel { padding: 12px; }
   .table-shell { width: 100%; max-width: 100%; overscroll-behavior-x: contain; }
   .entity-list-table.table-shell { margin-inline: 0; }

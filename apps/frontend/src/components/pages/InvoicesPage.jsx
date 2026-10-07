@@ -52,7 +52,7 @@ export function InvoicesPage() {
     workspaceSettings,
     notifyError
   } = useWorkspace();
-  const canDeleteRecords = user?.role === "admin";
+  const canDeleteRecords = ["admin", "director"].includes(user?.role);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");

@@ -15,7 +15,9 @@ import { SetupPage } from "./pages/SetupPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { CashRegisterPage } from "./pages/CashRegisterPage";
 import { CashReportsPage } from "./pages/CashReportsPage";
+import { CashDepositsPage } from "./pages/CashDepositsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { NeedRequestsPage } from "./pages/NeedRequestsPage";
 import { DataLoadingState } from "./ui";
 
 function LoginRoute() {
@@ -57,7 +59,7 @@ function RequireRoles({ allowedRoles, children }) {
   if (loading && !user) {
     return null;
   }
-  if (!allowedRoles.includes(user?.role)) {
+  if (!allowedRoles.includes(user?.role) && !(user?.role === "director" && allowedRoles.includes("admin"))) {
     return <Navigate to={user?.role === "accountant" ? "/cash-reports" : ["order_manager", "order_operator"].includes(user?.role) ? "/orders" : "/dashboard"} replace />;
   }
   return children;
@@ -96,6 +98,8 @@ export function AppRoutes() {
           <Route path="/cash-register" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashRegisterPage /></RequireRoles>} />
           <Route path="/cash-reports" element={<RequireRoles allowedRoles={["admin", "receptionist", "accountant"]}><CashReportsPage /></RequireRoles>} />
           <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashDisbursementsPage /></RequireRoles>} />
+          <Route path="/cash-deposits" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashDepositsPage /></RequireRoles>} />
+          <Route path="/need-requests" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><NeedRequestsPage /></RequireRoles>} />
           </Route>
         </Route>
       </Route>

@@ -5,6 +5,8 @@ const ENTITY_LABELS = [
   [/^\/api\/invoices(?:\/|$)/, "Facture"],
   [/^\/api\/clients(?:\/|$)/, "Client"],
   [/^\/api\/cash-disbursements(?:\/|$)/, "Sortie de caisse"],
+  [/^\/api\/cash-deposits(?:\/|$)/, "Versement"],
+  [/^\/api\/need-requests(?:\/|$)/, "État de besoins"],
   [/^\/api\/cash-register\/movements(?:\/|$)/, "Mouvement de caisse"],
   [/^\/api\/cash-register\/sessions(?:\/|$)/, "Session de caisse"],
   [/^\/api\/delivery-notes(?:\/|$)/, "Bon de livraison"],
@@ -73,6 +75,18 @@ function auditDetails(entity, value) {
       beneficiary: limitedText(value.beneficiary, 200),
       reason: limitedText(value.reason, 500),
       notes: limitedText(value.notes, 1000)
+    };
+  }
+
+  if (entity === "Versement") {
+    return {
+      number: limitedText(value.number, 100),
+      amount: Number(value.amount || 0),
+      currency: limitedText(value.currency, 8),
+      destination: limitedText(value.destination, 100),
+      status: limitedText(value.status, 40),
+      reason: limitedText(value.reason, 500),
+      reference: limitedText(value.reference, 160)
     };
   }
 
@@ -145,6 +159,8 @@ function auditLogMiddleware(prisma) {
     const isDeliveryConversion = req.method === "POST" && /\/api\/delivery-notes\/[^/]+\/convert(?:\?|$)/.test(req.originalUrl);
     const isConversion = isProformaConversion || isOrderConversion || isDeliveryConversion;
     let action = isConversion ? "Conversion" : methodActions[req.method];
+    if (req.method === "POST" && /\/api\/cash-deposits\/[^/]+\/validate(?:\?|$)/.test(req.originalUrl)) action = "Validation";
+    if (req.method === "POST" && /\/api\/cash-deposits\/[^/]+\/cancel(?:\?|$)/.test(req.originalUrl)) action = "Annulation";
     if (!isConversion && req.method === "PATCH" && /\/api\/orders\/[^/]+(?:\?|$)/.test(req.originalUrl)) {
       const orderActions = {
         assigned: "Affectation",

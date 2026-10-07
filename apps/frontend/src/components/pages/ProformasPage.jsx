@@ -14,7 +14,7 @@ function newForm(settings) {
 
 export function ProformasPage() {
   const { token, data, user, workspaceSettings, notifySuccess, notifyError, refresh: refreshWorkspace } = useWorkspace();
-  const canDeleteRecords = user?.role === "admin";
+  const canDeleteRecords = ["admin", "director"].includes(user?.role);
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [form, setForm] = useState(() => newForm(workspaceSettings));

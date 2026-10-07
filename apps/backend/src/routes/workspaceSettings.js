@@ -5,7 +5,7 @@ const {
 } = require("../services/workspaceSettingsService");
 
 function canManageWorkspaceSettings(user) {
-  return user?.role === "admin";
+  return ["admin", "director"].includes(user?.role);
 }
 
 function createWorkspaceSettingsRouter({ prisma, requireAuth }) {

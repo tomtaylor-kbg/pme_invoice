@@ -10,7 +10,7 @@ export function SetupPage() {
   const [error, setError] = useState("");
   const [formSettings, setFormSettings] = useState(workspaceSettings);
   const navigate = useNavigate();
-  const canConfigure = user?.role === "admin";
+  const canConfigure = ["admin", "director"].includes(user?.role);
 
   useEffect(() => {
     if (user && !workspaceSettings.setupCompleted) setFormSettings(workspaceSettings);

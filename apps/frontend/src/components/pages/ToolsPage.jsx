@@ -135,7 +135,7 @@ export function ToolsPage() {
   const [clientImporting, setClientImporting] = useState(false);
   const lastActiveVatRef = useRef(workspaceSettings.vatRate && Number(workspaceSettings.vatRate) > 0 ? workspaceSettings.vatRate : "20");
 
-  const canReset = user?.role === "admin";
+  const canReset = ["admin", "director"].includes(user?.role);
   const today = todayISO();
 
   function updateSetting(field, value) {

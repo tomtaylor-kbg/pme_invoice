@@ -6,7 +6,7 @@ const { requireRole } = require("../middleware/requireRole");
 function createInvoicesRouter({ prisma, requireAuth }) {
   const router = express.Router();
 
-  router.get("/", requireAuth, requireRole("admin", "receptionist"), async (_req, res, next) => {
+  router.get("/", requireAuth, requireRole("admin", "director", "receptionist"), async (_req, res, next) => {
     try {
       res.json(await listInvoices(prisma));
     } catch (error) {
@@ -14,7 +14,7 @@ function createInvoicesRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.get("/next-number", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
+  router.get("/next-number", requireAuth, requireRole("admin", "director", "receptionist"), async (req, res, next) => {
     try {
       res.json({
         number: await previewNextInvoiceNumber(prisma, req.query || {})
@@ -24,7 +24,7 @@ function createInvoicesRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.post("/", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
+  router.post("/", requireAuth, requireRole("admin", "director", "receptionist"), async (req, res, next) => {
     try {
       const validationError = validateInvoiceCreate(req.body);
       if (validationError) {
@@ -41,7 +41,7 @@ function createInvoicesRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.patch("/:id", requireAuth, requireRole("admin", "receptionist"), async (req, res, next) => {
+  router.patch("/:id", requireAuth, requireRole("admin", "director", "receptionist"), async (req, res, next) => {
     try {
       const { id } = req.params;
       res.json(await updateInvoice(prisma, id, req.body || {}));
@@ -53,7 +53,7 @@ function createInvoicesRouter({ prisma, requireAuth }) {
     }
   });
 
-  router.delete("/:id", requireAuth, requireRole("admin"), async (req, res, next) => {
+  router.delete("/:id", requireAuth, requireRole("admin", "director"), async (req, res, next) => {
     try {
       const { id } = req.params;
       res.locals.auditSource = await prisma.invoice.findUnique({

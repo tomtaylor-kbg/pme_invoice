@@ -167,6 +167,19 @@ export function deleteCashDisbursement(token, id) {
   return request(`/api/cash-disbursements/${id}`, { token, method: "DELETE" });
 }
 
+export function getCashDeposits(token) { return request("/api/cash-deposits", { token }); }
+export function createCashDeposit(token, data) { return request("/api/cash-deposits", { token, method: "POST", body: data }); }
+export function validateCashDeposit(token, id) { return request(`/api/cash-deposits/${id}/validate`, { token, method: "POST" }); }
+export function cancelCashDeposit(token, id) { return request(`/api/cash-deposits/${id}/cancel`, { token, method: "POST" }); }
+
+export function getNeedRequests(token) { return request("/api/need-requests", { token }); }
+export function createNeedRequest(token, data) { return request("/api/need-requests", { token, method: "POST", body: data }); }
+export function updateNeedRequest(token, id, data) { return request(`/api/need-requests/${id}`, { token, method: "PATCH", body: data }); }
+export function deleteNeedRequest(token, id) { return request(`/api/need-requests/${id}`, { token, method: "DELETE" }); }
+export function submitNeedRequest(token, id) { return request(`/api/need-requests/${id}/submit`, { token, method: "POST" }); }
+export function validateNeedRequest(token, id) { return request(`/api/need-requests/${id}/validate`, { token, method: "POST" }); }
+export function rejectNeedRequest(token, id, reason) { return request(`/api/need-requests/${id}/reject`, { token, method: "POST", body: { reason } }); }
+
 export function getInvoicePayments(token, invoiceId) {
   return request(`/api/invoices/${invoiceId}/payments`, { token });
 }

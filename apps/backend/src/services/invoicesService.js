@@ -197,7 +197,8 @@ async function listInvoices(prisma) {
       ? {
           id: invoice.creator.id,
           name: invoice.creator.name,
-          email: invoice.creator.email
+          email: invoice.creator.email,
+          role: invoice.creator.role
         }
       : null
   }));

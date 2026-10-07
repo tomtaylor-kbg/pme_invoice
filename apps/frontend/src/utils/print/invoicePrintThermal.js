@@ -32,6 +32,9 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
   const bankInfo = formatWorkspaceBankInfo(settings);
   const logo = String(settings.logoDataUrl || "");
   const filename = buildInvoicePdfFilename({ invoice, client }).replace(/\.pdf$/i, "");
+  const directorName = creator?.name || creator?.email || "Session courante";
+  const roleLabels = { admin: "Administrateur", director: "Directeur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
+  const signerRole = roleLabels[creator?.role] || "Responsable";
 
   return `<!doctype html>
 <html lang="fr">
@@ -66,6 +69,9 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
       .payment-state { display: grid; gap: 3px; }
       .payment-list { display: grid; gap: 2px; margin-top: 4px; }
       .footer { margin-top: 10px; text-align: center; white-space: pre-wrap; }
+      .signature { margin-top: 12px; padding-top: 8px; border-top: 1px dashed #555; text-align: center; }
+      .signature .seal { height: 12mm; margin: 4px 0; border-bottom: 1px dashed #999; color: #666; }
+      .signature strong, .signature span { display: block; }
       @media print { html, body { width: 80mm; } body { padding: 3mm; } }
     </style>
   </head>
@@ -116,6 +122,7 @@ export function buildThermalInvoiceHtml({ invoice, client, creator, settings = {
       </section>
 
       ${invoice?.notes ? `<div class="divider"></div><p class="small">${escapeHtml(invoice.notes)}</p>` : ""}
+      <section class="signature"><div class="seal">Signature et sceau</div><strong>${escapeHtml(directorName)}</strong><span>${escapeHtml(signerRole)}</span></section>
       <footer class="footer small">Merci de votre confiance${legalInfo ? `<br>${escapeHtml(legalInfo)}` : ""}${bankInfo ? `<br>${escapeHtml(bankInfo)}` : ""}
     </main>
   </body>
