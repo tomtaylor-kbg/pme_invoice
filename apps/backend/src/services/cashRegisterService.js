@@ -78,13 +78,15 @@ async function getCarryForward(prisma, userId) {
 
 async function getDailyReport(prisma, user, value = new Date()) {
   const day = businessDate(value);
-  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: day, ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
+  const nextDay = new Date(day);
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+  const sessions = await prisma.cashRegisterSession.findMany({ where: { AND: [{ OR: [{ businessDate: day }, { movements: { some: { createdAt: { gte: day, lt: nextDay } } } }] }, (["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id })] }, orderBy: { openedAt: "asc" }, include });
   const report = { date: businessDateLabel(day), sessions: sessions.map(serializeSession), totals: {}, inTotals: {}, outTotals: {}, depositTotals: {}, netTotals: {} };
   for (const session of report.sessions) {
     for (const [currency, amount] of Object.entries(session.expectedBalances || {})) {
       report.totals[currency] = Number(report.totals[currency] || 0) + Number(amount || 0);
     }
-    for (const movement of session.movements || []) {
+    for (const movement of (session.movements || []).filter((item) => item.createdAt >= day.toISOString() && item.createdAt < nextDay.toISOString())) {
       const currency = movement.currency || session.currency || "EUR";
       const amount = Number(movement.amount || 0);
       const target = movement.type === "in" ? report.inTotals : (movement.cashDepositId || movement.cashDisbursement?.kind === "external_deposit") ? report.depositTotals : report.outTotals;
@@ -102,10 +104,10 @@ async function getMonthlyReport(prisma, user, value = new Date()) {
   const month = match ? Number(match[2]) - 1 : new Date().getUTCMonth();
   const start = new Date(Date.UTC(year, month, 1));
   const end = new Date(Date.UTC(year, month + 1, 1));
-  const sessions = await prisma.cashRegisterSession.findMany({ where: { businessDate: { gte: start, lt: end }, ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) }, orderBy: { openedAt: "asc" }, include });
+  const sessions = await prisma.cashRegisterSession.findMany({ where: { AND: [{ OR: [{ businessDate: { gte: start, lt: end } }, { movements: { some: { createdAt: { gte: start, lt: end } } } }] }, (["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id })] }, orderBy: { openedAt: "asc" }, include });
   const report = { period: `${year}-${String(month + 1).padStart(2, "0")}`, sessions: sessions.map(serializeSession), inTotals: {}, outTotals: {}, depositTotals: {}, netTotals: {} };
   for (const session of report.sessions) {
-    for (const movement of session.movements || []) {
+    for (const movement of (session.movements || []).filter((item) => item.createdAt >= start.toISOString() && item.createdAt < end.toISOString())) {
       const currency = movement.currency || session.currency || "EUR";
       const amount = Number(movement.amount || 0);
       const target = movement.type === "in" ? report.inTotals : (movement.cashDepositId || movement.cashDisbursement?.kind === "external_deposit") ? report.depositTotals : report.outTotals;
