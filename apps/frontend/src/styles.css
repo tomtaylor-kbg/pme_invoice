@@ -2493,6 +2493,9 @@ body[data-theme="light"] .hero.list-page-header {
 .entity-list-table tbody tr:hover { background: rgba(148, 163, 184, 0.06); }
 .table-primary-cell { display: grid; gap: 3px; white-space: normal; }
 .table-primary-cell small { color: var(--muted); font-size: 0.78rem; }
+.table-linked-invoice { gap: 1px; font-size: 0.74rem; }
+.table-linked-invoice small { font-size: 0.68rem; }
+.table-linked-invoice strong { font-size: 0.74rem; }
 .table-row-actions { display: flex; align-items: center; gap: 4px; }
 .table-row-actions .text-button { padding: 6px 8px; font-size: 0.78rem; }
 .table-icon-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 32px; min-height: 32px; padding: 6px 8px; border: 1px solid transparent; border-radius: 8px; color: var(--muted); background: transparent; font: inherit; font-size: .76rem; cursor: pointer; transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease; }
