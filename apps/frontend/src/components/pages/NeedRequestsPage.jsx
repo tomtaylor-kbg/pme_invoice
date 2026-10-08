@@ -10,7 +10,7 @@ const priorityLabels = { low: "Basse", normal: "Normale", high: "Haute", urgent:
 function emptyLine() { return { description: "", quantity: "1", unit: "unité", unitPrice: "" }; }
 
 export function NeedRequestsPage() {
-  const { token, user, workspaceSettings, notifySuccess, notifyError } = useWorkspace();
+  const { token, user, data, workspaceSettings, notifySuccess, notifyError } = useWorkspace();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,7 +29,7 @@ export function NeedRequestsPage() {
   function beginEdit(record) { setSelected(record); setForm({ department: record.department, purpose: record.purpose, issueDate: record.issueDate.slice(0, 10), priority: record.priority || "normal", currency: record.currency || "EUR", notes: record.notes || "", lines: record.lines.map((line) => ({ description: line.description, quantity: String(line.quantity), unit: line.unit || "unité", unitPrice: String(line.unitPrice) })) }); setOpen(true); }
   async function save(event) { event.preventDefault(); if (saving) return; setSaving(true); try { const saved = selected ? await updateNeedRequest(token, selected.id, form) : await createNeedRequest(token, form); setRecords((current) => selected ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]); setOpen(false); setSelected(null); notifySuccess(selected ? "État modifié" : "État de besoins créé", "Il est enregistré comme brouillon."); } catch (error) { notifyError("Enregistrement impossible", error.message); } finally { setSaving(false); } }
   async function remove(record) { if (!window.confirm(`Supprimer l’état ${record.number} ?`)) return; try { await deleteNeedRequest(token, record.id); setRecords((current) => current.filter((item) => item.id !== record.id)); notifySuccess("État supprimé", record.number); } catch (error) { notifyError("Suppression impossible", error.message); } }
-  function print(record) { const printWindow = window.open("", "_blank"); if (!printWindow) { notifyError("Impression impossible", "Autorisez les fenêtres contextuelles."); return; } printWindow.document.open(); printWindow.document.write(buildNeedRequestPrintHtml({ record, settings: workspaceSettings })); printWindow.document.close(); printWindow.focus(); window.setTimeout(() => { if (!printWindow.closed) printWindow.print(); }, 250); }
+  function print(record) { const printWindow = window.open("", "_blank"); if (!printWindow) { notifyError("Impression impossible", "Autorisez les fenêtres contextuelles."); return; } const director = user?.role === "director" ? user : (data.users || []).find((item) => item.role === "director") || null; printWindow.document.open(); printWindow.document.write(buildNeedRequestPrintHtml({ record, director, settings: workspaceSettings })); printWindow.document.close(); printWindow.focus(); window.setTimeout(() => { if (!printWindow.closed) printWindow.print(); }, 250); }
   async function action(record, type) {
     try {
       let updated;

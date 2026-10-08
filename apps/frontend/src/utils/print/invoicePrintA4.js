@@ -10,7 +10,7 @@ import {
 } from "../formatters";
 import { formatWorkspaceAddress, formatWorkspaceBankInfo, formatWorkspaceContact, formatWorkspaceLegalInfo } from "./invoicePrintShared";
 
-export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} }) {
+export function buildInvoicePrintHtml({ invoice, client, creator, director, settings = {} }) {
   const currency = invoice?.currency || "EUR";
   const isDeliveryNote = invoice?.documentType === "delivery-note";
   const lines = (Array.isArray(invoice?.lines) ? invoice.lines : []).filter(
@@ -22,7 +22,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
   const totalHT = invoiceLinesTotal(lines);
   const taxAmount = isVatActive ? totalHT * (taxRate / 100) : 0;
   const totalTTC = totalHT + taxAmount;
-  const directorName = "Directeur";
+  const directorName = director?.name || (String(creator?.role || "").toLowerCase() === "director" ? creator?.name : "");
   const roleLabels = { admin: "Administrateur", director: "Directeur", receptionist: "Réceptionniste", accountant: "Comptable", order_manager: "Gestionnaire des commandes", order_operator: "Opérateur de commande" };
   const editedByName = creator?.name || creator?.email || "Utilisateur";
   const editedByRole = roleLabels[String(creator?.role || "").toLowerCase()] || "Utilisateur";
@@ -32,6 +32,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
   const clientEmail = client?.email || "";
   const clientPhone = client?.phone || "";
   const companyName = settings.companyName || "Mon entreprise";
+  const companyAcronym = settings.companyAcronym || companyName;
   const logoDataUrl = String(settings.logoDataUrl || "");
   const addressLine = formatWorkspaceAddress(settings);
   const contactLine = formatWorkspaceContact(settings);
@@ -248,8 +249,9 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
       }
       .footer-note span { display: block; }
       .footer-note .legal { margin-top: 3px; font-size: 10px; }
-      .signature-block { display: flex; justify-content: flex-end; margin-top: 34px; page-break-inside: avoid; }
-      .signature-box { width: 72mm; min-height: 32mm; padding: 10px; border: 1px solid #cbd5e1; text-align: center; }
+      .signature-block { display: flex; justify-content: flex-end; gap: 24px; margin-top: 34px; page-break-inside: avoid; }
+      .signature-block.delivery-signatures { justify-content: space-between; }
+      .signature-box { width: 72mm; min-height: 32mm; padding: 10px; text-align: center; }
       .signature-box .seal { height: 15mm; margin-bottom: 5px; border-bottom: 1px dashed #94a3b8; color: #94a3b8; font-size: 10px; }
       .signature-box strong, .signature-box span { display: block; }
       .signature-box span { margin-top: 4px; font-size: 10px; color: #475569; }
@@ -370,7 +372,7 @@ export function buildInvoicePrintHtml({ invoice, client, creator, settings = {} 
         </div>`}
 
         ${invoice?.notes ? `<div class="notes">${escapeHtml(invoice.notes)}</div>` : ""}
-        ${!isDeliveryNote ? `<section class="signature-block"><div class="signature-box"><div class="seal">Signature et sceau</div><strong>${escapeHtml(directorName)}</strong></div></section>` : ""}
+        ${isDeliveryNote ? `<section class="signature-block delivery-signatures"><div class="signature-box"><div class="seal">Signature et sceau</div><strong>Pour ${escapeHtml(companyAcronym)}</strong></div><div class="signature-box"><div class="seal">Signature et sceau</div><strong>Pour le client ${escapeHtml(clientLabel)}</strong></div></section>` : `<section class="signature-block"><div class="signature-box"><div class="seal">Signature et sceau</div><strong>Directeur</strong>${directorName ? `<span>${escapeHtml(directorName)}</span>` : ""}</div></section>`}
         <footer class="footer-note"><span>${escapeHtml(companyName)}</span>${legalLine ? `<span class="legal">${escapeHtml(legalLine)}</span>` : ""}${bankLine ? `<span class="legal bank">${escapeHtml(bankLine)}</span>` : ""}</footer>
       </div>
     </div>

@@ -72,7 +72,8 @@ export function ProformasPage() {
       company: form.manualClientCompany,
       email: form.manualClientEmail
     } : clients.find((item) => item.id === form.clientId));
-    const html = buildInvoicePrintHtml({ invoice: { ...source, documentType: "proforma" }, client, creator: record?.creator || user, settings: workspaceSettings });
+    const director = user?.role === "director" ? user : (data.users || []).find((item) => item.role === "director") || null;
+    const html = buildInvoicePrintHtml({ invoice: { ...source, documentType: "proforma" }, client, creator: record?.creator || user, director, settings: workspaceSettings });
     const target = window.open("", "_blank");
     if (!target) { notifyError("Aperçu impossible", "Autorisez les fenêtres contextuelles pour afficher le document."); return; }
     target.document.open(); target.document.write(html); target.document.close(); target.focus();

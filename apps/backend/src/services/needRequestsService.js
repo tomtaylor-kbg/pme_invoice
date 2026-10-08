@@ -27,7 +27,7 @@ function serialize(record) {
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     lines: (record.lines || []).map((line) => ({ ...line, unitPrice: Number(line.unitPrice) })),
-    creator: record.creator ? { id: record.creator.id, name: record.creator.name, email: record.creator.email } : null,
+    creator: record.creator ? { id: record.creator.id, name: record.creator.name, email: record.creator.email, role: record.creator.role } : null,
     cashDisbursement: record.cashDisbursement ? { id: record.cashDisbursement.id, number: record.cashDisbursement.number } : null
   };
 }

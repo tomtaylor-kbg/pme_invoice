@@ -54,6 +54,7 @@ export function InvoicesPage() {
     notifyError
   } = useWorkspace();
   const canDeleteRecords = ["admin", "director"].includes(user?.role);
+  const directorUser = user?.role === "director" ? user : data.users.find((item) => item.role === "director") || null;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");
@@ -187,6 +188,7 @@ export function InvoicesPage() {
       invoice: sourceInvoice,
       client: invoice ? invoice.client : selectedClient,
       creator: invoice?.creator || user,
+      director: directorUser,
       settings: workspaceSettings
     });
     const previewWindow = window.open("", "_blank");
