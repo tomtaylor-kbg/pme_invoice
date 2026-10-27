@@ -44,3 +44,12 @@ test("serializeInvoiceDashboard conserve uniquement les champs de paiement néce
   assert.equal(result.payments[0].receipt, undefined);
   assert.equal(result.lines, undefined);
 });
+
+test("les DTO de paiement acceptent des dates déjà sérialisées", () => {
+  const invoice = invoiceFixture();
+  invoice.payments[0].paidAt = "2026-10-27T10:00:00.000Z";
+  invoice.payments[0].createdAt = "2026-10-27T10:00:00.000Z";
+  invoice.payments[0].updatedAt = "2026-10-27T10:00:00.000Z";
+  const result = serializeInvoiceDashboard(invoice);
+  assert.equal(result.payments[0].paidAt, "2026-10-27T10:00:00.000Z");
+});

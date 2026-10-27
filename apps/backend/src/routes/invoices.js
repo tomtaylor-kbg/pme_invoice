@@ -7,7 +7,7 @@ const { parsePagination } = require("../utils/pagination");
 function createInvoicesRouter({ prisma, requireAuth }) {
   const router = express.Router();
 
-  router.get("/", requireAuth, requireRole("admin", "director", "receptionist"), async (_req, res, next) => {
+  router.get("/", requireAuth, requireRole("admin", "director", "receptionist"), async (req, res, next) => {
     try {
       res.json(await listInvoices(prisma, parsePagination(req.query)));
     } catch (error) {

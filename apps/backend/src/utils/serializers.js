@@ -1,10 +1,15 @@
+function toIso(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return new Date(value).toISOString();
+}
+
 function serializePayment(payment) {
   return {
     ...payment,
     amount: Number(payment.amount),
-    paidAt: payment.paidAt.toISOString(),
-    createdAt: payment.createdAt.toISOString(),
-    updatedAt: payment.updatedAt.toISOString(),
+    paidAt: toIso(payment.paidAt),
+    createdAt: toIso(payment.createdAt),
+    updatedAt: toIso(payment.updatedAt),
     receipt: payment.receipt ? serializeReceipt(payment.receipt) : null,
     recorder: payment.recorder
       ? {
@@ -21,9 +26,9 @@ function serializeReceipt(receipt) {
     ...receipt,
     amount: Number(receipt.amount),
     balanceDue: Number(receipt.balanceDue),
-    receivedAt: receipt.receivedAt.toISOString(),
-    createdAt: receipt.createdAt.toISOString(),
-    updatedAt: receipt.updatedAt.toISOString()
+    receivedAt: toIso(receipt.receivedAt),
+    createdAt: toIso(receipt.createdAt),
+    updatedAt: toIso(receipt.updatedAt)
   };
 }
 
@@ -35,17 +40,17 @@ function serializeInvoice(invoice) {
     ...invoice,
     total,
     taxRate: Number(invoice.taxRate ?? 20),
-    issueDate: invoice.issueDate.toISOString(),
-    dueDate: invoice.dueDate.toISOString(),
-    createdAt: invoice.createdAt.toISOString(),
-    updatedAt: invoice.updatedAt.toISOString(),
+    issueDate: toIso(invoice.issueDate),
+    dueDate: toIso(invoice.dueDate),
+    createdAt: toIso(invoice.createdAt),
+    updatedAt: toIso(invoice.updatedAt),
     creator: invoice.creator ? { id: invoice.creator.id, name: invoice.creator.name, email: invoice.creator.email, role: invoice.creator.role } : null,
     lines: (invoice.lines || []).map((line) => ({
       ...line,
       unitPrice: Number(line.unitPrice),
       lineTotal: Number(line.unitPrice) * Number(line.quantity || 0),
-      createdAt: line.createdAt.toISOString(),
-      updatedAt: line.updatedAt.toISOString()
+      createdAt: toIso(line.createdAt),
+      updatedAt: toIso(line.updatedAt)
     })),
     payments,
     deliveryNotes: [invoice.deliveryNote, ...(invoice.deliveryLinks || []).map((link) => link.deliveryNote)].filter(Boolean).filter((note, index, notes) => notes.findIndex((item) => item.id === note.id) === index),
@@ -65,13 +70,13 @@ function serializeInvoiceList(invoice) {
     userId: invoice.userId,
     status: invoice.status,
     currency: invoice.currency,
-    issueDate: invoice.issueDate.toISOString(),
-    dueDate: invoice.dueDate.toISOString(),
+    issueDate: toIso(invoice.issueDate),
+    dueDate: toIso(invoice.dueDate),
     total,
     taxRate: Number(invoice.taxRate ?? 20),
     notes: invoice.notes,
-    createdAt: invoice.createdAt.toISOString(),
-    updatedAt: invoice.updatedAt.toISOString(),
+    createdAt: toIso(invoice.createdAt),
+    updatedAt: toIso(invoice.updatedAt),
     amountPaid,
     balanceDue: Math.max(0, total - amountPaid),
     client: invoice.client ? {
@@ -100,8 +105,8 @@ function serializeInvoiceDashboard(invoice) {
       id: payment.id,
       amount: Number(payment.amount || 0),
       method: payment.method,
-      paidAt: payment.paidAt.toISOString(),
-      createdAt: payment.createdAt.toISOString()
+      paidAt: new Date(payment.paidAt).toISOString(),
+      createdAt: new Date(payment.createdAt).toISOString()
     }))
   };
 }
@@ -110,8 +115,8 @@ function serializeClient(client) {
   return {
     ...client,
     displayName: [client.firstName, client.lastName].filter(Boolean).join(" ").trim(),
-    createdAt: client.createdAt.toISOString(),
-    updatedAt: client.updatedAt.toISOString(),
+    createdAt: toIso(client.createdAt),
+    updatedAt: toIso(client.updatedAt),
     invoicesCount: client.invoicesCount ?? client._count?.invoices ?? 0
   };
 }
@@ -119,8 +124,8 @@ function serializeClient(client) {
 function serializeUser(user) {
   return {
     ...user,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString()
+    createdAt: toIso(user.createdAt),
+    updatedAt: toIso(user.updatedAt)
   };
 }
 
@@ -129,8 +134,8 @@ function serializeWorkspaceSetting(setting) {
     ...setting,
     vatRate: String(setting.vatRate ?? "20"),
     paymentTermsDays: String(setting.paymentTermsDays ?? "30"),
-    createdAt: setting.createdAt.toISOString(),
-    updatedAt: setting.updatedAt.toISOString()
+    createdAt: toIso(setting.createdAt),
+    updatedAt: toIso(setting.updatedAt)
   };
 }
 
@@ -140,9 +145,9 @@ function serializeCashDisbursement(record) {
     amount: Number(record.amount),
     settlementAmount: record.settlementAmount === null || record.settlementAmount === undefined ? null : Number(record.settlementAmount),
     exchangeRate: record.exchangeRate === null || record.exchangeRate === undefined ? null : Number(record.exchangeRate),
-    paidAt: record.paidAt.toISOString(),
-    createdAt: record.createdAt.toISOString(),
-    updatedAt: record.updatedAt.toISOString(),
+    paidAt: toIso(record.paidAt),
+    createdAt: toIso(record.createdAt),
+    updatedAt: toIso(record.updatedAt),
     recorder: record.recorder
       ? { id: record.recorder.id, name: record.recorder.name, email: record.recorder.email }
       : null

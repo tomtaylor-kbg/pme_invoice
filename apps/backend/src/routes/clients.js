@@ -7,7 +7,7 @@ const { parsePagination } = require("../utils/pagination");
 function createClientsRouter({ prisma, requireAuth }) {
   const router = express.Router();
 
-  router.get("/", requireAuth, async (_req, res, next) => {
+  router.get("/", requireAuth, async (req, res, next) => {
     try {
       res.json(await listClients(prisma, parsePagination(req.query)));
     } catch (error) {

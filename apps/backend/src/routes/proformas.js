@@ -18,7 +18,7 @@ function createProformasRouter({ prisma, requireAuth }) {
   const router = express.Router();
   router.use(requireAuth);
 
-  router.get("/", requireRole("admin", "director"), async (_req, res, next) => {
+  router.get("/", requireRole("admin", "director"), async (req, res, next) => {
     try { res.json(await listProformas(prisma, parsePagination(req.query))); } catch (error) { next(error); }
   });
 
