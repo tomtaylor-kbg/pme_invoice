@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { convertProforma as convertProformaRequest, createProforma, deleteProforma, getProformas, updateProforma } from "../../api";
+import { convertProforma as convertProformaRequest, createProforma, deleteProforma, getProforma, getProformas, updateProforma } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
 import { useNavigate } from "react-router-dom";
-import { OverlayActionButton, OverlayDialog, OverlayPreviewIcon, OverlaySaveIcon, Table, TableAction } from "../ui";
+import { OverlayActionButton, OverlayDialog, OverlayPreviewIcon, OverlaySaveIcon, PaginationControls, Table, TableAction } from "../ui";
 import { buildInvoicePrintHtml } from "../../utils/print/invoicePrintA4";
 import { buildProformasCsv, createInvoiceLineDraft, downloadTextFile, formatDate, localDateStamp, money } from "../../utils/formatters";
 
@@ -21,6 +21,8 @@ export function ProformasPage() {
   const [selected, setSelected] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
   const [error, setError] = useState("");
   const clients = data.clients || [];
   const hasClient = form.clientMode === "manual" ? Boolean(form.manualClientName.trim()) : Boolean(form.clientId);
@@ -28,11 +30,11 @@ export function ProformasPage() {
   const total = totalHT * (1 + Number(form.taxRate || 0) / 100);
 
   async function refresh() {
-    try { setRecords(await getProformas(token)); }
+    try { const result = await getProformas(token, { page, pageSize: 25 }); setRecords(result.items || result); setPagination(result.pagination || null); }
     catch (requestError) { setError(requestError.message || "Chargement des proforma impossible."); }
   }
 
-  useEffect(() => { refresh(); }, [token]);
+  useEffect(() => { refresh(); }, [token, page]);
 
   function openCreate() {
     setSelected(null);
@@ -41,7 +43,11 @@ export function ProformasPage() {
     setError("");
   }
 
-  function openEdit(record) {
+  async function openEdit(record) {
+    if (!record.lines) {
+      try { record = await getProforma(token, record.id); }
+      catch (requestError) { notifyError("Détails indisponibles", requestError.message); return; }
+    }
     setSelected(record);
     setEditorOpen(true);
     setForm({
@@ -64,7 +70,11 @@ export function ProformasPage() {
     setForm((current) => ({ ...current, lines: current.lines.map((line, i) => i === index ? { ...line, [key]: value } : line) }));
   }
 
-  function preview(record = null) {
+  async function preview(record = null) {
+    if (record && !record.lines) {
+      try { record = await getProforma(token, record.id); }
+      catch (requestError) { notifyError("Aperçu indisponible", requestError.message); return; }
+    }
     const source = record || { ...form, number: selected?.number || "PROFORMA", documentType: "proforma", total, lines: form.lines };
     const client = record?.client || (form.clientMode === "manual" ? {
       firstName: form.manualClientName.trim().split(/\s+/)[0] || "Client",
@@ -122,6 +132,7 @@ export function ProformasPage() {
         <div className="table-row-actions"><TableAction icon="print" label="Imprimer" onClick={() => preview(record)} />{record.status === "accepted" && <TableAction icon="invoice" label="Convertir en facture" onClick={() => convert(record)} />}{record.status !== "converted" && <TableAction icon="edit" label="Modifier" onClick={() => openEdit(record)} />}{canDeleteRecords && record.status !== "converted" && <TableAction icon="delete" label="Supprimer" danger onClick={() => remove(record)} />}</div>
       ])} /></div> : <div className="empty-card-state">Aucune proforma. Créez-en une pour préparer une proposition au client.</div>}
     </section></div>
+    <PaginationControls pagination={pagination} onPageChange={setPage} label="proformas" />
 
     <OverlayDialog open={editorOpen} title={selected ? `Modifier ${selected.number}` : "Créer une proforma"} onClose={() => { setEditorOpen(false); setSelected(null); setError(""); }} className="invoice-editor-modal" topbarActions={<>
       <OverlayActionButton icon={<OverlayPreviewIcon />} className="overlay-preview-button" type="button" onClick={() => preview()} disabled={!hasClient}>Aperçu PDF</OverlayActionButton>

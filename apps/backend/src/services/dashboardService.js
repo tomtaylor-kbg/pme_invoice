@@ -1,4 +1,5 @@
 const { syncOverdueInvoices } = require("./invoicesService");
+const { serializeInvoiceDashboard } = require("../utils/serializers");
 
 function isMissingPaymentTableError(error) {
   return error?.code === "P2021" || String(error?.message || "").includes("public.Payment");
@@ -49,10 +50,23 @@ async function getDashboardData(prisma, user) {
 
 async function getRecentInvoices(prisma) {
   try {
-    return await prisma.invoice.findMany({ take: 5, orderBy: { createdAt: "desc" }, include: { client: true, creator: true, payments: { include: { recorder: true } } } });
+    const invoices = await prisma.invoice.findMany({ take: 5, orderBy: { createdAt: "desc" }, select: {
+      id: true, number: true, clientId: true, userId: true, status: true, currency: true,
+      issueDate: true, dueDate: true, total: true, taxRate: true, notes: true, createdAt: true, updatedAt: true,
+      client: { select: { id: true, firstName: true, lastName: true, company: true, clientType: true } },
+      creator: { select: { id: true, name: true, email: true, role: true } },
+      payments: { select: { id: true, amount: true, method: true, paidAt: true, createdAt: true } }
+    } });
+    return invoices.map(serializeInvoiceDashboard);
   } catch (error) {
     if (!isMissingPaymentTableError(error)) throw error;
-    return prisma.invoice.findMany({ take: 5, orderBy: { createdAt: "desc" }, include: { client: true, creator: true } });
+    const invoices = await prisma.invoice.findMany({ take: 5, orderBy: { createdAt: "desc" }, select: {
+      id: true, number: true, clientId: true, userId: true, status: true, currency: true,
+      issueDate: true, dueDate: true, total: true, taxRate: true, notes: true, createdAt: true, updatedAt: true,
+      client: { select: { id: true, firstName: true, lastName: true, company: true, clientType: true } },
+      creator: { select: { id: true, name: true, email: true, role: true } }
+    } });
+    return invoices.map(serializeInvoiceDashboard);
   }
 }
 

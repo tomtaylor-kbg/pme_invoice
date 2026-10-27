@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createCashDisbursement, deleteCashDisbursement, getCashDisbursements, updateCashDisbursement } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
-import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon, Table, TableAction } from "../ui";
+import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon, PaginationControls, Table, TableAction } from "../ui";
 import { buildCashDisbursementsCsv, downloadTextFile, formatISODate, localDateStamp, money, todayISO } from "../../utils/formatters";
 import { buildCashDisbursementPrintHtml } from "../../utils/print/cashDisbursementPrint";
 
@@ -28,11 +28,15 @@ export function CashDisbursementsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
 
   async function refresh() {
     setLoading(true);
     try {
-      setRecords(await getCashDisbursements(token));
+      const result = await getCashDisbursements(token, { page, pageSize: 25 });
+      setRecords(result.items || result);
+      setPagination(result.pagination || null);
     } catch (error) {
       notifyError("Chargement impossible", error.message);
     } finally {
@@ -40,7 +44,7 @@ export function CashDisbursementsPage() {
     }
   }
 
-  useEffect(() => { refresh(); }, [token]);
+  useEffect(() => { refresh(); }, [token, page]);
 
   const filteredRecords = useMemo(() => records.filter((record) => {
     if (categoryFilter !== "all" && record.category !== categoryFilter) return false;
@@ -160,6 +164,7 @@ export function CashDisbursementsPage() {
             <div className="table-row-actions"><TableAction icon="print" label="Imprimer" onClick={() => print(record)} /><TableAction icon="edit" label="Modifier" onClick={() => beginEdit(record)} /><TableAction icon="delete" label="Supprimer" danger onClick={() => remove(record)} /></div>
           ])} /></div> : <div className="empty-card-state">Aucun bon de sortie à afficher.</div>}
         </section>
+        <PaginationControls pagination={pagination} onPageChange={setPage} label="bons" />
       </div>
 
       <OverlayDialog

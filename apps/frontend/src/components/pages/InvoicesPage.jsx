@@ -40,6 +40,7 @@ export function InvoicesPage() {
     editor,
     beginCreateInvoiceWithPreset,
     beginEditInvoice,
+    loadInvoiceDetails,
     beginManagePayments,
     beginEditPayment,
     saveInvoice,
@@ -179,7 +180,9 @@ export function InvoicesPage() {
     });
   }
 
-  function openInvoicePdf(invoice = null) {
+  async function openInvoicePdf(invoice = null) {
+    if (invoice) invoice = await loadInvoiceDetails(invoice);
+    if (!invoice && !forms.invoice.lines?.length) return;
     const sourceInvoice = invoice || {
       ...forms.invoice,
       lines: invoiceLines

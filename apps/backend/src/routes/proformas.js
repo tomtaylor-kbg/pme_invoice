@@ -1,6 +1,7 @@
 const express = require("express");
-const { listProformas, createProforma, updateProforma, deleteProforma, convertProforma } = require("../services/proformasService");
+const { listProformas, getProforma, createProforma, updateProforma, deleteProforma, convertProforma } = require("../services/proformasService");
 const { requireRole } = require("../middleware/requireRole");
+const { parsePagination } = require("../utils/pagination");
 
 function validate(body = {}) {
   const hasClient = body.clientMode === "manual" ? String(body.manualClientName || "").trim() : body.clientId;
@@ -18,7 +19,15 @@ function createProformasRouter({ prisma, requireAuth }) {
   router.use(requireAuth);
 
   router.get("/", requireRole("admin", "director"), async (_req, res, next) => {
-    try { res.json(await listProformas(prisma)); } catch (error) { next(error); }
+    try { res.json(await listProformas(prisma, parsePagination(req.query))); } catch (error) { next(error); }
+  });
+
+  router.get("/:id", requireRole("admin", "director"), async (req, res, next) => {
+    try {
+      const record = await getProforma(prisma, req.params.id);
+      if (!record) return res.status(404).json({ message: "Pro forma introuvable." });
+      res.json(record);
+    } catch (error) { next(error); }
   });
 
   router.post("/", requireRole("admin", "director"), async (req, res, next) => {

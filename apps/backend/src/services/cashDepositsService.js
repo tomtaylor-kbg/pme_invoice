@@ -1,4 +1,5 @@
 const { Prisma } = require("@prisma/client");
+const { paginateResult } = require("../utils/pagination");
 
 function depositNumber(year, sequence) { return `VER-${year}-${String(sequence).padStart(5, "0")}`; }
 function include() { return { creator: true, cashSession: true, cashMovement: true }; }
@@ -6,7 +7,7 @@ function serialize(record) {
   return { ...record, amount: Number(record.amount), validatedAt: record.validatedAt?.toISOString() || null, cancelledAt: record.cancelledAt?.toISOString() || null, createdAt: record.createdAt.toISOString(), updatedAt: record.updatedAt.toISOString(), creator: record.creator ? { id: record.creator.id, name: record.creator.name, email: record.creator.email, role: record.creator.role } : null, cashMovement: record.cashMovement ? { id: record.cashMovement.id, type: record.cashMovement.type } : null };
 }
 
-async function listCashDeposits(prisma) { return (await prisma.cashDeposit.findMany({ include: include(), orderBy: [{ createdAt: "desc" }] })).map(serialize); }
+async function listCashDeposits(prisma, pagination = null) { const records = await prisma.cashDeposit.findMany({ include: include(), orderBy: [{ createdAt: "desc" }], ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}) }); const items = records.map(serialize); return pagination ? paginateResult(items, await prisma.cashDeposit.count(), pagination) : items; }
 
 async function createCashDeposit(prisma, data, userId) {
   const created = await prisma.$transaction(async (tx) => {

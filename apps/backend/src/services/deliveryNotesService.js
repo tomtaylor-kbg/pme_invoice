@@ -1,4 +1,5 @@
 const { Prisma } = require("@prisma/client");
+const { paginateResult } = require("../utils/pagination");
 const { toNumber } = require("../utils/number");
 const { createInvoice } = require("./invoicesService");
 
@@ -20,9 +21,10 @@ function noteInclude() {
   return { client: true, creator: true, lines: true, invoice: { select: { id: true, number: true, status: true } }, invoiceLinks: { include: { invoice: { select: { id: true, number: true, status: true } } } } };
 }
 
-async function listDeliveryNotes(prisma) {
-  const notes = await prisma.deliveryNote.findMany({ orderBy: { createdAt: "desc" }, include: noteInclude() });
-  return notes.map(serializeDeliveryNote);
+async function listDeliveryNotes(prisma, pagination = null) {
+  const notes = await prisma.deliveryNote.findMany({ orderBy: { createdAt: "desc" }, ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}), include: noteInclude() });
+  const items = notes.map(serializeDeliveryNote);
+  return pagination ? paginateResult(items, await prisma.deliveryNote.count(), pagination) : items;
 }
 
 async function createDeliveryNote(prisma, data, userId) {

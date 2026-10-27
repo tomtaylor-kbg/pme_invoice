@@ -1,6 +1,7 @@
 const { Prisma } = require("@prisma/client");
 const { serializeCashDisbursement } = require("../utils/serializers");
 const { toNumber } = require("../utils/number");
+const { paginateResult } = require("../utils/pagination");
 
 function cashDisbursementNumber(year, sequence) {
   return `BS-${year}-${String(sequence).padStart(5, "0")}`;
@@ -26,12 +27,14 @@ function normalizeCashDisbursement(data = {}) {
   };
 }
 
-async function listCashDisbursements(prisma) {
+async function listCashDisbursements(prisma, pagination = null) {
   const records = await prisma.cashDisbursement.findMany({
     include: { recorder: true },
-    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }]
+    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+    ...(pagination ? { skip: pagination.skip, take: pagination.take } : {})
   });
-  return records.map(serializeCashDisbursement);
+  const items = records.map(serializeCashDisbursement);
+  return pagination ? paginateResult(items, await prisma.cashDisbursement.count(), pagination) : items;
 }
 
 async function createCashDisbursement(prisma, data, userId) {

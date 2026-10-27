@@ -737,7 +737,7 @@ body[data-theme="light"] .error-banner {
 .orders-table-panel .entity-list-table td:last-child { padding-right: 20px; }
 .cash-register-grid { display: grid; width: 100%; max-width: none; gap: 16px; }
 .cash-register-grid > .panel { width: 100%; }
-.cash-register-workspace { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.cash-register-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
 .cash-daily-report { margin-top: 16px; }
 .cash-report-totals { display: flex; flex-wrap: wrap; gap: 12px; }
 .cash-report-totals > div { display: grid; gap: 4px; min-width: 150px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel-strong); }
@@ -748,6 +748,8 @@ body[data-theme="light"] .error-banner {
 .cash-report-summary-head { color: var(--muted); font-size: .72rem; font-weight: 750; text-transform: uppercase; border-bottom: 1px solid var(--border); }
 .cash-report-summary-row { border-bottom: 1px solid var(--border); }
 .cash-report-summary-row:last-child { border-bottom: 0; }
+.report-period-navigation { display: flex; align-items: end; gap: 8px; }
+.report-period-navigation .secondary-button { white-space: nowrap; }
 .cash-report-summary-row > span, .cash-report-summary-row > strong:not(:first-child) { text-align: right; }
 .cash-report-balance { font-size: 1.2rem; }
 .report-operation-table { display: grid; overflow-x: auto; }
@@ -766,6 +768,7 @@ body[data-theme="light"] .error-banner {
 .report-meta-grid span { color: var(--muted); font-size: .75rem; font-weight: 700; text-transform: uppercase; }
 .report-meta-grid strong { font-size: 1.25rem; }
 .report-sessions { margin-top: 16px; }
+.list-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 16px 0; color: var(--muted); font-size: .82rem; }
 .report-currency-note { display: block; margin-top: 5px; color: var(--muted); }
 .report-session-table { display: grid; overflow-x: auto; }
 .report-session-row { display: grid; grid-template-columns: 1fr 1.4fr .8fr 1fr; gap: 16px; min-width: 620px; padding: 11px 4px; border-bottom: 1px solid var(--border); align-items: center; }
@@ -790,6 +793,7 @@ body[data-theme="light"] .error-banner {
 .inline-form input { width: 150px; }
 .cash-movement-list { display: grid; gap: 10px; }
 .cash-movement-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.cash-movement-description { flex: 1; min-width: 0; }
 .text-success { color: var(--success); }
 .text-danger { color: var(--danger); }
 
@@ -3538,7 +3542,6 @@ body[data-theme="light"] .entity-card.invoice {
   .order-overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .order-overview-stat:first-child { grid-column: 1 / -1; }
   .cash-register-summary, .inline-form, .form-row { align-items: stretch; flex-direction: column; }
-  .cash-register-workspace { grid-template-columns: 1fr; }
   .report-toolbar { align-items: stretch; flex-direction: column; }
   .report-period-fields { width: 100%; }
   .report-period-fields label, .report-period-fields input { width: 100%; }

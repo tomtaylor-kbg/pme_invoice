@@ -12,6 +12,7 @@ import {
   getDashboard,
   getInvoiceNextNumber,
   getInvoices,
+  getInvoice,
   getDeliveryNotes,
   createDeliveryNote,
   updateDeliveryNote,
@@ -597,7 +598,21 @@ export function WorkspaceProvider({ children }) {
       }));
     }
 
-    function beginEditInvoice(item) {
+    async function loadInvoiceDetails(item) {
+      if (!item?.id || (Array.isArray(item.lines) && Object.prototype.hasOwnProperty.call(item, "payments"))) return item;
+      try {
+        const detailed = await getInvoice(token, item.id);
+        if (detailed) setData((current) => ({ ...current, invoices: current.invoices.map((invoice) => invoice.id === detailed.id ? detailed : invoice) }));
+        return detailed || item;
+      } catch (err) {
+        notifyError("Détails de la facture indisponibles", normalizeError(err));
+        return null;
+      }
+    }
+
+    async function beginEditInvoice(item) {
+      item = await loadInvoiceDetails(item);
+      if (!item) return;
       setEditor({ kind: "invoice", id: item.id });
       setForms((current) => ({
         ...current,
@@ -620,7 +635,9 @@ export function WorkspaceProvider({ children }) {
       }));
     }
 
-    function beginManagePayments(invoice) {
+    async function beginManagePayments(invoice) {
+      invoice = await loadInvoiceDetails(invoice);
+      if (!invoice) return;
       setEditor({ kind: "payment", id: null, invoiceId: invoice.id });
       setForms((current) => ({
         ...current,
@@ -943,6 +960,7 @@ export function WorkspaceProvider({ children }) {
       beginCreateInvoice,
       beginCreateInvoiceWithPreset,
       beginEditInvoice,
+      loadInvoiceDetails,
       beginManagePayments,
       beginEditPayment,
       saveClient,

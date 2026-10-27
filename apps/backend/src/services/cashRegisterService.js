@@ -38,7 +38,7 @@ function serializeSession(session) {
   };
 }
 
-const include = { operator: true, movements: { orderBy: { createdAt: "asc" }, include: { cashDisbursement: { select: { kind: true } }, cashDeposit: { select: { number: true, status: true } } } } };
+const include = { operator: true, movements: { orderBy: { createdAt: "asc" }, include: { payment: { select: { id: true } }, cashDisbursement: { select: { kind: true } }, cashDeposit: { select: { number: true, status: true } } } } };
 
 async function getActiveSession(prisma, userId) {
   const session = await prisma.cashRegisterSession.findFirst({ where: { userId, status: "open" }, include });
@@ -166,4 +166,19 @@ async function addMovement(prisma, userId, data = {}) {
   return { ...movement, amount: Number(movement.amount), createdAt: movement.createdAt.toISOString() };
 }
 
-module.exports = { getActiveSession, openSession, listSessions, getCarryForward, getDailyReport, getMonthlyReport, getReportHistory, closeSession, addMovement };
+async function deleteMovement(prisma, id) {
+  const movement = await prisma.cashRegisterMovement.findUnique({
+    where: { id },
+    include: { payment: { select: { id: true } }, cashDisbursement: { select: { number: true } }, cashDeposit: { select: { number: true } } }
+  });
+  if (!movement) return null;
+  if (movement.payment || movement.cashDisbursement || movement.cashDeposit || movement.invoiceId) {
+    const error = new Error("Ce mouvement est lié à une autre opération et ne peut pas être supprimé ici.");
+    error.code = "CASH_MOVEMENT_LINKED";
+    throw error;
+  }
+  await prisma.cashRegisterMovement.delete({ where: { id } });
+  return movement;
+}
+
+module.exports = { getActiveSession, openSession, listSessions, getCarryForward, getDailyReport, getMonthlyReport, getReportHistory, closeSession, addMovement, deleteMovement };

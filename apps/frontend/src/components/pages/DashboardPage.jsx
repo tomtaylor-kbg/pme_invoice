@@ -31,6 +31,7 @@ export function DashboardPage() {
   const [cashSaving, setCashSaving] = useState(false);
   const disbursements = data.cashDisbursements || [];
   const matchingInvoices = invoices.filter((invoice) => (invoice.currency || "EUR") === currency);
+  const activityInvoices = data.recentInvoices?.length ? data.recentInvoices : invoices;
   const matchingDisbursements = disbursements.filter((record) => (record.currency || "EUR") === currency);
   const recentDisbursements = [...matchingDisbursements].slice(0, 5);
   const disbursedAmount = matchingDisbursements.reduce((sum, record) => sum + Number(record.amount || 0), 0);
@@ -80,7 +81,7 @@ export function DashboardPage() {
       setCashSaving(false);
     }
   }
-  const activity = useMemo(() => invoices.flatMap((invoice) => {
+  const activity = useMemo(() => activityInvoices.flatMap((invoice) => {
     const events = [{
       key: `invoice-${invoice.id}`,
       type: "invoice",
@@ -100,7 +101,7 @@ export function DashboardPage() {
       invoice
     })));
   }).filter((event) => (event.invoice?.currency || "EUR") === currency)
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 8), [invoices, currency]);
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 8), [activityInvoices, currency]);
 
   return (
     <div className="page-shell dashboard-page">

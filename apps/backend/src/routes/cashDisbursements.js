@@ -1,6 +1,7 @@
 const express = require("express");
 const { validateCashDisbursement } = require("../validators/cashDisbursements");
 const { requireRole } = require("../middleware/requireRole");
+const { parsePagination } = require("../utils/pagination");
 const {
   listCashDisbursements,
   createCashDisbursement,
@@ -13,7 +14,7 @@ function createCashDisbursementsRouter({ prisma, requireAuth }) {
   router.use(requireAuth, requireRole("admin", "director", "receptionist"));
 
   router.get("/", async (_req, res, next) => {
-    try { res.json(await listCashDisbursements(prisma)); } catch (error) { next(error); }
+    try { res.json(await listCashDisbursements(prisma, parsePagination(req.query))); } catch (error) { next(error); }
   });
 
   router.post("/", async (req, res, next) => {

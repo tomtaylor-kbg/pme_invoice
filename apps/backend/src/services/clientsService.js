@@ -1,12 +1,15 @@
 const { serializeClient } = require("../utils/serializers");
+const { paginateResult } = require("../utils/pagination");
 
-async function listClients(prisma) {
+async function listClients(prisma, pagination = null) {
   const clients = await prisma.client.findMany({
     orderBy: { createdAt: "desc" },
+    ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}),
     include: { _count: { select: { invoices: true } } }
   });
 
-  return clients.map(serializeClient);
+  const items = clients.map(serializeClient);
+  return pagination ? paginateResult(items, await prisma.client.count(), pagination) : items;
 }
 
 async function createClient(prisma, data) {

@@ -1,14 +1,15 @@
 const express = require("express");
 const { validateInvoiceCreate } = require("../validators/invoices");
-const { listInvoices, previewNextInvoiceNumber, createInvoice, updateInvoice, deleteInvoice } = require("../services/invoicesService");
+const { listInvoices, getInvoice, previewNextInvoiceNumber, createInvoice, updateInvoice, deleteInvoice } = require("../services/invoicesService");
 const { requireRole } = require("../middleware/requireRole");
+const { parsePagination } = require("../utils/pagination");
 
 function createInvoicesRouter({ prisma, requireAuth }) {
   const router = express.Router();
 
   router.get("/", requireAuth, requireRole("admin", "director", "receptionist"), async (_req, res, next) => {
     try {
-      res.json(await listInvoices(prisma));
+      res.json(await listInvoices(prisma, parsePagination(req.query)));
     } catch (error) {
       next(error);
     }
@@ -22,6 +23,14 @@ function createInvoicesRouter({ prisma, requireAuth }) {
     } catch (error) {
       next(error);
     }
+  });
+
+  router.get("/:id", requireAuth, requireRole("admin", "director", "receptionist"), async (req, res, next) => {
+    try {
+      const invoice = await getInvoice(prisma, req.params.id);
+      if (!invoice) return res.status(404).json({ message: "Facture introuvable." });
+      res.json(invoice);
+    } catch (error) { next(error); }
   });
 
   router.post("/", requireAuth, requireRole("admin", "director", "receptionist"), async (req, res, next) => {

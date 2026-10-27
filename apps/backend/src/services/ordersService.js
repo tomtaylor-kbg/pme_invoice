@@ -1,4 +1,5 @@
 const { Prisma } = require("@prisma/client");
+const { paginateResult } = require("../utils/pagination");
 
 const ORDER_STATUSES = new Set(["pending", "assigned", "processing", "blocked", "completed", "validated", "delivered", "invoiced", "cancelled"]);
 const ORDER_CURRENCIES = new Set(["EUR", "USD", "CDF"]);
@@ -54,14 +55,46 @@ function serializeOrder(order, { hideAmount = false } = {}) {
   };
 }
 
+function serializeOrderList(order, { hideAmount = false } = {}) {
+  return {
+    id: order.id, number: order.number, clientId: order.clientId, status: order.status, priority: order.priority,
+    issueDate: order.issueDate.toISOString(), dueDate: order.dueDate?.toISOString() || null,
+    ...(hideAmount ? {} : { total: Number(order.total), currency: order.currency }), notes: order.notes,
+    blockedReason: order.blockedReason, createdAt: order.createdAt.toISOString(), updatedAt: order.updatedAt.toISOString(),
+    lines: (order.lines || []).map((line) => ({ id: line.id, description: line.description, quantity: line.quantity, unit: line.unit, ...(hideAmount ? {} : { unitPrice: Number(line.unitPrice) }) })),
+    operator: order.operator ? { id: order.operator.id, name: order.operator.name, email: order.operator.email } : null,
+    manager: order.manager ? { id: order.manager.id, name: order.manager.name, email: order.manager.email } : null,
+    client: order.client ? { id: order.client.id, firstName: order.client.firstName, lastName: order.client.lastName, company: order.client.company, displayName: [order.client.firstName, order.client.lastName].filter(Boolean).join(" ").trim() } : null,
+    proforma: order.proforma ? { id: order.proforma.id, number: order.proforma.number, status: order.proforma.status } : null,
+    convertedInvoice: order.convertedInvoice ? { id: order.convertedInvoice.id, number: order.convertedInvoice.number } : null
+  };
+}
+
 function orderInclude() {
   return { client: true, creator: true, manager: true, operator: true, proforma: true, lines: true, convertedInvoice: true, events: { include: { user: true }, orderBy: { createdAt: "desc" } } };
 }
 
-async function listOrders(prisma, user) {
+function orderListSelect() {
+  return {
+    id: true, number: true, clientId: true, status: true, priority: true, issueDate: true, dueDate: true,
+    total: true, currency: true, notes: true, blockedReason: true, createdAt: true, updatedAt: true,
+    client: { select: { id: true, firstName: true, lastName: true, company: true } },
+    operator: { select: { id: true, name: true, email: true } }, manager: { select: { id: true, name: true, email: true } },
+    proforma: { select: { id: true, number: true, status: true } }, convertedInvoice: { select: { id: true, number: true } },
+    lines: { select: { id: true, description: true, quantity: true, unit: true } }
+  };
+}
+
+async function listOrders(prisma, user, pagination = null) {
   const where = user?.role === "order_operator" ? { operatorId: user.id } : {};
-  const orders = await prisma.order.findMany({ where, orderBy: [{ status: "asc" }, { createdAt: "desc" }], include: orderInclude() });
-  return orders.map((order) => serializeOrder(order, { hideAmount: ["order_operator", "order_manager"].includes(user?.role) }));
+  const orders = await prisma.order.findMany({ where, orderBy: [{ status: "asc" }, { createdAt: "desc" }], ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}), select: orderListSelect() });
+  const items = orders.map((order) => serializeOrderList(order, { hideAmount: ["order_operator", "order_manager"].includes(user?.role) }));
+  return pagination ? paginateResult(items, await prisma.order.count({ where }), pagination) : items;
+}
+
+async function getOrder(prisma, id, user) {
+  const order = await prisma.order.findUnique({ where: { id }, include: orderInclude() });
+  return order ? serializeOrder(order, { hideAmount: ["order_operator", "order_manager"].includes(user?.role) }) : null;
 }
 
 async function createOrder(prisma, data, userOrId) {
@@ -197,4 +230,4 @@ async function convertOrderToInvoice(prisma, id, userId) {
   return invoice;
 }
 
-module.exports = { listOrders, createOrder, updateOrder, convertOrderToInvoice };
+module.exports = { listOrders, getOrder, createOrder, updateOrder, convertOrderToInvoice };

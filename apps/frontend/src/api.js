@@ -38,8 +38,8 @@ export function getDashboard(token) {
   return request("/api/dashboard", { token });
 }
 
-export function getAuditLogs(token) {
-  return request("/api/audit-logs", { token });
+export function getAuditLogs(token, params = {}) {
+  return request(`/api/audit-logs${listQuery(params)}`, { token });
 }
 
 export function getWorkspaceSettings(token) {
@@ -50,8 +50,15 @@ export function updateWorkspaceSettings(token, data) {
   return request("/api/workspace-settings", { token, method: "PATCH", body: data });
 }
 
-export function getClients(token) {
-  return request("/api/clients", { token });
+function listQuery(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page !== undefined) query.set("page", String(params.page));
+  if (params.pageSize !== undefined) query.set("pageSize", String(params.pageSize));
+  return query.toString() ? `?${query}` : "";
+}
+
+export function getClients(token, params = {}) {
+  return request(`/api/clients${listQuery(params)}`, { token });
 }
 
 export function createClient(token, data) {
@@ -82,8 +89,12 @@ export function deleteUser(token, id) {
   return request(`/api/users/${id}`, { token, method: "DELETE" });
 }
 
-export function getInvoices(token) {
-  return request("/api/invoices", { token });
+export function getInvoices(token, params = {}) {
+  return request(`/api/invoices${listQuery(params)}`, { token });
+}
+
+export function getInvoice(token, id) {
+  return request(`/api/invoices/${id}`, { token });
 }
 
 export function getInvoiceNextNumber(token, params = {}) {
@@ -109,8 +120,12 @@ export function deleteInvoice(token, id) {
   return request(`/api/invoices/${id}`, { token, method: "DELETE" });
 }
 
-export function getProformas(token) {
-  return request("/api/proformas", { token });
+export function getProformas(token, params = {}) {
+  return request(`/api/proformas${listQuery(params)}`, { token });
+}
+
+export function getProforma(token, id) {
+  return request(`/api/proformas/${id}`, { token });
 }
 
 export function createProforma(token, data) {
@@ -135,7 +150,8 @@ export function updateDeliveryNote(token, id, data) { return request(`/api/deliv
 export function deleteDeliveryNote(token, id) { return request(`/api/delivery-notes/${id}`, { token, method: "DELETE" }); }
 export function convertDeliveryNote(token, id) { return request(`/api/delivery-notes/${id}/convert`, { token, method: "POST" }); }
 
-export function getOrders(token) { return request("/api/orders", { token }); }
+export function getOrders(token, params = {}) { return request(`/api/orders${listQuery(params)}`, { token }); }
+export function getOrder(token, id) { return request(`/api/orders/${id}`, { token }); }
 export function createOrder(token, data) { return request("/api/orders", { token, method: "POST", body: data }); }
 export function updateOrder(token, id, data) { return request(`/api/orders/${id}`, { token, method: "PATCH", body: data }); }
 export function convertOrderToInvoice(token, id) { return request(`/api/orders/${id}/convert-to-invoice`, { token, method: "POST" }); }
@@ -150,9 +166,10 @@ export function getCashReportHistory(token) { return request("/api/cash-register
 export function openCashSession(token, data) { return request("/api/cash-register/sessions", { token, method: "POST", body: data }); }
 export function closeCashSession(token, id, data) { return request(`/api/cash-register/sessions/${id}/close`, { token, method: "POST", body: data }); }
 export function addCashMovement(token, data) { return request("/api/cash-register/movements", { token, method: "POST", body: data }); }
+export function deleteCashMovement(token, id) { return request(`/api/cash-register/movements/${id}`, { token, method: "DELETE" }); }
 
-export function getCashDisbursements(token) {
-  return request("/api/cash-disbursements", { token });
+export function getCashDisbursements(token, params = {}) {
+  return request(`/api/cash-disbursements${listQuery(params)}`, { token });
 }
 
 export function createCashDisbursement(token, data) {
@@ -167,12 +184,12 @@ export function deleteCashDisbursement(token, id) {
   return request(`/api/cash-disbursements/${id}`, { token, method: "DELETE" });
 }
 
-export function getCashDeposits(token) { return request("/api/cash-deposits", { token }); }
+export function getCashDeposits(token, params = {}) { return request(`/api/cash-deposits${listQuery(params)}`, { token }); }
 export function createCashDeposit(token, data) { return request("/api/cash-deposits", { token, method: "POST", body: data }); }
 export function validateCashDeposit(token, id) { return request(`/api/cash-deposits/${id}/validate`, { token, method: "POST" }); }
 export function cancelCashDeposit(token, id) { return request(`/api/cash-deposits/${id}/cancel`, { token, method: "POST" }); }
 
-export function getNeedRequests(token) { return request("/api/need-requests", { token }); }
+export function getNeedRequests(token, params = {}) { return request(`/api/need-requests${listQuery(params)}`, { token }); }
 export function createNeedRequest(token, data) { return request("/api/need-requests", { token, method: "POST", body: data }); }
 export function updateNeedRequest(token, id, data) { return request(`/api/need-requests/${id}`, { token, method: "PATCH", body: data }); }
 export function deleteNeedRequest(token, id) { return request(`/api/need-requests/${id}`, { token, method: "DELETE" }); }

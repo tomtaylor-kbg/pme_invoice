@@ -1,6 +1,7 @@
 const { Prisma } = require("@prisma/client");
 const { toNumber } = require("../utils/number");
-const { serializeInvoice, serializePayment, serializeReceipt } = require("../utils/serializers");
+const { serializeInvoice, serializeInvoiceList, serializePayment, serializeReceipt } = require("../utils/serializers");
+const { paginateResult } = require("../utils/pagination");
 
 const INVOICE_NUMBER_PATTERN = /^([A-Z0-9]+)-(\d{4})-(\d{4})$/;
 
@@ -96,6 +97,29 @@ function invoiceInclude(prisma) {
   };
 }
 
+function invoiceListSelect(prisma, includePayments = true) {
+  return {
+    id: true,
+    number: true,
+    clientId: true,
+    userId: true,
+    status: true,
+    currency: true,
+    issueDate: true,
+    dueDate: true,
+    total: true,
+    taxRate: true,
+    notes: true,
+    createdAt: true,
+    updatedAt: true,
+    client: { select: { id: true, firstName: true, lastName: true, company: true, clientType: true } },
+    creator: { select: { id: true, name: true, email: true, role: true } },
+    ...(includePayments && hasPaymentModel(prisma) ? { payments: { select: { amount: true } } } : {}),
+    deliveryNote: { select: { id: true, number: true, status: true } },
+    deliveryLinks: { select: { deliveryNote: { select: { id: true, number: true, status: true } } } }
+  };
+}
+
 function shouldMarkInvoicePaid(invoice, totalPaid) {
   return Number(invoice.total || 0) > 0 && totalPaid >= Number(invoice.total || 0);
 }
@@ -159,49 +183,29 @@ async function syncOverdueInvoices(prisma) {
   return result.count;
 }
 
-async function listInvoices(prisma) {
+async function listInvoices(prisma, pagination = null) {
   await syncOverdueInvoices(prisma);
 
   let invoices;
   try {
-    invoices = await prisma.invoice.findMany({
-      orderBy: { createdAt: "desc" },
-      include: invoiceInclude(prisma)
-    });
+    invoices = await prisma.invoice.findMany({ orderBy: { createdAt: "desc" }, ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}), select: invoiceListSelect(prisma) });
   } catch (error) {
     if (!isMissingPaymentTableError(error)) {
       throw error;
     }
     invoices = await prisma.invoice.findMany({
       orderBy: { createdAt: "desc" },
-      include: {
-        client: true,
-        creator: true,
-        lines: true
-      }
+      ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}), select: invoiceListSelect(prisma, false)
     });
   }
 
-  return invoices.map((invoice) => ({
-    ...serializeInvoice(invoice),
-    client: {
-      id: invoice.client.id,
-      firstName: invoice.client.firstName,
-      lastName: invoice.client.lastName,
-      displayName: [invoice.client.firstName, invoice.client.lastName].filter(Boolean).join(" ").trim(),
-      company: invoice.client.company,
-      email: invoice.client.email,
-      phone: invoice.client.phone
-    },
-    creator: invoice.creator
-      ? {
-          id: invoice.creator.id,
-          name: invoice.creator.name,
-          email: invoice.creator.email,
-          role: invoice.creator.role
-        }
-      : null
-  }));
+  const items = invoices.map(serializeInvoiceList);
+  return pagination ? paginateResult(items, await prisma.invoice.count(), pagination) : items;
+}
+
+async function getInvoice(prisma, id) {
+  const invoice = await prisma.invoice.findUnique({ where: { id }, include: invoiceInclude(prisma) });
+  return invoice ? serializeInvoice(invoice) : null;
 }
 
 async function getMaxExistingSequence(prisma, prefix, year) {
@@ -605,6 +609,7 @@ async function getPaymentReceipt(prisma, paymentId) {
 module.exports = {
   syncOverdueInvoices,
   listInvoices,
+  getInvoice,
   previewNextInvoiceNumber,
   createInvoice,
   updateInvoice,

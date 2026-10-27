@@ -1,4 +1,5 @@
 const { Prisma } = require("@prisma/client");
+const { paginateResult } = require("../utils/pagination");
 
 function needRequestNumber(year, sequence) {
   return `EB-${year}-${String(sequence).padStart(5, "0")}`;
@@ -34,9 +35,10 @@ function serialize(record) {
 
 const include = { lines: true, creator: true, cashDisbursement: true };
 
-async function listNeedRequests(prisma) {
-  const records = await prisma.needRequest.findMany({ include, orderBy: [{ issueDate: "desc" }, { createdAt: "desc" }] });
-  return records.map(serialize);
+async function listNeedRequests(prisma, pagination = null) {
+  const records = await prisma.needRequest.findMany({ include, orderBy: [{ issueDate: "desc" }, { createdAt: "desc" }], ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}) });
+  const items = records.map(serialize);
+  return pagination ? paginateResult(items, await prisma.needRequest.count(), pagination) : items;
 }
 
 async function createNeedRequest(prisma, data, userId) {

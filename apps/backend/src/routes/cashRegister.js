@@ -1,6 +1,6 @@
 const express = require("express");
 const { requireRole } = require("../middleware/requireRole");
-const { getActiveSession, openSession, listSessions, getCarryForward, getDailyReport, getMonthlyReport, getReportHistory, closeSession, addMovement } = require("../services/cashRegisterService");
+const { getActiveSession, openSession, listSessions, getCarryForward, getDailyReport, getMonthlyReport, getReportHistory, closeSession, addMovement, deleteMovement } = require("../services/cashRegisterService");
 
 function createCashRegisterRouter({ prisma, requireAuth }) {
   const router = express.Router();
@@ -14,6 +14,14 @@ function createCashRegisterRouter({ prisma, requireAuth }) {
   router.post("/sessions", requireRole("admin", "receptionist"), async (req, res, next) => { try { res.status(201).json(await openSession(prisma, req.user.id, req.body || {})); } catch (error) { next(error); } });
   router.post("/sessions/:id/close", requireRole("admin", "receptionist"), async (req, res, next) => { try { const result = await closeSession(prisma, req.params.id, req.user.id, req.body || {}); if (!result) return res.status(404).json({ message: "Session introuvable." }); res.json(result); } catch (error) { next(error); } });
   router.post("/movements", requireRole("admin", "receptionist"), async (req, res, next) => { try { res.status(201).json(await addMovement(prisma, req.user.id, req.body || {})); } catch (error) { next(error); } });
+  router.delete("/movements/:id", requireRole("admin"), async (req, res, next) => {
+    try {
+      res.locals.auditSource = await prisma.cashRegisterMovement.findUnique({ where: { id: req.params.id } });
+      const result = await deleteMovement(prisma, req.params.id);
+      if (!result) return res.status(404).json({ message: "Mouvement introuvable." });
+      res.status(204).send();
+    } catch (error) { next(error); }
+  });
   return router;
 }
 

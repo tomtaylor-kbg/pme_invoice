@@ -321,3 +321,8 @@ export function ClientCard({ client, onEdit, onDelete, loading }) {
     </EntityCard>
   );
 }
+
+export function PaginationControls({ pagination, onPageChange, label = "éléments" }) {
+  if (!pagination || pagination.pageCount <= 1) return null;
+  return <div className="list-pagination"><button className="secondary-button" type="button" disabled={pagination.page <= 1} onClick={() => onPageChange(pagination.page - 1)}>← Précédent</button><span>Page {pagination.page} / {pagination.pageCount} · {pagination.total} {label}</span><button className="secondary-button" type="button" disabled={pagination.page >= pagination.pageCount} onClick={() => onPageChange(pagination.page + 1)}>Suivant →</button></div>;
+}

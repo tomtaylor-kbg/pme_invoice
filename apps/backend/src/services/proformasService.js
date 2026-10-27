@@ -1,6 +1,7 @@
 const { Prisma } = require("@prisma/client");
 const { toNumber } = require("../utils/number");
 const { createInvoice } = require("./invoicesService");
+const { paginateResult } = require("../utils/pagination");
 
 function serializeProforma(proforma) {
   return {
@@ -18,6 +19,33 @@ function serializeProforma(proforma) {
       createdAt: line.createdAt.toISOString(),
       updatedAt: line.updatedAt.toISOString()
     }))
+  };
+}
+
+function serializeProformaList(proforma) {
+  return {
+    id: proforma.id,
+    number: proforma.number,
+    clientId: proforma.clientId,
+    userId: proforma.userId,
+    status: proforma.status,
+    currency: proforma.currency,
+    issueDate: proforma.issueDate.toISOString(),
+    validUntil: proforma.validUntil.toISOString(),
+    total: Number(proforma.total),
+    taxRate: Number(proforma.taxRate),
+    notes: proforma.notes,
+    createdAt: proforma.createdAt.toISOString(),
+    updatedAt: proforma.updatedAt.toISOString(),
+    client: proforma.client ? {
+      id: proforma.client.id,
+      firstName: proforma.client.firstName,
+      lastName: proforma.client.lastName,
+      company: proforma.client.company,
+      email: proforma.client.email,
+      clientType: proforma.client.clientType
+    } : null,
+    convertedInvoice: proforma.convertedInvoice ? { id: proforma.convertedInvoice.id, number: proforma.convertedInvoice.number } : null
   };
 }
 
@@ -43,12 +71,24 @@ async function resolveClient(tx, data) {
   return client.id;
 }
 
-async function listProformas(prisma) {
+async function listProformas(prisma, pagination = null) {
   const records = await prisma.proforma.findMany({
     orderBy: { createdAt: "desc" },
-    include: { client: true, lines: true, convertedInvoice: true }
+    ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}),
+    select: {
+      id: true, number: true, clientId: true, userId: true, status: true, currency: true,
+      issueDate: true, validUntil: true, total: true, taxRate: true, notes: true, createdAt: true, updatedAt: true,
+      client: { select: { id: true, firstName: true, lastName: true, company: true, email: true, clientType: true } },
+      convertedInvoice: { select: { id: true, number: true } }
+    }
   });
-  return records.map(serializeProforma);
+  const items = records.map(serializeProformaList);
+  return pagination ? paginateResult(items, await prisma.proforma.count(), pagination) : items;
+}
+
+async function getProforma(prisma, id) {
+  const record = await prisma.proforma.findUnique({ where: { id }, include: { client: true, lines: true, convertedInvoice: true } });
+  return record ? serializeProforma(record) : null;
 }
 
 async function createProforma(prisma, data, userId) {
@@ -150,4 +190,4 @@ async function convertProforma(prisma, id, userId) {
   return invoice;
 }
 
-module.exports = { listProformas, createProforma, updateProforma, deleteProforma, convertProforma };
+module.exports = { listProformas, getProforma, createProforma, updateProforma, deleteProforma, convertProforma };

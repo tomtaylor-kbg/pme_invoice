@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { addCashMovement, closeCashSession, getActiveCashSession, getCashCarryForward, getDailyCashReport, openCashSession } from "../../api";
+import { addCashMovement, closeCashSession, deleteCashMovement, getActiveCashSession, getCashCarryForward, getDailyCashReport, openCashSession } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
 import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon } from "../ui";
 import { money } from "../../utils/formatters";
@@ -9,7 +9,7 @@ import { buildCashDailyReportPrintHtml } from "../../utils/print/cashDailyReport
 const currencies = [["EUR", "Euro"], ["USD", "Dollar américain"], ["CDF", "Franc congolais"]];
 
 export function CashRegisterPage() {
-  const { token, data, workspaceSettings, notifySuccess, notifyError } = useWorkspace();
+  const { token, data, user, workspaceSettings, notifySuccess, notifyError } = useWorkspace();
   const navigate = useNavigate();
   const defaultCurrency = workspaceSettings.defaultCurrency || "EUR";
   const [session, setSession] = useState(undefined);
@@ -17,6 +17,7 @@ export function CashRegisterPage() {
   const [carryForward, setCarryForward] = useState(null);
   const [openingOpen, setOpeningOpen] = useState(false);
   const [closingOpen, setClosingOpen] = useState(false);
+  const [movementOpen, setMovementOpen] = useState(false);
   const [opening, setOpening] = useState("");
   const [openingBalances, setOpeningBalances] = useState({});
   const [currency, setCurrency] = useState(currencies.some(([value]) => value === defaultCurrency) ? defaultCurrency : "EUR");
@@ -89,10 +90,22 @@ export function CashRegisterPage() {
     try {
       await addCashMovement(token, { ...movement, sessionId: session.id });
       setMovement({ type: "in", currency: session.currency, amount: "", description: "" });
+      setMovementOpen(false);
       await refresh();
       notifySuccess("Mouvement enregistré", `${money(Number(movement.amount), movement.currency)} · ${movement.type === "in" ? "Encaissement" : "Sortie"}`);
     } catch (error) {
       notifyError("Mouvement non enregistré", error.message || "Le mouvement n’a pas pu être enregistré.");
+    }
+  }
+
+  async function removeMovement(item) {
+    if (!window.confirm(`Supprimer le mouvement « ${readableMovementDescription(item)} » ?`)) return;
+    try {
+      await deleteCashMovement(token, item.id);
+      await refresh();
+      notifySuccess("Mouvement supprimé", "Le solde théorique a été recalculé.");
+    } catch (error) {
+      notifyError("Suppression impossible", error.message || "Le mouvement n’a pas pu être supprimé.");
     }
   }
 
@@ -126,16 +139,16 @@ export function CashRegisterPage() {
       <div className="page-scroll">
         {loadError && <section className="panel empty-card-state text-danger" role="alert"><h2>Caisse indisponible</h2><p>{loadError}</p><button className="secondary-button" type="button" onClick={refresh}>Réessayer</button></section>}
         {!session ? <section className="panel cash-register-empty"><div className="cash-register-empty-icon" aria-hidden="true">₿</div><h2>Ouvrir une session de caisse</h2><p>Définissez le fonds de départ et la devise de cette vacation pour commencer les opérations.</p><button className="primary-button" type="button" onClick={() => setOpeningOpen(true)}>Configurer le fonds de départ</button></section> : <section className="cash-register-grid">
-          <section className="panel cash-register-summary"><div><span className="eyebrow">Session multi-devise</span><div className="cash-balance-list">{Object.entries(session.expectedBalances || { [session.currency]: session.expectedBalance }).map(([balanceCurrency, amount]) => <strong key={balanceCurrency}>{money(amount, balanceCurrency)}</strong>)}</div><small>Soldes théoriques par devise</small></div><button className="secondary-button" type="button" onClick={() => setClosingOpen(true)}>Clôturer la caisse</button></section>
-          <div className="cash-register-workspace">
-            <form className="panel stack-form cash-movement-editor" onSubmit={saveMovement}><div className="section-header"><div><span className="eyebrow">Opération</span><h2>Nouveau mouvement</h2></div><span className="cash-currency-chip">Mouvement</span></div><label>Type<select value={movement.type} onChange={(event) => setMovement({ ...movement, type: event.target.value })}><option value="in">Encaissement</option><option value="out">Décaissement</option></select></label>{movement.type === "out" && <p className="field-hint">Les décaissements sont enregistrés dans un bon de sortie pour rester liés à la caisse.</p>}<label>Devise<select value={movement.currency} onChange={(event) => setMovement({ ...movement, currency: event.target.value })}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label><label>Montant ({movement.currency})<input type="number" min="0.01" step="0.01" required value={movement.amount} onChange={(event) => setMovement({ ...movement, amount: event.target.value })} /></label><label>Description<input required value={movement.description} onChange={(event) => setMovement({ ...movement, description: event.target.value })} placeholder="Ex. Paiement facture FAC-2026-0001" /></label><button className="primary-button" type="submit">{movement.type === "out" ? "Créer un bon de sortie" : "Enregistrer le mouvement"}</button></form>
-            <section className="panel cash-movement-history"><div className="section-header"><div><span className="eyebrow">Session active</span><h2>Mouvements récents</h2></div><span className="cash-currency-chip">{session.currency}</span></div>{(session.movements || []).length ? <div className="cash-movement-list">{(session.movements || []).map((item) => <div key={item.id}><span className={item.type === "in" ? "text-success" : "text-danger"}>{item.type === "in" ? "+" : "−"}{money(item.amount, item.currency)}</span><span>{readableMovementDescription(item)}</span></div>)}</div> : <p className="text-muted">Aucun mouvement dans cette session.</p>}</section>
-          </div>
+          <section className="panel cash-register-summary"><div><span className="eyebrow">Session multi-devise</span><div className="cash-balance-list">{Object.entries(session.expectedBalances || { [session.currency]: session.expectedBalance }).map(([balanceCurrency, amount]) => <strong key={balanceCurrency}>{money(amount, balanceCurrency)}</strong>)}</div><small>Soldes théoriques par devise</small></div><div className="hero-actions"><button className="secondary-button" type="button" onClick={() => setMovementOpen(true)}>Nouveau mouvement</button><button className="secondary-button" type="button" onClick={() => setClosingOpen(true)}>Clôturer la caisse</button></div></section>
           <section className="panel cash-daily-report"><div className="section-header"><div><span className="eyebrow">Rapport journalier · {report?.date}</span><h2>Synthèse de la journée</h2></div><button className="secondary-button" type="button" onClick={printDailyReport}>Imprimer</button></div><div className="cash-report-totals">{Object.entries(report?.totals || session.expectedBalances || {}).map(([reportCurrency, amount]) => <div key={reportCurrency}><span>{reportCurrency}</span><strong>{money(amount, reportCurrency)}</strong></div>)}</div></section>
+          <div className="cash-register-workspace">
+            <section className="panel cash-movement-history"><div className="section-header"><div><span className="eyebrow">Session active</span><h2>Mouvements récents</h2></div><span className="cash-currency-chip">{session.currency}</span></div>{(session.movements || []).length ? <div className="cash-movement-list">{(session.movements || []).map((item) => <div key={item.id}><span className={item.type === "in" ? "text-success" : "text-danger"}>{item.type === "in" ? "+" : "−"}{money(item.amount, item.currency)}</span><span className="cash-movement-description">{readableMovementDescription(item)}</span>{["admin", "director"].includes(user?.role) && !item.payment && !item.cashDisbursement && !item.cashDeposit && !item.invoiceId && <button className="text-button danger" type="button" onClick={() => removeMovement(item)} aria-label="Supprimer ce mouvement">Supprimer</button>}</div>)}</div> : <p className="text-muted">Aucun mouvement dans cette session.</p>}</section>
+          </div>
         </section>}
       </div>
 
       <OverlayDialog open={openingOpen} title="Ouvrir une session de caisse" onClose={() => setOpeningOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-opening-form">Ouvrir la caisse</OverlayActionButton>}><form id="cash-opening-form" className="stack-form cash-opening-form" onSubmit={openRegister}><div className="cash-opening-intro">{carryForward?.sourceDate ? `Report de la clôture du ${carryForward.sourceDate} repris automatiquement par devise. Vérifiez ou ajustez les fonds de départ.` : "Aucun report précédent trouvé. Saisissez les fonds de départ par devise."}</div><label>Devise principale<select value={currency} onChange={(event) => setCurrency(event.target.value)}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label>{currencies.map(([value]) => <label key={value}>Report / fonds de départ ({value})<input autoFocus={value === currency} type="number" min="0" step="0.01" value={openingBalances[value] ?? (value === currency ? opening : "0")} onChange={(event) => setOpeningBalances((current) => ({ ...current, [value]: event.target.value }))} placeholder="0,00" /></label>)}</form></OverlayDialog>
+      <OverlayDialog open={movementOpen && Boolean(session)} title="Nouveau mouvement de caisse" onClose={() => setMovementOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-movement-form">{movement.type === "out" ? "Créer un bon de sortie" : "Enregistrer le mouvement"}</OverlayActionButton>}>{session && <form id="cash-movement-form" className="stack-form cash-opening-form" onSubmit={saveMovement}><div className="cash-opening-intro">Enregistrez un encaissement directement dans la session active. Les décaissements sont gérés via un bon de sortie pour rester liés à la caisse.</div><label>Type<select value={movement.type} onChange={(event) => setMovement({ ...movement, type: event.target.value })}><option value="in">Encaissement</option><option value="out">Décaissement</option></select></label>{movement.type === "out" && <p className="field-hint">Vous serez redirigé vers la création d’un bon de sortie.</p>}<label>Devise<select value={movement.currency} onChange={(event) => setMovement({ ...movement, currency: event.target.value })}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label><label>Montant ({movement.currency})<input autoFocus type="number" min="0.01" step="0.01" required value={movement.amount} onChange={(event) => setMovement({ ...movement, amount: event.target.value })} /></label><label>Description<input required value={movement.description} onChange={(event) => setMovement({ ...movement, description: event.target.value })} placeholder="Ex. Paiement facture FAC-2026-0001" /></label></form>}</OverlayDialog>
       <OverlayDialog open={closingOpen && Boolean(session)} title="Clôturer la caisse" onClose={() => setClosingOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-closing-form">Confirmer la clôture</OverlayActionButton>}>{session && <form id="cash-closing-form" className="stack-form cash-opening-form" onSubmit={closeRegister}><div className="cash-opening-intro">Saisissez le montant réellement compté pour chaque devise. La session du jour sera définitivement clôturée et le rapport journalier pourra être imprimé.</div>{Object.keys(session.expectedBalances || { [session.currency]: session.expectedBalance }).map((balanceCurrency) => <label key={balanceCurrency}>Fonds final ({balanceCurrency})<input autoFocus={balanceCurrency === session.currency} type="number" min="0" step="0.01" required value={closingBalances[balanceCurrency] || ""} onChange={(event) => setClosingBalances((current) => ({ ...current, [balanceCurrency]: event.target.value }))} /></label>)}</form>}</OverlayDialog>
     </div>
   );
