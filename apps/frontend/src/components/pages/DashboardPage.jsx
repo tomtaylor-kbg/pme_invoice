@@ -145,7 +145,7 @@ export function DashboardPage() {
         <section className="panel entity-list-panel dashboard-invoices-panel">
           <SectionHeader title="Dernières factures" buttonLabel="Voir toutes les factures" onButtonClick={() => navigate("/invoices")} />
           {activityInvoices.filter((invoice) => (invoice.currency || "EUR") === currency).length ? <Table className="entity-list-table dashboard-invoices-table" columns={["Numéro", "Client", "Date", "Statut", "Montant"]} rows={activityInvoices.filter((invoice) => (invoice.currency || "EUR") === currency).slice(0, 5).map((invoice) => [invoice.number, clientName(invoice), formatDate(invoice.issueDate || invoice.createdAt), <span className="badge status-paid">{invoice.status === "paid" || Number(invoice.balanceDue || 0) <= 0 ? "Payée" : "À suivre"}</span>, <strong>{money(invoice.total, currency)}</strong>])} /> : <div className="empty-state">Aucune facture dans cette devise.</div>}
-          <small className="dashboard-example-note">Lignes de la liste fournies à titre d’exemple pour la maquette.</small>
+          <small className="dashboard-example-note">Dernières factures.</small>
         </section>
         </>}
       </div>
