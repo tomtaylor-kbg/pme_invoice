@@ -122,10 +122,12 @@ function serializeClient(client) {
 }
 
 function serializeUser(user) {
+  const safeUser = { ...user };
+  delete safeUser.passwordHash;
   return {
-    ...user,
-    createdAt: toIso(user.createdAt),
-    updatedAt: toIso(user.updatedAt)
+    ...safeUser,
+    createdAt: toIso(safeUser.createdAt),
+    updatedAt: toIso(safeUser.updatedAt)
   };
 }
 

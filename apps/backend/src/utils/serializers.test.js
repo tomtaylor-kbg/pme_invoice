@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { serializeInvoiceList, serializeInvoiceDashboard } = require("./serializers");
+const { serializeInvoiceList, serializeInvoiceDashboard, serializeUser } = require("./serializers");
 
 function invoiceFixture() {
   const date = new Date("2026-10-27T10:00:00.000Z");
@@ -52,4 +52,17 @@ test("les DTO de paiement acceptent des dates déjà sérialisées", () => {
   invoice.payments[0].updatedAt = "2026-10-27T10:00:00.000Z";
   const result = serializeInvoiceDashboard(invoice);
   assert.equal(result.payments[0].paidAt, "2026-10-27T10:00:00.000Z");
+});
+
+test("serializeUser n’expose jamais le hash du mot de passe", () => {
+  const result = serializeUser({
+    id: "user-1",
+    username: "admin",
+    passwordHash: "secret-hash",
+    createdAt: "2026-10-27T10:00:00.000Z",
+    updatedAt: "2026-10-27T10:00:00.000Z"
+  });
+
+  assert.equal(result.passwordHash, undefined);
+  assert.equal(result.username, "admin");
 });

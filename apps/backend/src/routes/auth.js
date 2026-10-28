@@ -75,7 +75,9 @@ function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSes
           description: "Connexion réussie"
         }
       }).catch((error) => console.error("Unable to write audit log", error));
-      return res.json({ user: result.user });
+      const response = { user: result.user };
+      if (req.get("x-client") === "mobile") response.token = result.token;
+      return res.json(response);
     }
 
     const failedState = recordFailedLogin(loginKey);

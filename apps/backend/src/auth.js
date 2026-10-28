@@ -13,6 +13,11 @@ function hashSessionToken(token) {
 }
 
 function resolveAuthHeader(req) {
+  const authorization = String(req.headers.authorization || "");
+  if (authorization.startsWith("Bearer ")) {
+    return authorization.slice("Bearer ".length).trim();
+  }
+
   const cookies = String(req.headers.cookie || "").split(";").reduce((result, part) => {
     const separator = part.indexOf("=");
     if (separator === -1) return result;
