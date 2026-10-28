@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Ozotoo Invoice",
+    "slug": "facturation-mobile",
+    "icon": "./assets/ozotoo-icon.png",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "ozotoo-invoice",
+    "splash": {
+      "image": "./assets/ozotoo-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "android": {
+      "package": "com.facturation.mobile",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/ozotoo-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "runtimeVersion": "1.0.0"
+    },
+    "ios": {
+      "bundleIdentifier": "com.facturation.mobile",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "11c6a5bd-77eb-45f5-b6c8-e771e82a2953"
+      }
+    },
+    "owner": "tomtaylor-kbg",
+    "plugins": [
+      "expo-sqlite"
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/11c6a5bd-77eb-45f5-b6c8-e771e82a2953"
+    }
+  }
+}

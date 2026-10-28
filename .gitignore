@@ -10,3 +10,5 @@ DEPLOYEMENT.md
 FEATURES.md
 .vercel
 .env*
+apps/mobile/.expo
+.expo/

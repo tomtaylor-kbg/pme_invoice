@@ -1,0 +1,27 @@
+{
+  "name": "@facturation/mobile",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "build:apk": "eas build --platform android --profile preview",
+    "build:production": "eas build --platform android --profile production",
+    "build:production-apk": "eas build --platform android --profile production-apk"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "expo": "^54.0.0",
+    "expo-secure-store": "^15.0.0",
+    "expo-sqlite": "~16.0.10",
+    "expo-updates": "~29.0.20",
+    "react": "^19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "^0.81.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-web": "^0.21.0"
+  },
+  "version": "1.0.0"
+}

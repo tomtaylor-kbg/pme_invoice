@@ -5,6 +5,7 @@ Monorepo pour une application de facturation interne.
 ## Structure
 
 - `apps/frontend` : interface React + Vite
+- `apps/mobile` : application mobile Expo + React Native
 - `apps/backend` : API Express + Prisma
 
 ## Démarrage
@@ -36,6 +37,9 @@ npm run dev
 - `npm run dev` : lance frontend et backend ensemble
 - `npm run dev:backend` : lance uniquement l’API
 - `npm run dev:frontend` : lance uniquement le frontend
+- `npm run dev:mobile` : lance l’application mobile Expo
+
+Depuis `apps/mobile`, `npm run build:apk` génère un APK Android de test via EAS. `npm run build:production-apk` génère une APK production installable directement, tandis que `npm run build:production` génère un Android App Bundle destiné au Play Store. Configurez l’URL publique de l’API au premier démarrage ; pour un test USB local, utilisez `localhost` avec `adb reverse tcp:4000 tcp:4000`.
 - `npm run build` : compile les deux workspaces
 - `npm run lint` : lance les vérifications disponibles
 - `npm test` : lance les tests backend
@@ -109,7 +113,7 @@ Copie d’abord `apps/backend/.env.example` vers `apps/backend/.env`, puis ajust
 - `PORT` : port du backend, par défaut `4000`
 - `USERNAME` et `PASSWORD` : compte bootstrap optionnel si la base est vide
 - `NODE_ENV` : active les messages d’erreur détaillés hors production
-- `CORS_ORIGINS` : liste séparée par des virgules des origines frontend autorisées (par exemple `https://app.example.com`). En développement, les URLs locales `localhost:5173` et `127.0.0.1:5173` sont utilisées par défaut.
+- `CORS_ORIGINS` : liste séparée par des virgules des origines frontend autorisées (par exemple `https://app.example.com`). En développement, les URLs locales Vite (`5173`) et Expo Web (`8081` ou `19006`) sont autorisées par défaut. En production, renseignez explicitement les origines autorisées.
 
 Le frontend peut aussi utiliser des variables Vite:
 

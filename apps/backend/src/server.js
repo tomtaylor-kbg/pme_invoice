@@ -15,8 +15,25 @@ const allowedCorsOrigins = String(process.env.CORS_ORIGINS || "")
   .map((origin) => origin.trim().replace(/\/$/, ""))
   .filter(Boolean);
 const corsOrigins = allowedCorsOrigins.length
-  ? allowedCorsOrigins
-  : ["http://localhost:5173", "http://127.0.0.1:5173"];
+  ? [...new Set([
+      ...allowedCorsOrigins,
+      ...(process.env.NODE_ENV === "production" ? [] : [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://localhost:19006",
+        "http://127.0.0.1:19006"
+      ])
+    ])]
+  : [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:8081",
+      "http://127.0.0.1:8081",
+      "http://localhost:19006",
+      "http://127.0.0.1:19006"
+    ];
 const requireAuth = attachUser(prisma);
 const requireAdmin = (req, res, next) => {
   if (!["admin", "director"].includes(req.user?.role)) {
@@ -33,7 +50,7 @@ app.use(cors({
     return callback(null, false);
   },
   methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Client"],
   credentials: true,
   optionsSuccessStatus: 204
 }));

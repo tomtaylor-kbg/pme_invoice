@@ -1,4 +1,6 @@
 const express = require("express");
+const { hashPassword, verifyPassword } = require("../utils/password");
+const { serializeUser } = require("../utils/serializers");
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 5;
@@ -91,6 +93,29 @@ function createAuthRouter({ prisma, loginWithCredentials, requireAuth, revokeSes
 
   router.get("/me", requireAuth, (req, res) => {
     res.json(req.user);
+  });
+
+  router.patch("/me", requireAuth, async (req, res) => {
+    const { name, email, currentPassword, newPassword } = req.body || {};
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable." });
+    if (newPassword !== undefined) {
+      if (!currentPassword || !verifyPassword(currentPassword, user.passwordHash)) {
+        return res.status(400).json({ message: "Le mot de passe actuel est incorrect." });
+      }
+      if (String(newPassword).length < 8) {
+        return res.status(400).json({ message: "Le nouveau mot de passe doit contenir au moins 8 caractères." });
+      }
+    }
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        ...(name !== undefined ? { name: String(name).trim() } : {}),
+        ...(email !== undefined ? { email: String(email).trim() || null } : {}),
+        ...(newPassword !== undefined ? { passwordHash: hashPassword(newPassword) } : {})
+      }
+    });
+    return res.json(serializeUser(updated));
   });
 
   router.post("/logout", requireAuth, async (req, res) => {

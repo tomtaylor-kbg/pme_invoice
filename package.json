@@ -3,15 +3,17 @@
   "private": true,
   "workspaces": [
     "apps/backend",
-    "apps/frontend"
+    "apps/frontend",
+    "apps/mobile"
   ],
   "scripts": {
     "dev": "concurrently -n backend,frontend -c cyan,magenta \"npm run dev --workspace @facturation/backend\" \"npm run dev --workspace @facturation/frontend\"",
     "dev:backend": "npm run dev --workspace @facturation/backend",
     "dev:frontend": "npm run dev --workspace @facturation/frontend",
-    "build": "npm run build --workspaces",
-    "lint": "npm run lint --workspaces",
-    "test": "npm run test --workspaces",
+    "dev:mobile": "npm run start --workspace @facturation/mobile",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
     "db:generate": "npm run db:generate --workspace @facturation/backend",
