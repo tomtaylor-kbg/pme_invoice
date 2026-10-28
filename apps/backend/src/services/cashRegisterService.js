@@ -1,4 +1,5 @@
 const { Prisma } = require("@prisma/client");
+const { paginateResult } = require("../utils/pagination");
 
 function businessDate(value = new Date()) {
   const source = value instanceof Date ? value : new Date(`${value}T00:00:00.000Z`);
@@ -118,14 +119,14 @@ async function getMonthlyReport(prisma, user, value = new Date()) {
   return report;
 }
 
-async function getReportHistory(prisma, user) {
+async function getReportHistory(prisma, user, pagination = null) {
   const sessions = await prisma.cashRegisterSession.findMany({
     where: { status: "closed", ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) },
     orderBy: [{ businessDate: "desc" }, { closedAt: "desc" }],
-    take: 90,
+    ...(pagination ? { skip: pagination.skip, take: pagination.take } : { take: 90 }),
     select: { id: true, businessDate: true, currency: true, closingBalance: true, closingBalances: true, openedAt: true, closedAt: true, operator: { select: { id: true, name: true, email: true } } }
   });
-  return sessions.map((session) => ({
+  const items = sessions.map((session) => ({
     id: session.id,
     date: businessDateLabel(session.businessDate),
     currency: session.currency || "EUR",
@@ -134,6 +135,9 @@ async function getReportHistory(prisma, user) {
     closedAt: session.closedAt?.toISOString() || null,
     operator: session.operator
   }));
+  return pagination
+    ? paginateResult(items, await prisma.cashRegisterSession.count({ where: { status: "closed", ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) } }), pagination)
+    : items;
 }
 
 async function closeSession(prisma, id, userId, data = {}) {
@@ -181,4 +185,19 @@ async function deleteMovement(prisma, id) {
   return movement;
 }
 
-module.exports = { getActiveSession, openSession, listSessions, getCarryForward, getDailyReport, getMonthlyReport, getReportHistory, closeSession, addMovement, deleteMovement };
+async function resetCashRegisterData(prisma) {
+  return prisma.$transaction(async (transaction) => {
+    const movements = await transaction.cashRegisterMovement.deleteMany({});
+    const sessions = await transaction.cashRegisterSession.deleteMany({});
+    const disbursements = await transaction.cashDisbursement.deleteMany({});
+    const deposits = await transaction.cashDeposit.deleteMany({});
+    return {
+      movements: movements.count,
+      sessions: sessions.count,
+      disbursements: disbursements.count,
+      deposits: deposits.count
+    };
+  });
+}
+
+module.exports = { getActiveSession, openSession, listSessions, getCarryForward, getDailyReport, getMonthlyReport, getReportHistory, closeSession, addMovement, deleteMovement, resetCashRegisterData };
