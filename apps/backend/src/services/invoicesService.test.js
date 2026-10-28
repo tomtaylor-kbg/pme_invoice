@@ -1,6 +1,28 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { createInvoice } = require("./invoicesService");
+const { createInvoice, getInvoiceSummary } = require("./invoicesService");
+
+test("getInvoiceSummary agrège les montants par statut et devise", async () => {
+  const prisma = {
+    invoice: {
+      updateMany: async () => ({ count: 0 }),
+      groupBy: async () => [
+        { status: "paid", currency: "USD", _count: { _all: 2 }, _sum: { total: 150 } },
+        { status: "overdue", currency: "USD", _count: { _all: 1 }, _sum: { total: 40 }
+        }
+      ]
+    }
+  };
+
+  assert.deepEqual(await getInvoiceSummary(prisma), {
+    total: 3,
+    amounts: { USD: 190 },
+    statuses: {
+      paid: { count: 2, amounts: { USD: 150 } },
+      overdue: { count: 1, amounts: { USD: 40 } }
+    }
+  });
+});
 
 test("createInvoice gives Prisma enough time for its transaction", async () => {
   const now = new Date("2026-09-26T12:00:00.000Z");
