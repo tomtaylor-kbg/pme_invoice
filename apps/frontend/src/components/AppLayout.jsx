@@ -104,6 +104,14 @@ const roleLabels = {
 };
 
 export function AppLayout() {
+  useEffect(() => {
+    function closeOpenMenus(event) {
+      if (event.target.closest?.("details")) return;
+      document.querySelectorAll("details[open]").forEach((menu) => menu.removeAttribute("open"));
+    }
+    document.addEventListener("pointerdown", closeOpenMenus);
+    return () => document.removeEventListener("pointerdown", closeOpenMenus);
+  }, []);
   const { token, user, data, logout, theme, toggleTheme, toasts, dismissToast, workspaceSettings } = useWorkspace();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("facturation_sidebar") === "collapsed");
   const [activeOrderCount, setActiveOrderCount] = useState(0);
