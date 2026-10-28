@@ -1,138 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getAuditLogs } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
-import { DataLoadingState, OverlayDialog, SectionHeader, Table } from "../ui";
+import { DataLoadingState, Table } from "../ui";
 import { money } from "../../utils/formatters";
 
-function formatTimestamp(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "medium" }).format(date);
-}
-
-function DetailField({ label, children }) {
-  if (children === undefined || children === null || children === "") return null;
-  return <div className="audit-detail-field"><dt>{label}</dt><dd>{children}</dd></div>;
-}
+function formatTimestamp(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "medium" }).format(date); }
+function formatTime(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(date); }
+function dayKey(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "unknown" : new Intl.DateTimeFormat("fr-CA").format(date); }
+function dayLabel(key) { if (key === "unknown") return "Date inconnue"; const date = new Date(`${key}T12:00:00`); const today = new Date(); const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1); if (key === dayKey(today)) return "Aujourd’hui"; if (key === dayKey(yesterday)) return "Hier"; return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(date); }
+function actionLabel(action) { return { Création: "Création", Suppression: "Suppression", Connexion: "Connexion", Modification: "Modification", Validation: "Validation", Annulation: "Annulation" }[action] || action || "Action"; }
+function actionTone(action) { if (["Création", "Validation", "Conversion"].includes(action)) return "positive"; if (["Suppression", "Annulation"].includes(action)) return "negative"; return "neutral"; }
+function readableDescription(record) { if (record.entity === "Session de caisse" && record.action === "Création") return "Session de caisse ouverte"; if (record.entity === "Caisse" && record.action === "Suppression") return "Caisse supprimée"; return (record.description || record.action || "Action").replace(/\s*:\s*(création|suppression|connexion|modification|validation|annulation)\s*$/i, ""); }
+function DetailField({ label, children }) { if (children === undefined || children === null || children === "") return null; return <div className="audit-detail-field"><dt>{label}</dt><dd>{children}</dd></div>; }
 
 function LogDetails({ record }) {
-  const details = record.details || {};
-  const currency = details.currency || "EUR";
-  const paymentMethods = { cash: "Espèces", card: "Carte bancaire", bank_transfer: "Virement bancaire", mobile_money: "Mobile money", check: "Chèque", other: "Autre" };
-
-  if (!Object.keys(details).length) {
-    return <div className="empty-card-state">Les détails de cette ancienne entrée n’étaient pas conservés.{record.entityId ? ` Identifiant : ${record.entityId}` : ""}</div>;
-  }
-
-  if (record.entity === "Facture" || record.entity === "Pro forma") {
-    return <>
-      <dl className="audit-detail-grid">
-        <DetailField label={record.entity === "Pro forma" ? "N° de pro forma" : "N° de facture"}>{details.number}</DetailField>
-        <DetailField label="Client">{details.client}</DetailField>
-        <DetailField label="Statut">{details.status}</DetailField>
-        <DetailField label="Émise le">{details.issueDate ? formatTimestamp(details.issueDate) : null}</DetailField>
-        <DetailField label="Échéance">{details.dueDate ? formatTimestamp(details.dueDate) : null}</DetailField>
-        <DetailField label="Valide jusqu’au">{details.validUntil ? formatTimestamp(details.validUntil) : null}</DetailField>
-        <DetailField label="Taux de TVA">{details.taxRate ? `${details.taxRate}%` : null}</DetailField>
-        <DetailField label="Total">{money(details.total, currency)}</DetailField>
-        <DetailField label="Notes">{details.notes}</DetailField>
-      </dl>
-      {details.lines?.length > 0 && <div className="audit-lines-wrap">
-      <h3>{record.entity === "Pro forma" ? "Lignes de la pro forma" : "Lignes de facture"}</h3>
-        <Table className="audit-lines-table" columns={["Description", "Qté", "Prix unitaire", "Total"]} rows={details.lines.map((line) => [
-          line.description,
-          line.quantity,
-          money(line.unitPrice, currency),
-          money(line.lineTotal, currency)
-        ])} />
-      </div>}
-    </>;
-  }
-
-  if (record.entity === "Sortie de caisse") {
-    return <dl className="audit-detail-grid">
-      <DetailField label="N° de bon">{details.number}</DetailField>
-      <DetailField label="Bénéficiaire">{details.beneficiary}</DetailField>
-      <DetailField label="Catégorie">{details.category}</DetailField>
-      <DetailField label="Date de sortie">{details.paidAt ? formatTimestamp(details.paidAt) : null}</DetailField>
-      <DetailField label="Montant">{money(details.amount, currency)}</DetailField>
-      <DetailField label="Motif">{details.reason}</DetailField>
-      <DetailField label="Notes">{details.notes}</DetailField>
-    </dl>;
-  }
-
-  if (record.entity === "Paiement") {
-    return <dl className="audit-detail-grid">
-      <DetailField label="Montant">{money(details.amount, currency)}</DetailField>
-      <DetailField label="Moyen de paiement">{paymentMethods[details.method] || details.method}</DetailField>
-      <DetailField label="Date du paiement">{details.paidAt ? formatTimestamp(details.paidAt) : null}</DetailField>
-      <DetailField label="Référence">{details.reference}</DetailField>
-      <DetailField label="Notes">{details.notes}</DetailField>
-    </dl>;
-  }
-
-  return <dl className="audit-detail-grid">
-    {Object.entries(details).map(([key, value]) => <DetailField key={key} label={key}>
-      {typeof value === "object" ? JSON.stringify(value) : String(value)}
-    </DetailField>)}
-  </dl>;
+  const details = record.details || {}; const currency = details.currency || "EUR"; const paymentMethods = { cash: "Espèces", card: "Carte bancaire", bank_transfer: "Virement bancaire", mobile_money: "Mobile money", check: "Chèque", other: "Autre" }; const statusLabels = { open: "Ouverte", closed: "Fermée", active: "Active", inactive: "Inactive" };
+  if (!Object.keys(details).length) return <div className="empty-card-state">Les détails de cette ancienne entrée n’étaient pas conservés.{record.entityId ? ` Identifiant : ${record.entityId}` : ""}</div>;
+  if (record.entity === "Facture" || record.entity === "Pro forma") return <><dl className="audit-detail-grid"><DetailField label={record.entity === "Pro forma" ? "N° de pro forma" : "N° de facture"}>{details.number}</DetailField><DetailField label="Client">{details.client}</DetailField><DetailField label="Statut">{statusLabels[details.status] || details.status}</DetailField><DetailField label="Émise le">{details.issueDate ? formatTimestamp(details.issueDate) : null}</DetailField><DetailField label="Échéance">{details.dueDate ? formatTimestamp(details.dueDate) : null}</DetailField><DetailField label="Valide jusqu’au">{details.validUntil ? formatTimestamp(details.validUntil) : null}</DetailField><DetailField label="Taux de TVA">{details.taxRate ? `${details.taxRate}%` : null}</DetailField><DetailField label="Total">{money(details.total, currency)}</DetailField><DetailField label="Notes">{details.notes}</DetailField></dl>{details.lines?.length > 0 && <div className="audit-lines-wrap"><h3>{record.entity === "Pro forma" ? "Lignes de la pro forma" : "Lignes de facture"}</h3><Table className="audit-lines-table" columns={["Description", "Qté", "Prix unitaire", "Total"]} rows={details.lines.map((line) => [line.description, line.quantity, money(line.unitPrice, currency), money(line.lineTotal, currency)])} /></div>}</>;
+  if (record.entity === "Sortie de caisse") return <dl className="audit-detail-grid"><DetailField label="N° de bon">{details.number}</DetailField><DetailField label="Bénéficiaire">{details.beneficiary}</DetailField><DetailField label="Catégorie">{details.category}</DetailField><DetailField label="Date de sortie">{details.paidAt ? formatTimestamp(details.paidAt) : null}</DetailField><DetailField label="Montant">{money(details.amount, currency)}</DetailField><DetailField label="Motif">{details.reason}</DetailField><DetailField label="Notes">{details.notes}</DetailField></dl>;
+  if (record.entity === "Paiement") return <dl className="audit-detail-grid"><DetailField label="Montant">{money(details.amount, currency)}</DetailField><DetailField label="Moyen de paiement">{paymentMethods[details.method] || details.method}</DetailField><DetailField label="Date du paiement">{details.paidAt ? formatTimestamp(details.paidAt) : null}</DetailField><DetailField label="Référence">{details.reference}</DetailField><DetailField label="Notes">{details.notes}</DetailField></dl>;
+  const labels = { status: "Statut", currency: "Devise", businessDate: "Date comptable", type: "Type", amount: "Montant", description: "Description", deleted: "Éléments supprimés", method: "Moyen de paiement", reference: "Référence", notes: "Notes" };
+  return <dl className="audit-detail-grid">{Object.entries(details).map(([key, value]) => <DetailField key={key} label={labels[key] || key}>{key === "status" ? (statusLabels[value] || value) : key === "amount" ? money(value, currency) : typeof value === "object" ? Object.entries(value).map(([item, count]) => `${item}: ${count}`).join(", ") : String(value)}</DetailField>)}</dl>;
 }
 
 export function AuditLogPage() {
-  const { token, user } = useWorkspace();
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const isAdmin = ["admin", "director"].includes(user?.role);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError("");
-    getAuditLogs(token)
-      .then((items) => { if (active) setRecords(items); })
-      .catch((requestError) => { if (active) setError(requestError.message || "Chargement du journal impossible."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [token]);
-
-  const columns = isAdmin ? ["Horodatage", "Utilisateur", "Action", "Détail", ""] : ["Horodatage", "Action", "Détail", ""];
-  const rows = records.map((record) => {
-    const row = [formatTimestamp(record.createdAt)];
-    if (isAdmin) row.push(<span title={record.actorEmail}>{record.actorName || record.actorEmail || "Compte supprimé"}</span>);
-    row.push(record.action, record.description, <button type="button" className="text-button" onClick={() => setSelectedRecord(record)}>Voir</button>);
-    return row;
-  });
-
-  return (
-    <div className="page-shell audit-log-page">
-      <header className="hero list-page-header">
-        <div>
-          <span className="eyebrow">Traçabilité</span>
-          <h1>Journal d’activité</h1>
-          <p>{isAdmin ? "Historique des actions de tous les utilisateurs." : "Historique de vos actions dans l’espace de travail."}</p>
-        </div>
-      </header>
-      <div className="page-scroll">
-        <section className="panel audit-log-panel">
-          <SectionHeader title={isAdmin ? "Toutes les activités" : "Mes activités"} />
-          {loading ? <DataLoadingState label="Chargement du journal…" />
-            : error ? <div className="empty-card-state text-danger">{error}</div>
-              : records.length ? <Table className="entity-list-table audit-log-table" columns={columns} rows={rows} />
-                : <div className="empty-card-state">Aucune activité enregistrée pour le moment.</div>}
-        </section>
-      </div>
-      <OverlayDialog open={Boolean(selectedRecord)} title={selectedRecord ? `${selectedRecord.entity} · ${selectedRecord.description}` : "Détails du journal"} onClose={() => setSelectedRecord(null)}>
-        {selectedRecord && <div className="audit-detail-content">
-          <dl className="audit-detail-grid">
-            <DetailField label="Horodatage">{formatTimestamp(selectedRecord.createdAt)}</DetailField>
-            <DetailField label="Action">{selectedRecord.action}</DetailField>
-            {isAdmin && <DetailField label="Utilisateur">{selectedRecord.actorName} · {selectedRecord.actorEmail}</DetailField>}
-          </dl>
-          <LogDetails record={selectedRecord} />
-        </div>}
-      </OverlayDialog>
-    </div>
-  );
+  const { token, user } = useWorkspace(); const [records, setRecords] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [search, setSearch] = useState(""); const [userFilter, setUserFilter] = useState("all"); const [actionFilter, setActionFilter] = useState("all"); const [periodFilter, setPeriodFilter] = useState("all"); const [hideConnections, setHideConnections] = useState(true); const [expandedId, setExpandedId] = useState(null); const isAdmin = ["admin", "director"].includes(user?.role);
+  useEffect(() => { let active = true; setLoading(true); setError(""); getAuditLogs(token).then((items) => { if (active) setRecords(items); }).catch((requestError) => { if (active) setError(requestError.message || "Chargement du journal impossible."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [token]);
+  const users = useMemo(() => [...new Set(records.map((record) => record.actorName || record.actorEmail).filter(Boolean))], [records]); const actions = useMemo(() => [...new Set(records.map((record) => record.action).filter(Boolean))], [records]);
+  const filteredRecords = useMemo(() => { const todayKey = dayKey(new Date()); const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); const yesterdayKey = dayKey(yesterday); const query = search.trim().toLowerCase(); return records.filter((record) => { const actor = record.actorName || record.actorEmail || ""; if (query && !`${actor} ${record.entity || ""} ${record.description || ""}`.toLowerCase().includes(query)) return false; if (userFilter !== "all" && actor !== userFilter) return false; if (actionFilter !== "all" && record.action !== actionFilter) return false; if (periodFilter === "today" && dayKey(record.createdAt) !== todayKey) return false; if (periodFilter === "yesterday" && dayKey(record.createdAt) !== yesterdayKey) return false; if (hideConnections && record.action === "Connexion") return false; return true; }); }, [records, search, userFilter, actionFilter, periodFilter, hideConnections]);
+  const groups = useMemo(() => filteredRecords.reduce((acc, record) => { const key = dayKey(record.createdAt); (acc[key] ||= []).push(record); return acc; }, {}), [filteredRecords]);
+  return <div className="page-shell audit-log-page"><header className="audit-page-header"><h1>Journal d’activité</h1><p>{isAdmin ? "Historique des actions de tous les utilisateurs." : "Historique de vos actions dans l’espace de travail."}</p></header><div className="page-scroll"><section className="panel audit-log-panel"><div className="audit-filters"><label className="audit-search"><span aria-hidden="true">⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher une action" aria-label="Rechercher une action" /></label>{isAdmin && <select value={userFilter} onChange={(event) => setUserFilter(event.target.value)} aria-label="Filtrer par utilisateur"><option value="all">Utilisateur</option>{users.map((item) => <option key={item} value={item}>{item}</option>)}</select>}<select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} aria-label="Filtrer par action"><option value="all">Action</option>{actions.map((item) => <option key={item} value={item}>{actionLabel(item)}</option>)}</select><select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)} aria-label="Filtrer par période"><option value="all">Période</option><option value="today">Aujourd’hui</option><option value="yesterday">Hier</option></select><label className="audit-hide-connections"><input type="checkbox" checked={hideConnections} onChange={(event) => setHideConnections(event.target.checked)} /> Masquer les connexions</label></div>{loading ? <DataLoadingState label="Chargement du journal…" /> : error ? <div className="empty-card-state text-danger">{error}</div> : Object.keys(groups).length ? Object.entries(groups).map(([key, items]) => <section className="audit-day-group" key={key}><div className="audit-day-label">{dayLabel(key)}</div>{items.map((record) => { const expanded = expandedId === record.id; return <div className={`audit-log-entry ${expanded ? "expanded" : ""}`} key={record.id}><button type="button" className="audit-log-row" onClick={() => setExpandedId(expanded ? null : record.id)} aria-expanded={expanded}><time dateTime={record.createdAt}>{formatTime(record.createdAt)}</time>{isAdmin && <span className="audit-actor" title={record.actorEmail}>{record.actorName || record.actorEmail || "Compte supprimé"}</span>}<span className={`audit-action ${actionTone(record.action)}`}>{actionLabel(record.action)}</span><strong>{readableDescription(record)}</strong><span className="audit-chevron" aria-hidden="true">{expanded ? "⌃" : "›"}</span></button>{expanded && <div className="audit-inline-details"><dl className="audit-detail-grid"><DetailField label="Horodatage">{formatTimestamp(record.createdAt)}</DetailField><DetailField label="Entité">{record.entity}</DetailField>{isAdmin && <DetailField label="Utilisateur">{record.actorName || record.actorEmail || "Compte supprimé"}</DetailField>}</dl><LogDetails record={record} /></div>}</div>; })}</section>) : <div className="empty-card-state">Aucune activité ne correspond aux filtres.</div>}</section></div></div>;
 }
