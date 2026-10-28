@@ -70,8 +70,9 @@ function createClientsRouter({ prisma, requireAuth }) {
   router.delete("/:id", requireAuth, requireRole("admin", "director"), async (req, res, next) => {
     try {
       const { id } = req.params;
-      await deleteClient(prisma, id);
-      res.status(204).send();
+      const result = await deleteClient(prisma, id);
+      if (!result) return res.status(404).json({ message: "Client introuvable." });
+      res.json(result);
     } catch (error) {
       next(error);
     }

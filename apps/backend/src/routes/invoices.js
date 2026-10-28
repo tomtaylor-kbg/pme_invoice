@@ -1,6 +1,6 @@
 const express = require("express");
 const { validateInvoiceCreate } = require("../validators/invoices");
-const { listInvoices, getInvoice, previewNextInvoiceNumber, createInvoice, updateInvoice, deleteInvoice } = require("../services/invoicesService");
+const { listInvoices, getInvoiceSummary, getInvoice, previewNextInvoiceNumber, createInvoice, updateInvoice, deleteInvoice, cancelInvoice } = require("../services/invoicesService");
 const { requireRole } = require("../middleware/requireRole");
 const { parsePagination } = require("../utils/pagination");
 
@@ -10,6 +10,14 @@ function createInvoicesRouter({ prisma, requireAuth }) {
   router.get("/", requireAuth, requireRole("admin", "director", "receptionist"), async (req, res, next) => {
     try {
       res.json(await listInvoices(prisma, parsePagination(req.query)));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/summary", requireAuth, requireRole("admin", "director", "receptionist"), async (req, res, next) => {
+    try {
+      res.json(await getInvoiceSummary(prisma));
     } catch (error) {
       next(error);
     }
@@ -62,6 +70,17 @@ function createInvoicesRouter({ prisma, requireAuth }) {
     }
   });
 
+  router.post("/:id/cancel", requireAuth, requireRole("admin", "director"), async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      res.locals.auditSource = await prisma.invoice.findUnique({ where: { id }, include: { lines: true, client: true } });
+      res.json(await cancelInvoice(prisma, id));
+    } catch (error) {
+      if (error.code === "INVOICE_NOT_SETTLED") return res.status(409).json({ message: error.message });
+      next(error);
+    }
+  });
+
   router.delete("/:id", requireAuth, requireRole("admin", "director"), async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -72,6 +91,7 @@ function createInvoicesRouter({ prisma, requireAuth }) {
       await deleteInvoice(prisma, id);
       res.status(204).send();
     } catch (error) {
+      if (error.code === "INVOICE_SETTLED") return res.status(409).json({ message: error.message });
       next(error);
     }
   });

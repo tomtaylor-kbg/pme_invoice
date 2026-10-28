@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import {
   createClient,
   createInvoice,
+  cancelInvoice,
   createInvoicePayment,
   createUser,
   deleteClient,
@@ -823,15 +824,12 @@ export function WorkspaceProvider({ children }) {
     async function removeClient(id) {
       const client = data.clients.find((item) => item.id === id);
       const label = client ? personLabel(client) || `${client.firstName || ""} ${client.lastName || ""}`.trim() || "ce contact" : "ce contact";
-      if (!confirmDestructiveAction(`Supprimer ${label} ? Cette action est définitive.`)) {
-        return;
-      }
       setLoading(true);
       setError("");
       try {
-        await deleteClient(token, id);
+        const result = await deleteClient(token, id);
         await refresh();
-        notifySuccess("Client supprimé", label);
+        notifySuccess(result?.archived ? "Client archivé" : "Client supprimé", label);
       } catch (err) {
         notifyError("Suppression du client impossible", normalizeError(err));
       } finally {
@@ -861,12 +859,6 @@ export function WorkspaceProvider({ children }) {
     async function removeInvoice(id) {
       const invoice = data.invoices.find((item) => item.id === id);
       const label = invoice ? invoiceDisplayLabel(invoice) : "cette facture";
-      const amountLabel = invoice ? ` (${money(invoice.total, invoice.currency)})` : "";
-      const paymentCount = invoice?.payments?.length || 0;
-      const paymentWarning = paymentCount > 0 ? ` Les ${paymentCount} paiement(s) associés seront aussi supprimés.` : "";
-      if (!confirmDestructiveAction(`Supprimer ${label}${amountLabel} ? Cette action est définitive.${paymentWarning}`)) {
-        return;
-      }
       setLoading(true);
       setError("");
       try {
@@ -875,6 +867,22 @@ export function WorkspaceProvider({ children }) {
         notifySuccess("Facture supprimée", label);
       } catch (err) {
         notifyError("Suppression de la facture impossible", normalizeError(err));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function cancelInvoiceRecord(id) {
+      const invoice = data.invoices.find((item) => item.id === id);
+      if (!invoice) return;
+      setLoading(true);
+      setError("");
+      try {
+        await cancelInvoice(token, id);
+        await refresh();
+        notifySuccess("Facture annulée", invoiceDisplayLabel(invoice));
+      } catch (err) {
+        notifyError("Annulation de la facture impossible", normalizeError(err));
       } finally {
         setLoading(false);
       }
@@ -970,6 +978,7 @@ export function WorkspaceProvider({ children }) {
       removeClient,
       removeUser,
       removeInvoice,
+      cancelInvoice: cancelInvoiceRecord,
       removePayment,
       saveDeliveryNote,
       removeDeliveryNote,

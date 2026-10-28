@@ -82,6 +82,7 @@ export function invoicePaymentTotal(payments = []) {
 }
 
 export function invoicePaymentStatusLabel(invoice = {}) {
+  if (invoice.status === "cancelled") return "Annulée";
   const total = toMoneyValue(invoice.total);
   const paid = toMoneyValue(invoice.amountPaid);
 
@@ -91,6 +92,7 @@ export function invoicePaymentStatusLabel(invoice = {}) {
 }
 
 export function invoiceSettlementStatus(invoice = {}) {
+  if (invoice.status === "cancelled") return "cancelled";
   const total = toMoneyValue(invoice.total);
   const paid = toMoneyValue(invoice.amountPaid);
   return total > 0 && paid >= total ? "paid" : "unpaid";

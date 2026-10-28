@@ -120,6 +120,10 @@ export function deleteInvoice(token, id) {
   return request(`/api/invoices/${id}`, { token, method: "DELETE" });
 }
 
+export function cancelInvoice(token, id) {
+  return request(`/api/invoices/${id}/cancel`, { token, method: "POST" });
+}
+
 export function getProformas(token, params = {}) {
   return request(`/api/proformas${listQuery(params)}`, { token });
 }
@@ -167,6 +171,7 @@ export function openCashSession(token, data) { return request("/api/cash-registe
 export function closeCashSession(token, id, data) { return request(`/api/cash-register/sessions/${id}/close`, { token, method: "POST", body: data }); }
 export function addCashMovement(token, data) { return request("/api/cash-register/movements", { token, method: "POST", body: data }); }
 export function deleteCashMovement(token, id) { return request(`/api/cash-register/movements/${id}`, { token, method: "DELETE" }); }
+export function resetCashRegister(token, confirmation) { return request("/api/cash-register/reset", { token, method: "POST", body: { confirmation } }); }
 
 export function getCashDisbursements(token, params = {}) {
   return request(`/api/cash-disbursements${listQuery(params)}`, { token });

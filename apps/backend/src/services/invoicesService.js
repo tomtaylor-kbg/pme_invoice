@@ -203,6 +203,28 @@ async function listInvoices(prisma, pagination = null) {
   return pagination ? paginateResult(items, await prisma.invoice.count(), pagination) : items;
 }
 
+async function getInvoiceSummary(prisma) {
+  await syncOverdueInvoices(prisma);
+  const groups = await prisma.invoice.groupBy({
+    by: ["status", "currency"],
+    _count: { _all: true },
+    _sum: { total: true }
+  });
+  const summary = { total: 0, amounts: {}, statuses: {} };
+  for (const group of groups) {
+    const status = group.status || "unknown";
+    const currency = group.currency || "EUR";
+    const count = Number(group._count?._all || 0);
+    const amount = Number(group._sum?.total || 0);
+    summary.total += count;
+    summary.amounts[currency] = Number(summary.amounts[currency] || 0) + amount;
+    summary.statuses[status] ||= { count: 0, amounts: {} };
+    summary.statuses[status].count += count;
+    summary.statuses[status].amounts[currency] = Number(summary.statuses[status].amounts[currency] || 0) + amount;
+  }
+  return summary;
+}
+
 async function getInvoice(prisma, id) {
   const invoice = await prisma.invoice.findUnique({ where: { id }, include: invoiceInclude(prisma) });
   return invoice ? serializeInvoice(invoice) : null;
@@ -434,7 +456,31 @@ async function updateInvoice(prisma, id, data) {
 }
 
 async function deleteInvoice(prisma, id) {
+  const invoice = await prisma.invoice.findUnique({ where: { id }, include: hasPaymentModel(prisma) ? { payments: true } : undefined });
+  const totalPaid = Array.isArray(invoice?.payments) ? invoice.payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0) : 0;
+  if (invoice?.status === "paid" || (Number(invoice?.total || 0) > 0 && totalPaid >= Number(invoice.total))) {
+    const error = new Error("Une facture payée ne peut pas être supprimée. Annulez-la pour conserver sa trace.");
+    error.code = "INVOICE_SETTLED";
+    throw error;
+  }
   await prisma.invoice.delete({ where: { id } });
+}
+
+async function cancelInvoice(prisma, id) {
+  const invoice = await prisma.invoice.findUnique({ where: { id }, include: hasPaymentModel(prisma) ? { payments: true } : undefined });
+  if (!invoice) {
+    const error = new Error("Facture introuvable.");
+    error.code = "P2025";
+    throw error;
+  }
+  const totalPaid = Array.isArray(invoice.payments) ? invoice.payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0) : 0;
+  if (!["paid", "sent", "overdue"].includes(invoice.status) && !(Number(invoice.total || 0) > 0 && totalPaid >= Number(invoice.total))) {
+    const error = new Error("Seule une facture envoyée ou payée peut être annulée.");
+    error.code = "INVOICE_NOT_SETTLED";
+    throw error;
+  }
+  if (invoice.status === "cancelled") return getInvoice(prisma, id);
+  return getInvoice(prisma, (await prisma.invoice.update({ where: { id }, data: { status: "cancelled" } })).id);
 }
 
 async function listInvoicePayments(prisma, invoiceId) {
@@ -609,11 +655,13 @@ async function getPaymentReceipt(prisma, paymentId) {
 module.exports = {
   syncOverdueInvoices,
   listInvoices,
+  getInvoiceSummary,
   getInvoice,
   previewNextInvoiceNumber,
   createInvoice,
   updateInvoice,
   deleteInvoice,
+  cancelInvoice,
   listInvoicePayments,
   createInvoicePayment,
   updateInvoicePayment,

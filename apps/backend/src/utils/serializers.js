@@ -117,7 +117,8 @@ function serializeClient(client) {
     displayName: [client.firstName, client.lastName].filter(Boolean).join(" ").trim(),
     createdAt: toIso(client.createdAt),
     updatedAt: toIso(client.updatedAt),
-    invoicesCount: client.invoicesCount ?? client._count?.invoices ?? 0
+    invoicesCount: client.invoicesCount ?? client._count?.invoices ?? 0,
+    ordersCount: client.ordersCount ?? client._count?.orders ?? 0
   };
 }
 

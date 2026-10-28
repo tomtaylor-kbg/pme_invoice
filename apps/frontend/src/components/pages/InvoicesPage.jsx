@@ -46,6 +46,7 @@ export function InvoicesPage() {
     saveInvoice,
     savePayment,
     removeInvoice,
+    cancelInvoice,
     removePayment,
     loading,
     isHydrating,
@@ -63,6 +64,7 @@ export function InvoicesPage() {
   const [invoiceClientSearch, setInvoiceClientSearch] = useState("");
   const [invoiceClientType, setInvoiceClientType] = useState("all");
   const [invoiceClientStatus, setInvoiceClientStatus] = useState("active");
+  const [invoiceConfirmation, setInvoiceConfirmation] = useState(null);
 
   const isEditing = editor.kind === "invoice" && Boolean(editor.id);
   const invoiceLines = forms.invoice.lines?.length ? forms.invoice.lines : [createInvoiceLineDraft()];
@@ -98,6 +100,20 @@ export function InvoicesPage() {
   const paymentRows = paymentInvoice?.payments || [];
   const paymentRowsTotal = invoicePaymentTotal(paymentRows);
   const paymentBalance = Math.max(0, Number(paymentInvoice?.total || 0) - paymentRowsTotal);
+
+  function requestInvoiceAction(invoice) {
+    const protectedInvoice = invoiceSettlementStatus(invoice) === "paid" || ["sent", "overdue"].includes(invoice.status);
+    if (invoice.status === "cancelled") return;
+    setInvoiceConfirmation({ invoice, mode: protectedInvoice ? "cancel" : "delete" });
+  }
+
+  async function confirmInvoiceAction() {
+    if (!invoiceConfirmation) return;
+    const { invoice, mode } = invoiceConfirmation;
+    setInvoiceConfirmation(null);
+    if (mode === "cancel") await cancelInvoice(invoice.id);
+    else await removeInvoice(invoice.id);
+  }
 
   useEffect(() => {
     const requested = location.state?.invoiceAction;
@@ -307,11 +323,11 @@ export function InvoicesPage() {
               <div className="table-primary-cell"><strong>{invoiceDisplayLabel(invoice)}</strong><small>{invoice.client?.clientType === "company" ? invoice.client.company : [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ") || invoice.client?.company || "Client"}</small>{(invoice.deliveryNotes || []).map((note) => <small key={note.id} className="document-link-label">BL lié : {note.number}</small>)}</div>,
               formatDate(invoice.issueDate),
               <span className={`badge ${invoiceSettlementStatus(invoice)}`}>{invoicePaymentStatusLabel(invoice)}</span>,
-              invoicePaymentStatusLabel(invoice),
+              invoice.payments?.length ? `${invoice.payments.length} paiement${invoice.payments.length > 1 ? "s" : ""}` : "Aucun paiement",
               <strong>{money(invoice.total, invoice.currency)}</strong>,
               money(invoice.amountPaid ?? 0, invoice.currency),
               money(invoice.balanceDue ?? invoice.total ?? 0, invoice.currency),
-              <div className="table-row-actions"><TableAction icon="open" label="Ouvrir" onClick={() => openInvoicePdf(invoice)} />{invoiceSettlementStatus(invoice) !== "paid" && <TableAction icon="edit" label="Modifier" onClick={() => beginEditInvoice(invoice)} />}<TableAction icon="payments" label="Paiements" onClick={() => beginManagePayments(invoice)} /><TableAction icon="print" label="Ticket" onClick={() => printThermalTicket(invoice)} />{canDeleteRecords && <TableAction icon="delete" label="Supprimer" danger onClick={() => removeInvoice(invoice.id)} disabled={loading} />}</div>
+              <div className="table-row-actions invoice-table-actions"><TableAction icon="open" label="Ouvrir" onClick={() => openInvoicePdf(invoice)} />{canDeleteRecords && <details className="invoice-actions-menu"><summary aria-label={`Autres actions pour ${invoiceDisplayLabel(invoice)}`} title="Autres actions">⋯</summary><div className="invoice-actions-popover">{invoice.status !== "cancelled" && invoiceSettlementStatus(invoice) !== "paid" && <button type="button" onClick={() => beginEditInvoice(invoice)}>Modifier</button>}<button type="button" onClick={() => beginManagePayments(invoice)}>Paiements</button><button type="button" onClick={() => printThermalTicket(invoice)}>Ticket</button>{invoice.status !== "cancelled" && <button type="button" className="danger" onClick={() => requestInvoiceAction(invoice)}>{invoiceSettlementStatus(invoice) === "paid" || ["sent", "overdue"].includes(invoice.status) ? "Annuler la facture" : "Supprimer la facture"}</button>}</div></details>}</div>
             ])} /></div> : <div className="empty-card-state">Aucune facture ne correspond à vos critères.</div>}
         </section>
       </div>
@@ -643,6 +659,25 @@ export function InvoicesPage() {
             <span>La facture sélectionnée n’est plus disponible.</span>
           </div>
         )}
+      </OverlayDialog>
+      <OverlayDialog
+        open={Boolean(invoiceConfirmation)}
+        title={invoiceConfirmation?.mode === "cancel" ? `Annuler la facture ${invoiceConfirmation.invoice.number}` : `Supprimer la facture ${invoiceConfirmation?.invoice?.number || ""}`}
+        onClose={() => setInvoiceConfirmation(null)}
+      >
+        {invoiceConfirmation && (() => {
+          const invoice = invoiceConfirmation.invoice;
+          const client = invoice.client?.clientType === "company"
+            ? invoice.client.company
+            : [invoice.client?.firstName, invoice.client?.lastName].filter(Boolean).join(" ") || invoice.client?.company || "Client";
+          const isCancellation = invoiceConfirmation.mode === "cancel";
+          return <div className="invoice-confirmation">
+            <p>{isCancellation ? "Une facture payée ne peut pas être supprimée. Son annulation conserve une trace dans le journal et les rapports." : "Cette action est définitive. La facture disparaîtra de la liste et de vos rapports."}</p>
+            <dl className="invoice-confirmation-summary"><div><dt>Client</dt><dd>{client}</dd></div><div><dt>Montant</dt><dd>{money(invoice.total, invoice.currency)}</dd></div><div><dt>Statut</dt><dd>{invoicePaymentStatusLabel(invoice)}</dd></div></dl>
+            {isCancellation && <div className="invoice-confirmation-warning">⚠ Le paiement de {money(invoice.amountPaid ?? invoice.total, invoice.currency)} devra être remboursé ou ajusté.</div>}
+            <div className="invoice-confirmation-actions"><button type="button" className="secondary-button" onClick={() => setInvoiceConfirmation(null)}>Garder</button><button type="button" className={isCancellation ? "primary-button" : "danger-button"} onClick={confirmInvoiceAction} disabled={loading}>{isCancellation ? "Annuler la facture" : "Supprimer la facture"}</button></div>
+          </div>;
+        })()}
       </OverlayDialog>
     </div>
   );
