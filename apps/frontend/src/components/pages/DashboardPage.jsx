@@ -14,7 +14,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { token, data, refresh, beginCreateInvoiceWithPreset, workspaceSettings, user, isHydrating } = useWorkspace();
   const canManageCash = ["admin", "director", "receptionist"].includes(user?.role);
-  const isReceptionist = user?.role === "receptionist";
+  const canBePromptedToOpenCash = ["admin", "receptionist"].includes(user?.role);
   const invoices = data.invoices || [];
   const currencies = [...new Set([workspaceSettings.defaultCurrency, "USD", "CDF", ...invoices.map((invoice) => invoice.currency)].filter(Boolean))];
   const [currency, setCurrency] = useState(workspaceSettings.defaultCurrency || currencies[0] || "EUR");
@@ -55,13 +55,13 @@ export function DashboardPage() {
   const currentOutstandingShare = billedAmount > 0 ? currentOutstandingAmount / billedAmount * 100 : 0;
   const netAfterDisbursements = billedAmount - disbursedAmount;
   useEffect(() => {
-    if (!isReceptionist || !user?.id || isHydrating) return undefined;
+    if (!canBePromptedToOpenCash || !user?.id || isHydrating) return undefined;
     let cancelled = false;
     getActiveCashSession(token).then((activeSession) => {
       if (!cancelled && !activeSession) setCashPromptOpen(true);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [isReceptionist, user?.id, isHydrating, token]);
+  }, [canBePromptedToOpenCash, user?.id, isHydrating, token]);
 
   async function confirmCashOpening(event) {
     event.preventDefault();

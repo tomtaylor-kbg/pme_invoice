@@ -42,15 +42,15 @@ function serializeSession(session) {
 const include = { operator: true, movements: { orderBy: { createdAt: "asc" }, include: { payment: { select: { id: true } }, cashDisbursement: { select: { kind: true } }, cashDeposit: { select: { number: true, status: true } } } } };
 
 async function getActiveSession(prisma, userId) {
-  const session = await prisma.cashRegisterSession.findFirst({ where: { userId, status: "open" }, include });
+  const session = await prisma.cashRegisterSession.findFirst({ where: { status: "open" }, orderBy: { openedAt: "desc" }, include });
   return session ? serializeSession(session) : null;
 }
 
 async function openSession(prisma, userId, data = {}) {
-  const current = await prisma.cashRegisterSession.findFirst({ where: { userId, status: "open" } });
+  const current = await prisma.cashRegisterSession.findFirst({ where: { status: "open" } });
   if (current) throw new Error("Une session de caisse est déjà ouverte.");
   const day = businessDate(data.businessDate || new Date());
-  const existingDay = await prisma.cashRegisterSession.findFirst({ where: { userId, businessDate: day } });
+  const existingDay = await prisma.cashRegisterSession.findFirst({ where: { businessDate: day } });
   if (existingDay) {
     const error = new Error(`La caisse de la journée ${businessDateLabel(day)} est déjà clôturée. Aucun mouvement ne peut être ajouté à cette journée.`);
     error.code = "CASH_SESSION_CLOSED";
@@ -64,12 +64,12 @@ async function openSession(prisma, userId, data = {}) {
 }
 
 async function listSessions(prisma, userId) {
-  const sessions = await prisma.cashRegisterSession.findMany({ where: { userId }, orderBy: { openedAt: "desc" }, take: 50, include });
+  const sessions = await prisma.cashRegisterSession.findMany({ orderBy: { openedAt: "desc" }, take: 50, include });
   return sessions.map(serializeSession);
 }
 
 async function getCarryForward(prisma, userId) {
-  const previous = await prisma.cashRegisterSession.findFirst({ where: { userId, status: "closed" }, orderBy: [{ businessDate: "desc" }, { closedAt: "desc" }], select: { businessDate: true, currency: true, closingBalance: true, closingBalances: true } });
+  const previous = await prisma.cashRegisterSession.findFirst({ where: { status: "closed" }, orderBy: [{ businessDate: "desc" }, { closedAt: "desc" }], select: { businessDate: true, currency: true, closingBalance: true, closingBalances: true } });
   if (!previous) return { sourceDate: null, balances: {} };
   const balances = previous.closingBalances && typeof previous.closingBalances === "object"
     ? Object.fromEntries(Object.entries(previous.closingBalances).map(([currency, amount]) => [String(currency).toUpperCase(), Number(amount || 0)]))
@@ -81,7 +81,7 @@ async function getDailyReport(prisma, user, value = new Date()) {
   const day = businessDate(value);
   const nextDay = new Date(day);
   nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-  const sessions = await prisma.cashRegisterSession.findMany({ where: { AND: [{ OR: [{ businessDate: day }, { movements: { some: { createdAt: { gte: day, lt: nextDay } } } }] }, (["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id })] }, orderBy: { openedAt: "asc" }, include });
+  const sessions = await prisma.cashRegisterSession.findMany({ where: { OR: [{ businessDate: day }, { movements: { some: { createdAt: { gte: day, lt: nextDay } } } }] }, orderBy: { openedAt: "asc" }, include });
   const report = { date: businessDateLabel(day), sessions: sessions.map(serializeSession), totals: {}, inTotals: {}, outTotals: {}, depositTotals: {}, netTotals: {} };
   for (const session of report.sessions) {
     for (const [currency, amount] of Object.entries(session.expectedBalances || {})) {
@@ -105,7 +105,7 @@ async function getMonthlyReport(prisma, user, value = new Date()) {
   const month = match ? Number(match[2]) - 1 : new Date().getUTCMonth();
   const start = new Date(Date.UTC(year, month, 1));
   const end = new Date(Date.UTC(year, month + 1, 1));
-  const sessions = await prisma.cashRegisterSession.findMany({ where: { AND: [{ OR: [{ businessDate: { gte: start, lt: end } }, { movements: { some: { createdAt: { gte: start, lt: end } } } }] }, (["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id })] }, orderBy: { openedAt: "asc" }, include });
+  const sessions = await prisma.cashRegisterSession.findMany({ where: { OR: [{ businessDate: { gte: start, lt: end } }, { movements: { some: { createdAt: { gte: start, lt: end } } } }] }, orderBy: { openedAt: "asc" }, include });
   const report = { period: `${year}-${String(month + 1).padStart(2, "0")}`, sessions: sessions.map(serializeSession), inTotals: {}, outTotals: {}, depositTotals: {}, netTotals: {} };
   for (const session of report.sessions) {
     for (const movement of (session.movements || []).filter((item) => item.createdAt >= start.toISOString() && item.createdAt < end.toISOString())) {
@@ -121,7 +121,7 @@ async function getMonthlyReport(prisma, user, value = new Date()) {
 
 async function getReportHistory(prisma, user, pagination = null) {
   const sessions = await prisma.cashRegisterSession.findMany({
-    where: { status: "closed", ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) },
+    where: { status: "closed" },
     orderBy: [{ businessDate: "desc" }, { closedAt: "desc" }],
     ...(pagination ? { skip: pagination.skip, take: pagination.take } : { take: 90 }),
     select: { id: true, businessDate: true, currency: true, closingBalance: true, closingBalances: true, openedAt: true, closedAt: true, operator: { select: { id: true, name: true, email: true } } }
@@ -136,12 +136,12 @@ async function getReportHistory(prisma, user, pagination = null) {
     operator: session.operator
   }));
   return pagination
-    ? paginateResult(items, await prisma.cashRegisterSession.count({ where: { status: "closed", ...(["admin", "director", "accountant"].includes(user.role) ? {} : { userId: user.id }) } }), pagination)
+    ? paginateResult(items, await prisma.cashRegisterSession.count({ where: { status: "closed" } }), pagination)
     : items;
 }
 
 async function closeSession(prisma, id, userId, data = {}) {
-  const session = await prisma.cashRegisterSession.findFirst({ where: { id, userId, status: "open" }, include });
+  const session = await prisma.cashRegisterSession.findFirst({ where: { id, status: "open" }, include });
   if (!session) return null;
   const current = serializeSession(session);
   const closingBalance = Number(data.closingBalance);
@@ -156,9 +156,9 @@ async function closeSession(prisma, id, userId, data = {}) {
 }
 
 async function addMovement(prisma, userId, data = {}) {
-  const session = await prisma.cashRegisterSession.findFirst({ where: { id: data.sessionId, userId, status: "open" } });
+  const session = await prisma.cashRegisterSession.findFirst({ where: { id: data.sessionId, status: "open" } });
   if (!session) {
-    const closedToday = await prisma.cashRegisterSession.findFirst({ where: { userId, status: "closed", businessDate: businessDate(new Date()) }, select: { businessDate: true } });
+    const closedToday = await prisma.cashRegisterSession.findFirst({ where: { status: "closed", businessDate: businessDate(new Date()) }, select: { businessDate: true } });
     const error = new Error(closedToday ? `La caisse de la journée ${businessDateLabel(closedToday.businessDate)} est déjà clôturée. Ouvrez une nouvelle journée pour enregistrer un mouvement.` : "Aucune session de caisse ouverte.");
     error.code = closedToday ? "CASH_SESSION_CLOSED" : "CASH_SESSION_REQUIRED";
     throw error;

@@ -41,11 +41,11 @@ async function createCashDisbursement(prisma, data, userId) {
   const normalized = normalizeCashDisbursement(data);
   const year = normalized.paidAt.getUTCFullYear();
   const created = await prisma.$transaction(async (tx) => {
-    const session = await tx.cashRegisterSession.findFirst({ where: { userId: userId || "", status: "open" } });
+    const session = await tx.cashRegisterSession.findFirst({ where: { status: "open" }, orderBy: { openedAt: "desc" } });
     if (!session) {
       const today = new Date();
       const businessDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-      const closedToday = await tx.cashRegisterSession.findFirst({ where: { userId: userId || "", status: "closed", businessDate }, select: { businessDate: true } });
+      const closedToday = await tx.cashRegisterSession.findFirst({ where: { status: "closed", businessDate }, select: { businessDate: true } });
       const error = new Error(closedToday ? "La caisse du jour est déjà clôturée. Aucun décaissement ou versement ne peut être ajouté." : "Ouvrez une session de caisse avant d'enregistrer une sortie.");
       error.code = closedToday ? "CASH_SESSION_CLOSED" : "CASH_SESSION_REQUIRED";
       throw error;

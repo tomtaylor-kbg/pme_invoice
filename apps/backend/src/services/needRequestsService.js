@@ -99,7 +99,7 @@ async function validateNeedRequestAndDisburse(prisma, id, userId) {
     const current = await tx.needRequest.findUnique({ where: { id }, include: { lines: true } });
     if (!current) return null;
     if (!["submitted", "draft"].includes(current.status)) throw new Error("Cet état de besoins a déjà été validé ou ne peut plus être traité.");
-    const session = await tx.cashRegisterSession.findFirst({ where: { userId: userId || "", status: "open" } });
+    const session = await tx.cashRegisterSession.findFirst({ where: { status: "open" }, orderBy: { openedAt: "desc" } });
     if (!session) {
       const error = new Error("Ouvrez une session de caisse avant de valider cet état de besoins.");
       error.code = "CASH_SESSION_REQUIRED";

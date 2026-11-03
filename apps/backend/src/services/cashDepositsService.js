@@ -11,7 +11,7 @@ async function listCashDeposits(prisma, pagination = null) { const records = awa
 
 async function createCashDeposit(prisma, data, userId) {
   const created = await prisma.$transaction(async (tx) => {
-    const session = await tx.cashRegisterSession.findFirst({ where: { userId: userId || "", status: "open" } });
+    const session = await tx.cashRegisterSession.findFirst({ where: { status: "open" }, orderBy: { openedAt: "desc" } });
     if (!session) { const error = new Error("Ouvrez une session de caisse avant de créer un versement."); error.code = "CASH_SESSION_REQUIRED"; throw error; }
     const year = new Date().getUTCFullYear();
     const counter = await tx.cashDepositCounter.upsert({ where: { year }, create: { year, currentSequence: 1 }, update: { currentSequence: { increment: 1 } } });
@@ -25,7 +25,7 @@ async function validateCashDeposit(prisma, id, userId) {
     const deposit = await tx.cashDeposit.findUnique({ where: { id }, include: { cashSession: { include: { movements: true } } } });
     if (!deposit) return null;
     if (deposit.status !== "draft") throw new Error("Seul un versement en brouillon peut être validé.");
-    const session = await tx.cashRegisterSession.findFirst({ where: { id: deposit.cashSessionId || "", userId, status: "open" }, include: { movements: true } });
+    const session = await tx.cashRegisterSession.findFirst({ where: { id: deposit.cashSessionId || "", status: "open" }, include: { movements: true } });
     if (!session) throw new Error("La session de caisse du versement n’est plus ouverte.");
     const balances = session.openingBalances && typeof session.openingBalances === "object" ? Object.fromEntries(Object.entries(session.openingBalances).map(([key, value]) => [key, Number(value || 0)])) : { [session.currency || "EUR"]: Number(session.openingBalance || 0) };
     for (const movement of session.movements) { const currency = movement.currency || session.currency || "EUR"; balances[currency] = Number(balances[currency] || 0) + (movement.type === "in" ? Number(movement.amount) : -Number(movement.amount)); }
@@ -43,7 +43,7 @@ async function cancelCashDeposit(prisma, id, userId) {
   if (deposit.status === "cancelled") return serialize(deposit);
   return serialize(await prisma.$transaction(async (tx) => {
     if (deposit.status === "validated") {
-      const session = await tx.cashRegisterSession.findFirst({ where: { id: deposit.cashSessionId || "", userId: userId || "", status: "open" } });
+      const session = await tx.cashRegisterSession.findFirst({ where: { id: deposit.cashSessionId || "", status: "open" } });
       if (!session) throw new Error("Ouvrez la session de caisse du versement pour pouvoir l’annuler.");
       await tx.cashRegisterMovement.create({ data: { sessionId: session.id, userId, type: "in", amount: deposit.amount, currency: deposit.currency, description: `Annulation du versement ${deposit.number} · ${deposit.destination}` } });
     }

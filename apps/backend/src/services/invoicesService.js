@@ -525,11 +525,11 @@ async function createInvoicePayment(prisma, invoiceId, data = {}) {
     const method = normalizePaymentMethod(data.method);
     let cashSessionId = data.cashSessionId || null;
     if (method === "cash") {
-      const activeSession = await tx.cashRegisterSession.findFirst({ where: { userId: data.userId || "", status: "open" } });
+      const activeSession = await tx.cashRegisterSession.findFirst({ where: { status: "open" }, orderBy: { openedAt: "desc" } });
       if (!activeSession) {
         const today = new Date();
         const businessDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-        const closedToday = await tx.cashRegisterSession.findFirst({ where: { userId: data.userId || "", status: "closed", businessDate }, select: { id: true } });
+        const closedToday = await tx.cashRegisterSession.findFirst({ where: { status: "closed", businessDate }, select: { id: true } });
         const error = new Error(closedToday ? "La caisse du jour est déjà clôturée. Le paiement en espèces ne peut pas être enregistré." : "Ouvrez une session de caisse avant d'enregistrer un paiement en espèces.");
         error.code = closedToday ? "CASH_SESSION_CLOSED" : "CASH_SESSION_REQUIRED";
         throw error;
@@ -583,11 +583,11 @@ async function updateInvoicePayment(prisma, id, data = {}) {
     const nextMethod = data.method !== undefined ? normalizePaymentMethod(data.method) : existing.method;
     if (nextMethod === "cash") {
       if (!cashSessionId) {
-        const activeSession = await tx.cashRegisterSession.findFirst({ where: { userId: data.userId || existing.userId || "", status: "open" } });
+        const activeSession = await tx.cashRegisterSession.findFirst({ where: { status: "open" }, orderBy: { openedAt: "desc" } });
         if (!activeSession) {
           const today = new Date();
           const businessDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-          const closedToday = await tx.cashRegisterSession.findFirst({ where: { userId: data.userId || existing.userId || "", status: "closed", businessDate }, select: { id: true } });
+          const closedToday = await tx.cashRegisterSession.findFirst({ where: { status: "closed", businessDate }, select: { id: true } });
           const error = new Error(closedToday ? "La caisse du jour est déjà clôturée. Le paiement ne peut pas être rattaché à cette session." : "Ouvrez une session de caisse avant de rattacher ce paiement.");
           error.code = closedToday ? "CASH_SESSION_CLOSED" : "CASH_SESSION_REQUIRED";
           throw error;
