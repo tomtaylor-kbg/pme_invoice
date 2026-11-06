@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createCashDisbursement, deleteCashDisbursement, getCashDisbursements, updateCashDisbursement } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
 import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon, PaginationControls, Table, TableAction } from "../ui";
@@ -20,6 +21,8 @@ function emptyForm(currency = "EUR", kind = "disbursement") {
 
 export function CashDisbursementsPage() {
   const { token, workspaceSettings, notifySuccess, notifyError } = useWorkspace();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [form, setForm] = useState(() => emptyForm(workspaceSettings.defaultCurrency));
   const [selected, setSelected] = useState(null);
@@ -30,6 +33,15 @@ export function CashDisbursementsPage() {
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+
+  useEffect(() => {
+    const draft = location.state?.draftDisbursement;
+    if (!draft) return;
+    setSelected(null);
+    setForm({ ...emptyForm(draft.currency || workspaceSettings.defaultCurrency || "EUR"), amount: String(draft.amount || ""), reason: draft.reason || "" });
+    setEditorOpen(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate, workspaceSettings.defaultCurrency]);
 
   async function refresh() {
     setLoading(true);

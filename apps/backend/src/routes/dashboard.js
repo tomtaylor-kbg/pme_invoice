@@ -7,12 +7,14 @@ function createDashboardRouter({ prisma, requireAuth }) {
 
   router.get("/", requireAuth, async (_req, res, next) => {
     try {
-      const { metrics, recentInvoices, cashDisbursements } = await getDashboardData(prisma, _req.user);
+      const { metrics, recentInvoices, outstandingInvoices, cashDisbursements, operations } = await getDashboardData(prisma, _req.user);
 
       res.json({
         metrics,
         recentInvoices: recentInvoices.map(serializeInvoice),
-        cashDisbursements
+        outstandingInvoices: outstandingInvoices.map(serializeInvoice),
+        cashDisbursements,
+        operations
       });
     } catch (error) {
       next(error);

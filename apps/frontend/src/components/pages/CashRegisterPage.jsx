@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { addCashMovement, closeCashSession, deleteCashMovement, getActiveCashSession, getCashCarryForward, getDailyCashReport, openCashSession, resetCashRegister } from "../../api";
+import { addCashMovement, closeCashSession, deleteCashMovement, getActiveCashSession, getCashCarryForward, getDailyCashReport, getNeedRequests, openCashSession, resetCashRegister, validateNeedRequest } from "../../api";
 import { useWorkspace } from "../WorkspaceProvider";
 import { DataLoadingState, OverlayActionButton, OverlayDialog, OverlaySaveIcon } from "../ui";
 import { money } from "../../utils/formatters";
@@ -22,7 +22,8 @@ export function CashRegisterPage() {
   const [openingBalances, setOpeningBalances] = useState({});
   const [currency, setCurrency] = useState(currencies.some(([value]) => value === defaultCurrency) ? defaultCurrency : "EUR");
   const [closingBalances, setClosingBalances] = useState({});
-  const [movement, setMovement] = useState({ type: "in", currency: defaultCurrency, amount: "", description: "" });
+  const [movement, setMovement] = useState({ type: "in", currency: defaultCurrency, amount: "", description: "", needRequestId: "" });
+  const [needRequests, setNeedRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
@@ -56,6 +57,10 @@ export function CashRegisterPage() {
 
   useEffect(() => { refresh(); }, [token]);
   useEffect(() => { if (session === null) setOpeningOpen(true); }, [session]);
+  useEffect(() => {
+    if (!movementOpen || !["admin", "director"].includes(user?.role)) return;
+    getNeedRequests(token).then((result) => setNeedRequests(result.items || result || [])).catch(() => setNeedRequests([]));
+  }, [movementOpen, token, user?.role]);
 
   async function openRegister(event) {
     event.preventDefault();
@@ -88,12 +93,28 @@ export function CashRegisterPage() {
   async function saveMovement(event) {
     event.preventDefault();
     if (movement.type === "out") {
-      navigate("/cash");
+      navigate("/cash", { state: { draftDisbursement: { amount: movement.amount, currency: movement.currency, reason: movement.description } } });
+      return;
+    }
+    if (movement.type === "need") {
+      if (!movement.needRequestId) {
+        notifyError("État de besoins requis", "Sélectionnez un état de besoins à décaisser.");
+        return;
+      }
+      try {
+        const result = await validateNeedRequest(token, movement.needRequestId);
+        setMovement({ type: "in", currency: session.currency, amount: "", description: "", needRequestId: "" });
+        setMovementOpen(false);
+        await refresh();
+        notifySuccess("Décaissement effectué", result.cashDisbursement?.number ? `Bon ${result.cashDisbursement.number}` : "L’état de besoins a été validé.");
+      } catch (error) {
+        notifyError("Décaissement impossible", error.message || "L’état de besoins n’a pas pu être validé.");
+      }
       return;
     }
     try {
       await addCashMovement(token, { ...movement, sessionId: session.id });
-      setMovement({ type: "in", currency: session.currency, amount: "", description: "" });
+      setMovement({ type: "in", currency: session.currency, amount: "", description: "", needRequestId: "" });
       setMovementOpen(false);
       await refresh();
       notifySuccess("Mouvement enregistré", `${money(Number(movement.amount), movement.currency)} · ${movement.type === "in" ? "Encaissement" : "Sortie"}`);
@@ -168,7 +189,7 @@ export function CashRegisterPage() {
       </>}
 
       <OverlayDialog open={openingOpen} title="Ouvrir une session de caisse" onClose={() => setOpeningOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-opening-form">Ouvrir la caisse</OverlayActionButton>}><form id="cash-opening-form" className="stack-form cash-opening-form" onSubmit={openRegister}><div className="cash-opening-intro">{carryForward?.sourceDate ? `Report de la clôture du ${carryForward.sourceDate} repris automatiquement par devise. Vérifiez ou ajustez les fonds de départ.` : "Aucun report précédent trouvé. Saisissez les fonds de départ par devise."}</div><label>Devise principale<select value={currency} onChange={(event) => setCurrency(event.target.value)}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label>{currencies.map(([value]) => <label key={value}>Report / fonds de départ ({value})<input autoFocus={value === currency} type="number" min="0" step="0.01" value={openingBalances[value] ?? (value === currency ? opening : "0")} onChange={(event) => setOpeningBalances((current) => ({ ...current, [value]: event.target.value }))} placeholder="0,00" /></label>)}</form></OverlayDialog>
-      <OverlayDialog open={movementOpen && Boolean(session)} title="Nouveau mouvement de caisse" onClose={() => setMovementOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-movement-form">{movement.type === "out" ? "Créer un bon de sortie" : "Enregistrer le mouvement"}</OverlayActionButton>}>{session && <form id="cash-movement-form" className="stack-form cash-opening-form" onSubmit={saveMovement}><div className="cash-opening-intro">Enregistrez un encaissement directement dans la session active. Les décaissements sont gérés via un bon de sortie pour rester liés à la caisse.</div><label>Type<select value={movement.type} onChange={(event) => setMovement({ ...movement, type: event.target.value })}><option value="in">Encaissement</option><option value="out">Décaissement</option></select></label>{movement.type === "out" && <p className="field-hint">Vous serez redirigé vers la création d’un bon de sortie.</p>}<label>Devise<select value={movement.currency} onChange={(event) => setMovement({ ...movement, currency: event.target.value })}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label><label>Montant ({movement.currency})<input autoFocus type="number" min="0.01" step="0.01" required value={movement.amount} onChange={(event) => setMovement({ ...movement, amount: event.target.value })} /></label><label>Description<input required value={movement.description} onChange={(event) => setMovement({ ...movement, description: event.target.value })} placeholder="Ex. Paiement facture FAC-2026-0001" /></label></form>}</OverlayDialog>
+      <OverlayDialog open={movementOpen && Boolean(session)} title="Nouveau mouvement de caisse" onClose={() => setMovementOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-movement-form">{movement.type === "out" ? "Créer un bon de sortie" : movement.type === "need" ? "Valider et décaisser" : "Enregistrer le mouvement"}</OverlayActionButton>}>{session && <form id="cash-movement-form" className="stack-form cash-opening-form" onSubmit={saveMovement}><div className="cash-opening-intro">Enregistrez un encaissement directement dans la session active. Les décaissements sont gérés via un bon de sortie pour rester liés à la caisse.</div><label>Type<select value={movement.type} onChange={(event) => setMovement({ ...movement, type: event.target.value, needRequestId: "" })}><option value="in">Encaissement</option><option value="out">Décaissement manuel</option>{user?.role === "admin" && <option value="need">État de besoins</option>}</select></label>{movement.type === "out" && <p className="field-hint">Vous serez redirigé vers la création d’un bon de sortie.</p>}{movement.type === "need" ? <label>État de besoins<select required value={movement.needRequestId} onChange={(event) => setMovement({ ...movement, needRequestId: event.target.value })}><option value="">Sélectionner un état</option>{needRequests.filter((record) => ["draft", "submitted"].includes(record.status)).map((record) => <option key={record.id} value={record.id}>{record.number} · {record.purpose} · {money(record.total, record.currency)}</option>)}</select></label> : <><label>Devise<select value={movement.currency} onChange={(event) => setMovement({ ...movement, currency: event.target.value })}>{currencies.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}</select></label><label>Montant ({movement.currency})<input autoFocus type="number" min="0.01" step="0.01" required value={movement.amount} onChange={(event) => setMovement({ ...movement, amount: event.target.value })} /></label><label>Description<input required value={movement.description} onChange={(event) => setMovement({ ...movement, description: event.target.value })} placeholder="Ex. Paiement facture FAC-2026-0001" /></label></>}</form>}</OverlayDialog>
       <OverlayDialog open={closingOpen && Boolean(session)} title="Clôturer la caisse" onClose={() => setClosingOpen(false)} topbarActions={<OverlayActionButton icon={<OverlaySaveIcon />} className="primary-button overlay-save-button" type="submit" form="cash-closing-form">Confirmer la clôture</OverlayActionButton>}>{session && <form id="cash-closing-form" className="stack-form cash-opening-form" onSubmit={closeRegister}><div className="cash-opening-intro">Saisissez le montant réellement compté pour chaque devise. La session du jour sera définitivement clôturée et le rapport journalier pourra être imprimé.</div>{Object.keys(session.expectedBalances || { [session.currency]: session.expectedBalance }).map((balanceCurrency) => <label key={balanceCurrency}>Fonds final ({balanceCurrency})<input autoFocus={balanceCurrency === session.currency} type="number" min="0" step="0.01" required value={closingBalances[balanceCurrency] || ""} onChange={(event) => setClosingBalances((current) => ({ ...current, [balanceCurrency]: event.target.value }))} /></label>)}</form>}</OverlayDialog>
       <OverlayDialog open={resetOpen} title="Réinitialiser les données de caisse" onClose={() => { if (!resetting) { setResetOpen(false); setResetConfirmation(""); } }} topbarActions={<><button className="secondary-button" type="button" onClick={() => { setResetOpen(false); setResetConfirmation(""); }} disabled={resetting}>Annuler</button><button className="danger-button" type="submit" form="cash-reset-form" disabled={resetting || resetConfirmation !== "SUPPRIMER CAISSE"}>{resetting ? "Suppression…" : "Supprimer définitivement"}</button></>}><form id="cash-reset-form" className="stack-form cash-opening-form" onSubmit={resetRegister}><div className="cash-reset-warning"><strong>Action irréversible</strong><p>Cette opération supprimera les sessions, mouvements, décaissements, versements et rapports de caisse.</p><p>Les clients, factures et paiements seront conservés.</p></div><label>Saisissez <strong>SUPPRIMER CAISSE</strong> pour confirmer<input autoFocus value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value)} autoCapitalize="characters" autoCorrect={false} /></label></form></OverlayDialog>
     </div>

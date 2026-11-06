@@ -95,11 +95,11 @@ export function AppRoutes() {
           <Route path="/proformas" element={<RequireRoles allowedRoles={["admin"]}><ProformasPage /></RequireRoles>} />
           <Route path="/delivery-notes" element={<RequireRoles allowedRoles={["admin", "receptionist", "order_manager"]}><DeliveryNotesPage /></RequireRoles>} />
           <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/cash-register" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashRegisterPage /></RequireRoles>} />
+          <Route path="/cash-register" element={<RequireRoles allowedRoles={["admin", "director", "receptionist"]}><CashRegisterPage /></RequireRoles>} />
           <Route path="/cash-reports" element={<RequireRoles allowedRoles={["admin", "receptionist", "accountant"]}><CashReportsPage /></RequireRoles>} />
-          <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashDisbursementsPage /></RequireRoles>} />
+          <Route path="/cash" element={<RequireRoles allowedRoles={["admin", "director", "receptionist"]}><CashDisbursementsPage /></RequireRoles>} />
           <Route path="/cash-deposits" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><CashDepositsPage /></RequireRoles>} />
-          <Route path="/need-requests" element={<RequireRoles allowedRoles={["admin", "receptionist"]}><NeedRequestsPage /></RequireRoles>} />
+          <Route path="/need-requests" element={<RequireRoles allowedRoles={["admin", "director", "receptionist"]}><NeedRequestsPage /></RequireRoles>} />
           </Route>
         </Route>
       </Route>
