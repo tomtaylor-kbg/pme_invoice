@@ -14,7 +14,7 @@ async function getDashboardData(prisma, user) {
   nextDay.setUTCDate(nextDay.getUTCDate() + 1);
   const paymentModel = prisma.payment;
   const canViewAllDisbursements = ["admin", "director", "receptionist"].includes(user?.role);
-  const [users, clients, invoices, paidInvoices, overdueInvoices, totalAmount, payments, collectedAmount, recentInvoices, outstandingInvoices, cashDisbursements, dailyCash] = await Promise.all([
+  const [users, clients, invoices, paidInvoices, overdueInvoices, totalAmount, payments, collectedAmount, dailyCollectedAmounts, recentInvoices, outstandingInvoices, cashDisbursements, dailyCash] = await Promise.all([
     prisma.user.count(),
     prisma.client.count(),
     prisma.invoice.count(),
@@ -23,6 +23,7 @@ async function getDashboardData(prisma, user) {
     prisma.invoice.aggregate({ _sum: { total: true } }),
     paymentModel?.count ? paymentModel.count().catch((error) => { if (!isMissingPaymentTableError(error)) throw error; return 0; }) : Promise.resolve(0),
     paymentModel?.aggregate ? paymentModel.aggregate({ _sum: { amount: true } }).catch((error) => { if (!isMissingPaymentTableError(error)) throw error; return { _sum: { amount: 0 } }; }) : Promise.resolve({ _sum: { amount: 0 } }),
+    getDailyCollectedAmounts(paymentModel, day, nextDay),
     getRecentInvoices(prisma, day, nextDay),
     getOutstandingInvoices(prisma),
     prisma.cashDisbursement.findMany({
@@ -45,12 +46,27 @@ async function getDashboardData(prisma, user) {
   });
 
   return {
-    metrics: { users, clients, invoices, payments, paidInvoices, overdueInvoices, turnover: Number(totalAmount._sum.total || 0), collectedAmount: Number(collectedAmount._sum.amount || 0), cashBalance },
+    metrics: { users, clients, invoices, payments, paidInvoices, overdueInvoices, turnover: Number(totalAmount._sum.total || 0), collectedAmount: Number(collectedAmount._sum.amount || 0), dailyCollectedAmounts, cashBalance },
     recentInvoices,
     outstandingInvoices,
     cashDisbursements: cashDisbursements.map(serializeCashDisbursement),
     operations: [...invoiceOperations, ...disbursementOperations].sort((left, right) => new Date(right.occurredAt) - new Date(left.occurredAt))
   };
+}
+
+async function getDailyCollectedAmounts(paymentModel, day, nextDay) {
+  if (!paymentModel?.findMany) return {};
+  try {
+    const payments = await paymentModel.findMany({ where: { paidAt: { gte: day, lt: nextDay } }, select: { amount: true, invoice: { select: { currency: true } } } });
+    return payments.reduce((totals, payment) => {
+      const currency = payment.invoice?.currency || "EUR";
+      totals[currency] = Number(totals[currency] || 0) + Number(payment.amount || 0);
+      return totals;
+    }, {});
+  } catch (error) {
+    if (!isMissingPaymentTableError(error)) throw error;
+    return {};
+  }
 }
 
 async function getRecentInvoices(prisma, day, nextDay) {

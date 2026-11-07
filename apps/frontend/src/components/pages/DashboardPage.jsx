@@ -25,9 +25,12 @@ export function DashboardPage() {
   const [cashSaving, setCashSaving] = useState(false);
   const disbursements = data.cashDisbursements || [];
   const matchingInvoices = invoices.filter((invoice) => (invoice.currency || "EUR") === currency);
-  const activityInvoices = data.recentInvoices?.length ? data.recentInvoices : invoices;
+  const activityInvoices = data.recentInvoices || [];
   const matchingDisbursements = disbursements.filter((record) => (record.currency || "EUR") === currency);
   const disbursedAmount = matchingDisbursements.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+  const otherCurrency = currency === "USD" ? "CDF" : "USD";
+  const otherDisbursements = disbursements.filter((record) => (record.currency || "EUR") === otherCurrency);
+  const otherDisbursedAmount = otherDisbursements.reduce((sum, record) => sum + Number(record.amount || 0), 0);
   const monthlyRevenue = buildMonthlyRevenueSeries(matchingInvoices, 12);
   const maxRevenue = Math.max(...monthlyRevenue.map((point) => point.value), 1);
   const chartPoints = monthlyRevenue.map((point, index) => ({
@@ -50,10 +53,10 @@ export function DashboardPage() {
   const unpaidAmount = Math.max(0, billedAmount - receivedAmount);
   const overdueAmount = Math.min(unpaidAmount, overdueBalance);
   const currentOutstandingAmount = Math.max(0, unpaidAmount - overdueAmount);
-  const receivedShare = billedAmount > 0 ? Math.round(receivedAmount / billedAmount * 100) : 0;
-  const receivedShareExact = billedAmount > 0 ? receivedAmount / billedAmount * 100 : 0;
-  const currentOutstandingShare = billedAmount > 0 ? currentOutstandingAmount / billedAmount * 100 : 0;
-  const netAfterDisbursements = billedAmount - disbursedAmount;
+  const dailyReceivedAmount = Number(data.metrics?.dailyCollectedAmounts?.[currency] || 0);
+  const dailyNetAmount = dailyReceivedAmount - disbursedAmount;
+  const otherDailyReceivedAmount = Number(data.metrics?.dailyCollectedAmounts?.[otherCurrency] || 0);
+  const otherDailyNetAmount = otherDailyReceivedAmount - otherDisbursedAmount;
   useEffect(() => {
     if (!canBePromptedToOpenCash || !user?.id || isHydrating) return undefined;
     let cancelled = false;
@@ -91,10 +94,9 @@ export function DashboardPage() {
 
       <div className="page-scroll">
         {isHydrating ? <DataLoadingState label="Chargement du tableau de bord…" className="page-loading-state" /> : <>
-        <section className="panel dashboard-financial-summary" aria-label="Synthèse financière">
-          <div className="dashboard-summary-top"><div><span>Total facturé, {new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(new Date())}</span><strong>{money(billedAmount, currency)}</strong></div><div className="dashboard-summary-net"><span>Net après sorties</span><strong>{money(netAfterDisbursements, currency)}</strong></div></div>
-          <div className="dashboard-summary-progress"><span style={{ width: `${Math.min(100, Math.max(0, receivedShareExact))}%` }} /></div>
-          <div className="dashboard-summary-breakdown"><div><span>Encaissé</span><strong>{money(receivedAmount, currency)}</strong></div><div><span>En cours</span><strong>{money(currentOutstandingAmount, currency)}</strong></div><div><span>Impayé en retard</span><strong>{money(overdueAmount, currency)}</strong></div></div>
+        <section className="dashboard-summary-grid" aria-label="Synthèse financière">
+          <article className="panel dashboard-financial-summary dashboard-primary-summary"><div className="dashboard-summary-top"><div><span>Recettes du jour ({currency})</span><strong>{money(dailyReceivedAmount, currency)}</strong></div></div><div className="dashboard-summary-net"><span>Net après sorties</span><strong>{money(dailyNetAmount, currency)}</strong></div></article>
+          <article className="panel dashboard-financial-summary dashboard-secondary-summary"><div className="dashboard-summary-card-title">Caisse du jour ({otherCurrency})</div><div className="dashboard-secondary-breakdown"><div><span>Recettes</span><strong>{money(otherDailyReceivedAmount, otherCurrency)}</strong></div><div><span>Dépenses</span><strong>{money(otherDisbursedAmount, otherCurrency)}</strong></div><div><span>Solde net</span><strong className={otherDailyNetAmount < 0 ? "financial-overdue" : ""}>{money(otherDailyNetAmount, otherCurrency)}</strong></div></div></article>
         </section>
         <section className="activity-priorities" aria-label="Priorités financières">
           <button type="button" className="activity-priority outstanding" onClick={() => navigate("/invoices?status=open")}>
@@ -113,7 +115,7 @@ export function DashboardPage() {
 
         <section className="activity-charts" aria-label="Analyse financière">
           <div className="panel activity-revenue-panel">
-            <SectionHeader title="Chiffre d’affaires mensuel" />
+            <div className="dashboard-chart-heading"><h2>Chiffre d’affaires mensuel</h2><span>12 derniers mois</span></div>
             <div className="activity-revenue-chart">
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={`Chiffre d’affaires mensuel en ${currency}`}>
                 <line x1="0" y1="92" x2="100" y2="92" className="revenue-axis" />
@@ -143,9 +145,8 @@ export function DashboardPage() {
         </section>}
 
         <section className="panel entity-list-panel dashboard-invoices-panel">
-          <SectionHeader title="Dernières factures" buttonLabel="Voir toutes les factures" onButtonClick={() => navigate("/invoices")} />
-          {activityInvoices.filter((invoice) => (invoice.currency || "EUR") === currency).length ? <Table className="entity-list-table dashboard-invoices-table" columns={["Numéro", "Client", "Date", "Statut", "Montant"]} rows={activityInvoices.filter((invoice) => (invoice.currency || "EUR") === currency).slice(0, 5).map((invoice) => [invoice.number, clientName(invoice), formatDate(invoice.issueDate || invoice.createdAt), <span className="badge status-paid">{invoice.status === "paid" || Number(invoice.balanceDue || 0) <= 0 ? "Payée" : "À suivre"}</span>, <strong>{money(invoice.total, currency)}</strong>])} /> : <div className="empty-state">Aucune facture dans cette devise.</div>}
-          <small className="dashboard-example-note">Dernières factures.</small>
+          <SectionHeader title="Factures du jour" buttonLabel="Voir toutes les factures" onButtonClick={() => navigate("/invoices")} />
+          {activityInvoices.filter((invoice) => (invoice.currency || "EUR") === currency).length ? <Table className="entity-list-table dashboard-invoices-table" columns={["Numéro", "Client", "Date", "Statut", "Montant"]} rows={activityInvoices.filter((invoice) => (invoice.currency || "EUR") === currency).slice(0, 5).map((invoice) => [invoice.number, clientName(invoice), formatDate(invoice.issueDate || invoice.createdAt), <span className="badge status-paid">{invoice.status === "paid" || Number(invoice.balanceDue || 0) <= 0 ? "Payée" : "À suivre"}</span>, <strong>{money(invoice.total, currency)}</strong>])} /> : <div className="empty-state">Aucune facture aujourd’hui en {currency}.</div>}
         </section>
         </>}
       </div>

@@ -137,6 +137,7 @@ function serializeWorkspaceSetting(setting) {
     ...setting,
     vatRate: String(setting.vatRate ?? "20"),
     paymentTermsDays: String(setting.paymentTermsDays ?? "30"),
+    exchangeRateCdfPerUsd: String(setting.exchangeRateCdfPerUsd ?? "2300"),
     createdAt: toIso(setting.createdAt),
     updatedAt: toIso(setting.updatedAt)
   };

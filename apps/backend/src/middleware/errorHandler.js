@@ -1,5 +1,5 @@
 function errorHandler(error, _req, res, _next) {
-  if (error?.code === "CASH_SESSION_CLOSED" || error?.code === "CASH_SESSION_REQUIRED" || error?.code === "CASH_MOVEMENT_LINKED") {
+  if (error?.code === "CASH_SESSION_CLOSED" || error?.code === "CASH_SESSION_REQUIRED" || error?.code === "CASH_MOVEMENT_LINKED" || error?.code === "CASH_INSUFFICIENT_FUNDS") {
     return res.status(409).json({ message: error.message });
   }
   console.error(error);

@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -74,6 +75,7 @@ model WorkspaceSetting {
   businessSector   String   @default("Imprimerie")
   vatRate          String   @default("20")
   defaultCurrency  String   @default("EUR")
+  exchangeRateCdfPerUsd String @default("2300")
   addressLine1     String   @default("")
   addressLine2     String   @default("")
   postalCode       String   @default("")
@@ -439,6 +441,8 @@ model CashDeposit {
   cashSessionId String?
   amount        Decimal
   currency      String                 @default("EUR")
+  amountCdf     Decimal?
+  amountUsd     Decimal?
   destination   String
   reason        String
   reference     String?
@@ -450,7 +454,7 @@ model CashDeposit {
   updatedAt     DateTime               @updatedAt
   creator       User?                  @relation("CreatedCashDeposits", fields: [userId], references: [id], onDelete: SetNull)
   cashSession   CashRegisterSession?   @relation(fields: [cashSessionId], references: [id], onDelete: SetNull)
-  cashMovement  CashRegisterMovement?
+  cashMovements CashRegisterMovement[]
 
   @@index([status, createdAt])
   @@index([cashSessionId])

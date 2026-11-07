@@ -644,6 +644,12 @@ export function ToolsPage() {
                       <small>La devise sélectionnée par défaut pour vos nouvelles factures.</small>
                     </label>
 
+                    <label>
+                      Taux du jour (1 USD en CDF)
+                      <input type="number" min="0.000001" step="0.01" value={workspaceSettings.exchangeRateCdfPerUsd} onChange={(e) => updateSetting("exchangeRateCdfPerUsd", e.target.value)} />
+                      <small>Utilisé pour convertir les montants des factures entre USD et CDF.</small>
+                    </label>
+
                     <div className="tools-form-wide">
                       <div className="tools-vat-toggle-card">
                         <div className="tools-vat-toggle-head">

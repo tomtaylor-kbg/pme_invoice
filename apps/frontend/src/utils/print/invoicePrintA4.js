@@ -39,10 +39,13 @@ export function buildInvoicePrintHtml({ invoice, client, creator, director, sett
   const legalLine = formatWorkspaceLegalInfo(settings);
   const bankLine = formatWorkspaceBankInfo(settings);
   const businessSector = String(settings.businessSector || "").trim();
+  const documentNumber = invoice?.documentType === "proforma" && invoice?.number === "AAAA-XXXX"
+    ? "AAAA-XXXX"
+    : String(invoice.number || "").replace(/^[A-Z0-9]+-/, "");
   const documentLabel = isDeliveryNote
     ? `Bon de livraison n° ${String(invoice.number || "").replace(/^[A-Z0-9]+-/, "")}`
     : invoice?.documentType === "proforma"
-    ? `Facture pro forma n° ${String(invoice.number || "").replace(/^[A-Z0-9]+-/, "")}`
+    ? `Facture pro forma n° ${documentNumber}`
     : invoiceDisplayLabel(invoice);
   const documentFilename = isDeliveryNote
     ? `Bon de livraison ${String(invoice.number || "bon-de-livraison").replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")}.pdf`

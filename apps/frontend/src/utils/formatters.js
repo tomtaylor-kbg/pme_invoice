@@ -20,6 +20,15 @@ export function money(value, currency = "EUR") {
   return formatMoney(value, currency);
 }
 
+export function convertCurrencyAmount(value, fromCurrency, toCurrency, cdfPerUsd) {
+  const amount = toMoneyValue(value);
+  const from = String(fromCurrency || "").toUpperCase();
+  const to = String(toCurrency || "").toUpperCase();
+  const rate = Number(cdfPerUsd);
+  if (!amount || from === to || !["CDF", "USD"].includes(from) || !["CDF", "USD"].includes(to) || !Number.isFinite(rate) || rate <= 0) return amount;
+  return from === "USD" ? amount * rate : amount / rate;
+}
+
 export function formatDate(value) {
   if (!value) return "-";
   if (/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(String(value))) return formatISODate(value);

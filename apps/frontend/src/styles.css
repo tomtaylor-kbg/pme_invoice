@@ -2207,18 +2207,26 @@ body[data-theme="light"] .hero.list-page-header {
 .dashboard-currency-switch button { min-width: 59px; height: 40px; padding: 0 14px; border: 0; border-right: 1px solid var(--border); color: var(--muted); background: transparent; font: inherit; font-weight: 700; cursor: pointer; }
 .dashboard-currency-switch button:last-child { border-right: 0; }
 .dashboard-currency-switch button.active { color: #fff; background: #17231f; }
-.dashboard-financial-summary { padding: 26px 24px 24px; border-radius: 14px; }
+.dashboard-summary-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; min-width: 0; }
+.dashboard-financial-summary { display: flex; min-width: 0; min-height: 118px; padding: 18px 16px; border-radius: 10px; }
+.dashboard-primary-summary { flex-direction: column; justify-content: space-between; }
 .dashboard-summary-top { display: flex; justify-content: space-between; gap: 24px; align-items: end; }
 .dashboard-summary-top > div { display: grid; gap: 5px; }
 .dashboard-summary-top span, .dashboard-summary-breakdown span { color: var(--muted); font-size: .82rem; }
-.dashboard-summary-top strong { font-size: clamp(2.5rem, 5vw, 3.2rem); line-height: 1; letter-spacing: -.05em; }
+.dashboard-summary-top strong { font-size: clamp(2rem, 4vw, 2.7rem); line-height: 1; letter-spacing: -.05em; }
 .dashboard-summary-net { text-align: right; }
-.dashboard-summary-net strong { font-size: 1.45rem; }
+.dashboard-summary-net { display: grid; gap: 4px; }
+.dashboard-summary-net span, .dashboard-summary-card-title, .dashboard-secondary-breakdown span { color: var(--muted); font-size: .78rem; }
+.dashboard-summary-net strong { font-size: .98rem; }
 .dashboard-summary-progress { height: 14px; margin: 24px 0 16px; overflow: hidden; border-radius: 999px; background: var(--border); }
 .dashboard-summary-progress span { display: block; height: 100%; border-radius: inherit; background: var(--success); }
 .dashboard-summary-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); }
 .dashboard-summary-breakdown > div { display: grid; gap: 5px; padding: 4px 14px; border-left: 3px solid var(--text); }
 .dashboard-summary-breakdown strong { font-size: 1.05rem; }
+.dashboard-secondary-summary { display: grid; align-content: space-between; gap: 18px; }
+.dashboard-secondary-breakdown { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.dashboard-secondary-breakdown > div { display: grid; gap: 5px; min-width: 0; }
+.dashboard-secondary-breakdown strong { font-size: 1rem; white-space: nowrap; }
 .activity-header .hero-actions .primary-button,
 .activity-header .hero-actions .secondary-button { height: 40px; min-height: 40px; padding: 0 16px; border-radius: 10px; font-weight: 650; transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease; }
 .activity-header .hero-actions .secondary-button { background: var(--panel); }
@@ -2255,7 +2263,11 @@ body[data-theme="light"] .hero.list-page-header {
 .dashboard-action-card strong { font-size: 1rem; }
 .dashboard-action-card p { margin: 0; color: var(--muted); line-height: 1.45; }
 .dashboard-action-card .primary-button, .dashboard-action-card .secondary-button { justify-self: start; }
-.dashboard-invoices-panel { margin-top: 16px; }
+.dashboard-page .page-scroll { min-width: 0; padding-bottom: 24px; }
+.dashboard-invoices-panel { width: 100%; max-width: 100%; min-width: 0; margin-top: 16px; padding: 20px; overflow: hidden; box-sizing: border-box; }
+.dashboard-invoices-panel .section-header { min-width: 0; flex-wrap: wrap; margin-bottom: 16px; }
+.dashboard-invoices-panel .section-header > div { min-width: 0; }
+.dashboard-invoices-panel .section-header button { max-width: 100%; white-space: normal; }
 .dashboard-invoices-table table { min-width: 680px; }
 .dashboard-example-note { display: block; margin-top: 14px; color: var(--muted); }
 
@@ -2351,6 +2363,9 @@ body[data-theme="light"] .hero.list-page-header {
 
 .activity-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; margin-top: 20px; }
 .activity-revenue-panel, .activity-breakdown-panel { min-width: 0; }
+.dashboard-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dashboard-chart-heading h2 { margin: 0; font-size: 1rem; }
+.dashboard-chart-heading span { color: var(--muted); font-size: .76rem; }
 .activity-revenue-chart { padding-top: 12px; }
 .activity-revenue-chart svg { display: block; width: 100%; height: 190px; overflow: visible; }
 .revenue-axis { stroke: var(--border); stroke-width: 0.7; vector-effect: non-scaling-stroke; }
@@ -2679,6 +2694,7 @@ body[data-theme="light"] .hero.list-page-header {
 .cash-form-grid label { min-width: 0; }
 .cash-form-grid input, .cash-form-grid select, .cash-form-grid textarea { width: 100%; min-width: 0; }
 .cash-form-wide { grid-column: 1 / -1; }
+.cash-deposit-form-intro { grid-column: 1 / -1; padding: 10px 12px; border-radius: 9px; color: var(--muted); background: color-mix(in srgb, var(--accent-color) 7%, var(--panel)); font-size: .84rem; line-height: 1.45; }
 .danger-button { min-height: 42px; padding: 0 16px; border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border)); border-radius: 10px; color: #fff; background: var(--danger); font: inherit; font-weight: 700; cursor: pointer; }
 .danger-button:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 85%, #000); }
 .danger-button:disabled { cursor: not-allowed; opacity: .6; }
@@ -4190,6 +4206,7 @@ body[data-theme="light"] .entity-card.invoice {
 .list-view-content > .entity-list-panel { margin-top: 0; }
 .order-list-panel > .list-filters { margin-top: 12px; }
 .order-list-panel > .orders-table-panel { margin-top: 12px; }
+.dashboard-page .dashboard-invoices-panel { width: 100%; max-width: 100%; min-width: 0; padding: 20px; box-sizing: border-box; }
 .list-filters .filter-field { min-width: 0; }
 .list-filters .filter-field:not(.search) { font-size: 0; }
 .list-filters .filter-field:not(.search) input, .list-filters .filter-field:not(.search) select { font-size: .84rem; }
@@ -4203,6 +4220,9 @@ body[data-theme="light"] .entity-card.invoice {
 
 @media (max-width: 720px) {
   .page-shell { padding: 16px; }
+  .dashboard-summary-grid { grid-template-columns: 1fr; }
+  .dashboard-secondary-breakdown { gap: 10px; }
+  .dashboard-secondary-breakdown strong { font-size: .9rem; }
   .hero.list-page-header { align-items: flex-start; flex-direction: column; }
   .list-filters { padding-inline: 14px; }
   .entity-list-panel { padding: 0; }

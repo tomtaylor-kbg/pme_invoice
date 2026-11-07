@@ -75,7 +75,7 @@ export function ProformasPage() {
       try { record = await getProforma(token, record.id); }
       catch (requestError) { notifyError("Aperçu indisponible", requestError.message); return; }
     }
-    const source = record || { ...form, number: selected?.number || "PROFORMA", documentType: "proforma", total, lines: form.lines };
+    const source = record || { ...form, number: selected?.number || "AAAA-XXXX", documentType: "proforma", total, lines: form.lines };
     const client = record?.client || (form.clientMode === "manual" ? {
       firstName: form.manualClientName.trim().split(/\s+/)[0] || "Client",
       lastName: form.manualClientName.trim().split(/\s+/).slice(1).join(" "),

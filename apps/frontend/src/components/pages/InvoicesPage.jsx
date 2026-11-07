@@ -16,6 +16,7 @@ import {
   invoiceLinesTotal,
   invoicePaymentTotal,
   invoiceDisplayLabel,
+  convertCurrencyAmount,
   invoicePaymentStatusLabel,
   invoiceSettlementStatus,
   paymentMethodLabel,
@@ -166,6 +167,17 @@ export function InvoicesPage() {
         )
       }
     }));
+  }
+
+  function changeInvoiceCurrency(nextCurrency) {
+    setForms((current) => {
+      const previousCurrency = current.invoice.currency || "EUR";
+      const lines = (current.invoice.lines?.length ? current.invoice.lines : [createInvoiceLineDraft()]).map((line) => ({
+        ...line,
+        unitPrice: line.unitPrice === "" ? "" : String(Number(convertCurrencyAmount(line.unitPrice, previousCurrency, nextCurrency, workspaceSettings.exchangeRateCdfPerUsd)).toFixed(2))
+      }));
+      return { ...current, invoice: { ...current.invoice, currency: nextCurrency, lines } };
+    });
   }
 
   function addInvoiceLine() {
@@ -423,10 +435,7 @@ export function InvoicesPage() {
             Devise
             <select
               value={forms.invoice.currency}
-              onChange={(event) => setForms((current) => ({
-                ...current,
-                invoice: { ...current.invoice, currency: event.target.value }
-              }))}
+              onChange={(event) => changeInvoiceCurrency(event.target.value)}
             >
               <option value="EUR">EUR</option>
               <option value="USD">USD</option>
